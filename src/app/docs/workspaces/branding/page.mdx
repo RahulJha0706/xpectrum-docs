@@ -1,0 +1,75 @@
+export const metadata = {
+  title: 'Branding',
+  description: 'Remove or replace the Powered by Xpectrum AI badge on your web apps with your own logo from Settings › Customization.',
+}
+
+# Branding
+
+Use **Settings › Customization** to remove the **Powered by Xpectrum AI** badge from the apps you share, or replace it with your own logo. Agencies use it so client-facing apps carry their brand, not ours.
+
+<Callout type='warning' title='Plan and role requirements'>
+  **Customization** appears in **Settings** only when branding is enabled for your workspace. On a plan that doesn't include it, the page shows **Upgrade your plan to customize your brand** and the controls are disabled. Only an **Owner** or **Admin** can change it; other members see the page read-only.
+</Callout>
+
+## Settings
+
+| Setting | What it does |
+|---|---|
+| **Remove Powered by Xpectrum AI** | Hides the "Powered by" footer entirely. The switch takes effect as soon as you flip it; there's no **Apply** step. While it's on, logo upload is disabled. |
+| **Change Powered by Brand Image** | Replaces the Xpectrum logo in the "Powered by" footer with yours. |
+
+### Logo requirements
+
+| Requirement | Value |
+|---|---|
+| Format | SVG or PNG |
+| Recommended minimum size | 40 × 40 px |
+| Maximum file size | 5 MB |
+
+Use a transparent PNG or an SVG so the logo looks right on light and dark backgrounds.
+
+## Change the logo
+
+<Steps>
+<Step title='Open Customization'>
+
+Go to **Settings** and choose **Customization** under **Workspace**.
+
+</Step>
+<Step title='Upload your logo'>
+
+Make sure **Remove Powered by Xpectrum AI** is off. Next to **Change Powered by Brand Image**, click **Upload** (or **Change** if you've uploaded one before) and pick your file.
+
+</Step>
+<Step title='Check the preview and apply'>
+
+After the upload finishes, click **Apply** to save the new logo (or **Cancel** to discard it). The **Preview** section shows a sample chat app and a sample workflow app with the **POWERED BY** footer as visitors will see it.
+
+</Step>
+</Steps>
+
+To go back to the Xpectrum logo, click **Restore Defaults** (shown once you have a custom logo).
+
+## Where branding appears
+
+- The **POWERED BY** footer of shared web apps: chat apps (including the embedded chat window) and workflow apps.
+
+Branding is saved per workspace and applies to every shared app in that workspace. To brand a client's apps, the setting has to be changed inside that client's workspace.
+
+The JavaScript SDK widgets you embed on your own site are styled by you instead: set `title`, `logo`, `primaryColor` and the other options in code. See [Add chat to your website](/docs/guides/website-chat).
+
+## Troubleshooting
+
+- **The controls are greyed out** → your plan doesn't include branding, you aren't an Owner or Admin, or **Remove Powered by Xpectrum AI** is on (which disables upload).
+- **"Upload images cannot exceed 5 MB"** → the file is over 5 MB. Export a smaller PNG or use SVG.
+- **"Image upload failed, please re-upload."** → check the file is an SVG or PNG under 5 MB and try again.
+- **The new logo doesn't show on your apps** → after uploading, you must click **Apply**.
+- **The logo looks blurry** → upload a larger image; 40 × 40 px is the minimum, not the ideal.
+
+## Next steps
+
+<Cards>
+  <Card title='Client workspaces' href='/docs/workspaces/clients'>Create and manage workspaces for your clients.</Card>
+  <Card title='Set up an agency' href='/docs/guides/agency'>Put branding, clients and billing together.</Card>
+  <Card title='Web channel' href='/docs/channels/web'>Style the chat and voice widgets on your site.</Card>
+</Cards>

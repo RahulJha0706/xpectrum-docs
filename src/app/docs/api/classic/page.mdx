@@ -1,0 +1,186 @@
+export const metadata = {
+  title: 'About the classic API',
+  description: 'The classic Xpectrum Service API: what it covers, which endpoint each app type uses, authentication, errors and how it maps to the recommended API.',
+}
+
+# About the classic API
+
+The classic API is the original Xpectrum Service API. It is the API documented on each app's API reference page inside Xpectrum, and it remains fully supported. Use it when you maintain an existing integration or need an endpoint that only the classic API offers.
+
+## How it relates to the recommended API
+
+Both API generations live on the same base URL and accept the same app API key:
+
+```text
+https://cloud.xpectrum.dev/v1
+```
+
+- The **recommended API** (`/v1/chat/completions`, `/v1/threads`, `/v1/runs` and related routes) is OpenAI-compatible where possible and uses the field names `thread_id`, `variables`, `attachments` and `citations`. Start there for new integrations.
+- The **classic API** (`/v1/chat-messages`, `/v1/workflows/run`, `/v1/conversations` and related routes) uses the field names `conversation_id`, `inputs`, `files`, `task_id` and `retriever_resources`.
+
+You can mix both in one integration. A `thread_id` in the recommended API is the same value as a `conversation_id` in the classic API.
+
+<Callout type='tip' title='Recommended alternative'>
+  Building something new? Start with [Chat completions](/docs/api/chat-completions), [Threads](/docs/api/threads) and [Workflow runs](/docs/api/runs). The classic pages link to the matching recommended endpoint wherever one exists.
+</Callout>
+
+## When to use the classic API
+
+Use the classic API when:
+
+- You already have an integration built on these routes and want to keep it as it is.
+- You need **audio**: [speech to text](/docs/api/classic/app#audio-to-text) and [text to speech](/docs/api/classic/app#text-to-audio).
+- You manage **annotations** (curated question-and-answer replies) from code: see [Annotations](/docs/api/classic/annotations).
+- You upload files once and reference them by id: see [Files](/docs/api/classic/files).
+- You read or manage **conversation variables**, rename or delete conversations: see [Conversations & messages](/docs/api/classic/conversations).
+- You collect end-user **feedback** or read the app's feedback list: see [Feedback, audio & app info](/docs/api/classic/app).
+- You want the full set of workflow and node events on the stream (for example `node_started`, `iteration_next` or `text_chunk`).
+
+## Endpoints by app type
+
+Each app type has one endpoint that runs it. The rest of the classic API works on top of those runs.
+
+| App type | Run endpoint | Stop endpoint |
+|---|---|---|
+| Agent Flow | `POST /v1/chat-messages` | `POST /v1/chat-messages/{task_id}/stop` |
+| AI Chatbot | `POST /v1/chat-messages` | `POST /v1/chat-messages/{task_id}/stop` |
+| Autonomous Agent | `POST /v1/chat-messages` (streaming only) | `POST /v1/chat-messages/{task_id}/stop` |
+| Multi-prompt Agent (Beta) | `POST /v1/chat-messages` | `POST /v1/chat-messages/{task_id}/stop` |
+| Workflow | `POST /v1/workflows/run` | `POST /v1/workflows/tasks/{task_id}/stop` |
+| Text Generator | `POST /v1/completion-messages` | `POST /v1/completion-messages/{task_id}/stop` |
+
+Calling a route with a key for the wrong app type returns `400` with `not_chat_app`, `not_workflow_app` or `app_unavailable` and the message "Please check if your app mode matches the right API route." (or "App unavailable, please check your app configurations." for `app_unavailable`).
+
+The full list of classic endpoints and the app types they support:
+
+| Endpoint | Agent Flow | AI Chatbot / Autonomous Agent | Workflow | Text Generator |
+|---|---|---|---|---|
+| [`POST /v1/chat-messages`](/docs/api/classic/chat-messages) | Yes | Yes | | |
+| [`POST /v1/completion-messages`](/docs/api/classic/completion-messages) | | | | Yes |
+| [`POST /v1/workflows/run`](/docs/api/classic/workflows) | | | Yes | |
+| [`GET /v1/workflows/run/{workflow_run_id}`](/docs/api/classic/workflows#get-a-workflow-run) | Yes | | Yes | |
+| [`GET /v1/workflows/logs`](/docs/api/classic/workflows#list-workflow-logs) | | | Yes | |
+| [`POST /v1/files/upload`](/docs/api/classic/files) | Yes | Yes | Yes | Yes |
+| [`GET /v1/conversations`](/docs/api/classic/conversations) and related | Yes | Yes | | |
+| [`GET /v1/messages`](/docs/api/classic/conversations#list-messages) | Yes | Yes | | |
+| [`GET /v1/messages/{message_id}/suggested`](/docs/api/classic/conversations#get-suggested-questions) | Yes | Yes | | |
+| [`POST /v1/messages/{message_id}/feedbacks`](/docs/api/classic/app#send-message-feedback) | Yes | Yes | | Yes |
+| [`GET /v1/app/feedbacks`](/docs/api/classic/app#list-app-feedback) | Yes | Yes | | Yes |
+| [`POST /v1/audio-to-text`](/docs/api/classic/app#audio-to-text) | Yes | Yes | | |
+| [`POST /v1/text-to-audio`](/docs/api/classic/app#text-to-audio) | Yes | Yes | | Yes |
+| [`GET /v1/parameters`, `/v1/info`, `/v1/site`](/docs/api/classic/app#get-app-parameters) | Yes | Yes | Yes | Yes |
+| [`GET /v1/meta`](/docs/api/classic/app#get-app-meta) | Yes | Yes | | |
+| [`/v1/apps/annotations` and `/v1/apps/annotation-reply`](/docs/api/classic/annotations) | Yes | Yes | | |
+
+## Authentication
+
+Every classic endpoint uses the app's API key as a bearer token:
+
+```http
+Authorization: Bearer xpectrum_xxxxxxxxxxxx
+```
+
+Create keys from the app's API reference page: choose **API Key**, then **Create new Secret key**. Once the app is published, you can also hover the app name in the header to open **API & Access** and create a key there. Keys are listed masked; use the copy button next to a key to copy it. Each app can have up to 10 keys.
+
+<Callout type='warning'>
+  Keep the key on your server. Anyone who has it can run the app and read its conversations. Don't put it in browser or mobile code.
+</Callout>
+
+Authentication failures use the standard [error envelope](#errors):
+
+| Status | Code | Message |
+|---|---|---|
+| 401 | `unauthorized` | Authorization header must be provided and start with 'Bearer' |
+| 401 | `unauthorized` | Authorization scheme must be 'Bearer' |
+| 401 | `unauthorized` | Access token is invalid |
+| 403 | `forbidden` | The app no longer exists. |
+| 403 | `forbidden` | The app's status is abnormal. |
+| 403 | `forbidden` | The app's API service has been disabled. |
+| 403 | `forbidden` | The workspace's status is archived. |
+| 403 | `forbidden` | This client workspace has no admin yet. Accept the admin invitation before calling the API. |
+
+## The user parameter
+
+`user` is your own identifier for the end user (for example your customer id). Xpectrum creates one end user per `user` value per app, and conversations, messages and feedback belong to that end user.
+
+- **Required routes.** `POST /v1/chat-messages`, `POST /v1/completion-messages`, `POST /v1/workflows/run`, all three stop endpoints, `POST /v1/messages/{message_id}/feedbacks` and `GET /v1/messages/{message_id}/suggested` require `user`. Omitting it returns `400 invalid_param` "Arg user must be provided."
+- **Optional routes.** On the other routes that take `user` (file upload, conversation and message listing, audio), omitting it makes the call act as a single shared anonymous end user, `DEFAULT-USER`.
+- **Use the same value throughout.** A conversation belongs to the `user` that created it. Continuing, listing, renaming or deleting it with a different `user` returns `404` "Conversation Not Exists."
+
+<Callout>
+  Always send `user`, even where it is optional. Otherwise every caller shares the `DEFAULT-USER` history.
+</Callout>
+
+## Response modes
+
+The run endpoints accept `response_mode`:
+
+- `streaming` (recommended) returns Server-Sent Events. Each chunk is a line `data: {json}` followed by a blank line. See [Streaming](/docs/api/streaming) for how to consume the stream.
+- `blocking` waits for the run to finish and returns one JSON object. If you omit `response_mode`, the request is blocking. Any other value returns `400 invalid_param`.
+
+<Callout type='warning'>
+  Long blocking requests can be interrupted before the run finishes. Use streaming for anything that might run longer. The **Autonomous Agent** app type does not support blocking mode at all: it returns `400 invalid_param` "Agent Chat App does not support blocking mode".
+</Callout>
+
+## Errors
+
+Classic endpoints return errors as JSON with the HTTP status repeated in the body:
+
+```json
+{
+  "code": "invalid_param",
+  "message": "Arg user must be provided.",
+  "status": 400
+}
+```
+
+- `code` is a stable, machine-readable string. Branch on it, not on `message`.
+- A request body field that fails validation returns `invalid_param` and also a `params` field naming the field.
+- A body that is not valid JSON returns `invalid_param` "Invalid JSON payload received or JSON payload is empty."
+- Errors that happen after a stream has started arrive as an `error` event with the same `code`, `message` and `status`, and then the stream ends.
+
+Common codes across the classic API:
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | A parameter is missing or invalid, or the request can't run as sent. |
+| 400 | `not_chat_app` / `not_workflow_app` / `app_unavailable` | The route doesn't match the app type, or the app's configuration is broken or unpublished. |
+| 400 | `provider_not_initialize` | No valid model provider credentials are configured. |
+| 400 | `provider_quota_exceeded` | The hosted model quota is used up. |
+| 400 | `model_currently_not_support` | The configured model is not available. |
+| 400 | `completion_request_error` | The model call failed. The message carries the provider's error text. |
+| 404 | `not_found` | The conversation, message or other resource doesn't exist for this app and `user`. |
+| 429 | `rate_limit_error` | A rate limit was reached (chat and workflow runs). Retry with backoff. |
+| 500 | `internal_server_error` | Unexpected server error. Retry, and contact support if it persists. |
+
+The recommended API uses a different, OpenAI-style error shape. See [Errors](/docs/api/errors).
+
+## Classic and recommended names
+
+Use this table when you move code between the two generations.
+
+| Classic | Recommended |
+|---|---|
+| `POST /v1/chat-messages` | [`POST /v1/chat/completions`](/docs/api/chat-completions) |
+| `POST /v1/chat-messages/{task_id}/stop` | [`POST /v1/runs/{run_id}/cancel`](/docs/api/runs) |
+| `POST /v1/workflows/run` | [`POST /v1/runs`](/docs/api/runs) |
+| `GET /v1/conversations` | [`GET /v1/threads`](/docs/api/threads) |
+| `GET /v1/messages?conversation_id=…` | [`GET /v1/threads/{thread_id}/messages`](/docs/api/threads) |
+| `GET /v1/messages/{message_id}/suggested` | [`GET /v1/messages/{message_id}/suggestions`](/docs/api/agent-info) |
+| `GET /v1/info`, `GET /v1/parameters` | [`GET /v1/models`](/docs/api/agent-info) |
+| `conversation_id` | `thread_id` |
+| `inputs` | `variables` |
+| `files` (with `upload_file_id`) | `attachments` (with `file_id`) |
+| `task_id` | `run_id` |
+| `response_mode: "streaming"` | `stream: true` |
+| `metadata.retriever_resources` | `citations` |
+| `{code, message, status}` errors | `{error: {message, type, param, code}}` errors |
+
+## Next steps
+
+<Cards>
+  <Card title='Chat messages' href='/docs/api/classic/chat-messages'>Send a message to an Agent Flow, chatbot or agent.</Card>
+  <Card title='Workflows' href='/docs/api/classic/workflows'>Run a workflow and read its runs and logs.</Card>
+  <Card title='Files' href='/docs/api/classic/files'>Upload a file and pass it to a run.</Card>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>The recommended way to chat with an agent.</Card>
+</Cards>

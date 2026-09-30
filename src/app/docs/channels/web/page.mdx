@@ -1,0 +1,300 @@
+export const metadata = {
+  title: 'Website & widgets',
+  description: 'Add a chat bubble, a voice button or both to any website with the Xpectrum widgets, via npm or a script tag, and keep your API key safe.',
+}
+
+# Website & widgets
+
+Put your agent on any website with a prebuilt widget. The `xpectrum` package ships three: **ChatWidget** (a chat bubble), **VoiceWidget** (a tap-to-talk voice button) and **OmnichannelWidget** (one button that offers both). Add the chat widget with a script tag, with no build step, or add any of them from npm in your app.
+
+## Choose a widget
+
+| Widget | What visitors get | Needs |
+|---|---|---|
+| `ChatWidget` | A floating chat window with streaming replies, starter questions and follow-up suggestions. | An app API key for an AI Chatbot, Autonomous Agent, Agent Flow or Multi-prompt Agent. |
+| `VoiceWidget` | A floating button that opens a call card. Tap to talk to the agent in the browser. | An app API key with **Voice calls** on, HTTPS, and microphone permission. |
+| `OmnichannelWidget` | One button that opens a menu: **Chat** or **Voice Call**. | Both of the above. |
+
+Widgets render inside a Shadow DOM, so your site's CSS and the widget's CSS can't affect each other.
+
+## Before you begin
+
+1. [Publish](/docs/deploy/publishing) the app.
+2. Create an app API key under **API & Access**. See [API keys](/docs/deploy/api-keys).
+3. Note the base URL, which includes `/v1`. For Xpectrum Cloud it is `https://cloud.xpectrum.dev/v1`.
+4. For a key that ships to the browser, turn **Conversation history over API** off in the publish panel and publish again. The widgets never load history, so they keep working. See [Keeping keys safe](#keeping-keys-safe).
+
+## Add chat with a script tag
+
+Paste this before `</body>`:
+
+```html title="index.html"
+<script>
+  window.XpectrumChatConfig = {
+    apiKey: 'xpectrum_xxxxxxxxxxxx',
+    baseUrl: 'https://cloud.xpectrum.dev/v1',
+    title: 'Acme Support',
+    welcomeMessage: 'Hi! How can I help?',
+    primaryColor: '#7C3AED',
+  };
+</script>
+<script src="https://unpkg.com/xpectrum@1.1.0/dist/chat-embed.min.js" defer></script>
+```
+
+The config object must be defined before the script loads. It takes every [ChatWidget option](#chatwidget-options).
+
+<Callout type='warning' title='Pin the version'>
+  Always keep the version in the URL (`xpectrum@1.1.0`). An unpinned URL resolves to the latest release, so a future version would reach your live site without you choosing to upgrade.
+</Callout>
+
+## Add voice to your site
+
+Add the voice widget from npm, as shown in the next section. The API key alone decides which agent answers, and the call uses that agent's settings from [Voice](/docs/channels/voice).
+
+<Callout type='warning' title='Voice needs the npm package'>
+  The package also ships a `voice-embed.min.js` script, but in version 1.1.0 it can't load the voice library on its own: the button appears, and tapping to talk fails with `livekit-client is required for voice calls`. Use `VoiceWidget` or `OmnichannelWidget` from npm instead.
+</Callout>
+
+## Add widgets from npm
+
+```bash title="Terminal"
+npm install xpectrum
+```
+
+```ts title="widgets.ts"
+import { ChatWidget } from 'xpectrum/widgets'
+import { VoiceWidget, OmnichannelWidget } from 'xpectrum'
+
+// Chat bubble
+const chat = new ChatWidget({
+  apiKey: 'xpectrum_xxxxxxxxxxxx',
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  title: 'Acme Support',
+  starterQuestions: ['Where is my order?', 'How do I return an item?'],
+  theme: 'light',
+})
+
+// Open it from your own button
+document.querySelector('#help')?.addEventListener('click', () => chat.open())
+```
+
+```ts title="voice.ts"
+const voice = new VoiceWidget({
+  apiKey: 'xpectrum_xxxxxxxxxxxx',
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  onStateChange: (state) => console.log('Call state:', state),
+  onTranscription: (seg) => {
+    if (seg.isFinal) console.log(`${seg.speaker}: ${seg.text}`)
+  },
+})
+```
+
+```ts title="omnichannel.ts"
+const widget = new OmnichannelWidget({
+  chatBaseUrl: 'https://cloud.xpectrum.dev/v1',
+  chatApiKey: 'xpectrum_xxxxxxxxxxxx',
+  voiceBaseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: 'xpectrum_xxxxxxxxxxxx', // key for voice; can be the same app
+  buttonColor: '#7C3AED',
+  chat: { title: 'Acme Support', theme: 'dark' },
+  voice: { windowWidth: 280 },
+})
+```
+
+Widgets run in the browser only. In frameworks with server rendering, such as Next.js, create them in a client component inside `useEffect`, and call `destroy()` in the cleanup.
+
+```tsx title="components/support-chat.tsx"
+'use client'
+import { useEffect } from 'react'
+import { ChatWidget } from 'xpectrum/widgets'
+
+export function SupportChat() {
+  useEffect(() => {
+    const w = new ChatWidget({
+      apiKey: process.env.NEXT_PUBLIC_XPECTRUM_WIDGET_KEY!, // a browser-safe key, history off
+      baseUrl: 'https://cloud.xpectrum.dev/v1',
+    })
+    return () => w.destroy()
+  }, [])
+  return null
+}
+```
+
+## ChatWidget options
+
+Only `apiKey` and `baseUrl` are required. The title, greeting and starter questions fall back to what's configured on the agent, so a minimal widget still introduces the agent properly.
+
+| Option | Type | Default | What it does |
+|---|---|---|---|
+| `apiKey` | string | — | App API key. Required. |
+| `baseUrl` | string | — | API base URL, including `/v1`. Required. |
+| `user` | string | anonymous id | Who the conversation belongs to. Omit it for an anonymous id per browser; set it for logged-in users. |
+| `anonymousTtlDays` | number | `30` | Days an anonymous id survives, extended on each use. |
+| `container` | HTMLElement | `document.body` | Element to mount into. |
+| `logo` | string | — | Header logo: an image URL or `data:` URI. |
+| `title` | string | Agent's title, then `Chat` | Header title. |
+| `welcomeMessage` | string | Agent's greeting | Greeting for a new conversation. |
+| `inputPlaceholder` | string | `Type a message...` | Message box placeholder. |
+| `starterQuestions` | boolean \| string[] | `true` | Chips under the greeting. `true` uses the agent's configured starter questions, an array overrides them, `false` hides them. They show only when there is a greeting. |
+| `suggestions` | boolean | `true` | Follow-up chips under each reply. Needs the agent's **Follow-up** feature; shows nothing otherwise. |
+| `position` | `'bottom-right'` \| `'bottom-left'` | `'bottom-right'` | Corner for the launcher and window. |
+| `buttonSize` | number | `48` | Launcher size in px. |
+| `windowWidth` | number | `400` | Window width in px. |
+| `windowHeight` | number | `600` | Window height in px. |
+| `zIndex` | number | `2147483647` | Stacking order. |
+| `theme` | `'light'` \| `'dark'` | `'light'` | Light or dark palette. `'auto'` is accepted but currently renders the light theme. |
+| `primaryColor` | string | `#7C3AED` | Brand color: launcher, header, user bubbles, send button. |
+| `onPrimaryColor` | string | `#ffffff` | Text color on top of `primaryColor`. |
+| `backgroundColor` | string | Theme default | Window background. |
+| `textColor` | string | Theme default | Body text color. |
+| `fontFamily` | string | System font stack | Font for the widget. |
+| `fontSize` | number | `14` | Base font size in px; everything else scales from it. |
+| `borderRadius` | number | `12` | Corner rounding in px. |
+
+`buttonColor` still works but is deprecated. Use `primaryColor`.
+
+Methods: `open()`, `close()`, `toggle()`, `destroy()`. <Kbd>Esc</Kbd> closes an open window.
+
+## VoiceWidget options
+
+| Option | Type | Default | What it does |
+|---|---|---|---|
+| `apiKey` | string | — | App API key. It decides which agent answers. Required. |
+| `baseUrl` | string | — | API base URL, including `/v1`. Required. |
+| `container` | HTMLElement | `document.body` | Element to mount into. |
+| `position` | `'bottom-right'` \| `'bottom-left'` | `'bottom-right'` | Corner for the launcher. |
+| `buttonColor` | string | `#7C3AED` | Accent color for the orb, launcher and glow. |
+| `buttonSize` | number | `56` | Launcher size in px. |
+| `windowWidth` | number | `240` | Call card width in px. |
+| `zIndex` | number | `2147483647` | Stacking order. |
+| `onTranscription` | `(segment) => void` | — | Called for each transcript segment: `{ id, text, isFinal, speaker }`, where `speaker` is `user` or `agent`. Interim segments reuse the same `id`, so replace them in place. |
+| `onStateChange` | `(state) => void` | — | Called with `disconnected`, `connecting`, `connected`, `reconnecting` or `failed`. |
+
+Methods: `open()`, `close()`, `toggle()`, `destroy()`. Closing the card ends a call in progress. The call card shows only the latest line as a caption, not a full transcript. Use `onTranscription` if you want to show one.
+
+## OmnichannelWidget options
+
+| Option | Type | What it does |
+|---|---|---|
+| `chatBaseUrl` | string | API base URL for chat. Required. |
+| `chatApiKey` | string | App API key for chat. Required. |
+| `voiceBaseUrl` | string | API base URL for voice (the same URL as chat). Required. |
+| `apiKey` | string | App API key for voice. Required. |
+| `user` | string | User id passed to the chat widget. |
+| `container` | HTMLElement | Element to mount into. |
+| `position` | `'bottom-right'` \| `'bottom-left'` | Corner for the button. |
+| `buttonColor` | string | Button and accent color. |
+| `zIndex` | number | Stacking order. |
+| `chat` | object | Any ChatWidget option, to override for the chat side. |
+| `voice` | object | Any VoiceWidget option, to override for the voice side. |
+
+Methods: `openChat()`, `openVoice()`, `close()`, `destroy()`.
+
+## Theming
+
+Start with `theme` and `primaryColor`, then fine-tune:
+
+```ts
+new ChatWidget({
+  apiKey: 'xpectrum_xxxxxxxxxxxx',
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  theme: 'dark',
+  primaryColor: '#0EA5E9',
+  onPrimaryColor: '#0B1220',
+  backgroundColor: '#0B1220',
+  textColor: '#E5E7EB',
+  fontFamily: 'Inter, sans-serif',
+  fontSize: 15,
+  borderRadius: 16,
+  logo: 'https://acme.com/logo.svg',
+})
+```
+
+Pick an `onPrimaryColor` with enough contrast against `primaryColor`, because it colors the text on the header and user bubbles. Your page's CSS can't restyle the inside of the widget, since it lives in a Shadow DOM.
+
+## Keeping keys safe
+
+A key in a widget is public: any visitor can read it in the browser's developer tools and call your agent with it. Treat it that way:
+
+- **Use a dedicated app for the website**, with its own key, so you can rotate or delete that key without affecting your backend.
+- **Turn Conversation history over API off** for that app and publish. Otherwise anyone with the key can list conversations and transcripts. The widgets don't need history.
+- **Turn Voice calls off** if you only use chat, so the key can't start calls.
+- **Rotate the key** if it leaks. See [API keys](/docs/deploy/api-keys#rotate-a-key).
+- **Never put a key from a sensitive app in the browser**, for example an agent with tools that read customer data.
+
+### Proxy pattern
+
+To keep the key off the browser, point the chat widget's `baseUrl` at your own server and add the key there. The chat widget calls these routes under `baseUrl`: `GET /models`, `POST /chat/completions`, `GET /messages/{id}/suggestions` and `POST /runs/{id}/cancel`. Forward exactly those.
+
+```ts title="app/api/xpectrum/[...path]/route.ts"
+// Next.js route handler that forwards the chat widget's calls to Xpectrum.
+const UPSTREAM = 'https://cloud.xpectrum.dev/v1'
+const ALLOWED = [/^models$/, /^chat\/completions$/, /^messages\/[^/]+\/suggestions$/, /^runs\/[^/]+\/cancel$/]
+
+async function forward(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  const path = (await params).path.join('/')
+  if (!ALLOWED.some((re) => re.test(path))) return new Response('Not found', { status: 404 })
+
+  const url = new URL(req.url)
+  const upstream = await fetch(`${UPSTREAM}/${path}${url.search}`, {
+    method: req.method,
+    headers: {
+      Authorization: `Bearer ${process.env.XPECTRUM_API_KEY}`, // server-only, never NEXT_PUBLIC_
+      'Content-Type': 'application/json',
+    },
+    body: req.method === 'GET' ? undefined : await req.text(),
+  })
+
+  // Pass the response (including the event stream) straight through
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
+  })
+}
+
+export { forward as GET, forward as POST }
+```
+
+```ts title="Browser"
+new ChatWidget({
+  apiKey: 'proxied', // ignored by your proxy; the real key stays on the server
+  baseUrl: 'https://www.acme.com/api/xpectrum',
+})
+```
+
+Your proxy is also the place to check the visitor's session, rate-limit, and set `user` from your own login instead of trusting the browser. For the full server pattern, see [Authentication](/docs/api/authentication#keep-keys-on-your-server).
+
+## HTTPS, microphone and CSP
+
+- **HTTPS is required for voice.** Browsers only give microphone access on `https://` pages (and `localhost`).
+- **Microphone permission** is requested when the visitor taps to talk. If they deny it, the call can't start; they have to allow the microphone for your site in the browser settings.
+- **Voice runs over WebRTC.** Corporate networks and some VPNs block WebRTC; calls then fail to connect even though chat works.
+- **Content Security Policy.** If your site sets a CSP, allow:
+  - `script-src` `https://unpkg.com` for the chat script embed (not needed with npm).
+  - `connect-src` your API base URL, for example `https://cloud.xpectrum.dev`, and the secure WebSocket (`wss:`) voice server the call connects to.
+  - Inline styles in `style-src`, because the widgets add their own style elements.
+
+## Troubleshooting
+
+Script-embed errors appear in the browser console with a `[Xpectrum]` prefix.
+
+- **`XpectrumChatConfig is missing. Define it before loading this script.`** → Put the config `<script>` before the embed script.
+- **`XpectrumChatConfig.apiKey is required.`** → Add `apiKey`.
+- **`XpectrumChatConfig.baseUrl is required — use the "API Server" value from your console.`** → Add `baseUrl`, including `/v1`.
+- **`Failed to load SDK bundle from: …`** → The page couldn't load the bundle from unpkg. Check your CSP, ad blockers and network.
+- **Every message fails with 401** → The key is wrong or was deleted. Create a new one.
+- **404 `model_not_found`** → The key belongs to a Workflow. Widgets need a key for a chatbot, agent or Agent Flow.
+- **Voice: `Voice is disabled for this app. Enable it in the app settings and publish.`** → Turn **Voice calls** on in the publish panel and publish.
+- **Voice: `livekit-client is required for voice calls…`** → The voice library didn't load. Use the widget from npm, not the voice script embed, and make sure `livekit-client` is installed (it installs with `xpectrum`).
+- **Voice button does nothing / "Could not connect"** → Check HTTPS, microphone permission, and that WebRTC isn't blocked.
+- **No follow-up chips** → Turn on the agent's **Follow-up** feature and publish.
+- **The widget sits behind your site's header or chat** → Raise `zIndex`, or move it with `position`.
+
+## Next steps
+
+<Cards>
+  <Card title='Website chat guide' href='/docs/guides/website-chat'>Put a support agent on your site, end to end.</Card>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk'>Build your own UI with XpectrumChat and XpectrumVoice.</Card>
+  <Card title='API keys' href='/docs/deploy/api-keys'>Create, rotate and delete keys.</Card>
+  <Card title='Voice' href='/docs/channels/voice'>Set the voice and call behavior the widget uses.</Card>
+</Cards>

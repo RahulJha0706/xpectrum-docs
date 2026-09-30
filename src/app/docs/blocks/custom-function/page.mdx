@@ -1,0 +1,175 @@
+export const metadata = {
+  title: 'Custom Function',
+  description: 'Reference for the Custom Function block: Python 3 and JavaScript, the main() signature, input and output variables, output types, limits and errors.',
+}
+
+# Custom Function
+
+The **Custom Function** block (formerly Code) runs your own Python 3 or JavaScript function in a sandbox. Use it for anything the other blocks don't do directly: parse JSON, reshape data, do math, format dates, validate values or merge lists.
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| Parse an API response, compute a value, or reshape lists and objects | **Custom Function** |
+| Build a block of text from variables | [Template](/docs/blocks/transform), which is simpler for text |
+| Call an external API | [HTTP Request](/docs/blocks/http-request), which has auth, timeouts and retries built in |
+| Filter or sort a list of strings, numbers or files | [List Operator](/docs/blocks/transform#list-operator) |
+
+## Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| Language | **Python3** or **JavaScript**. Switching language replaces the code, **Input Variables** and **Output Variables** with that language's starter template. | Python3 |
+| **Input Variables** | Each entry maps an argument name to a variable from an earlier block. The name becomes a parameter of `main`. | `arg1`, `arg2` |
+| Code | Your function. It must define `main` and return an object (a dict in Python) whose keys match the output variables. | A starter template |
+| **Output Variables** | Each key `main` returns, with its type. `main` must return exactly these keys: a missing or undeclared key fails the block. | `result` (String) |
+
+For a **String** output you can list the permitted values, comma separated ("any text — or list the permitted values, comma separated"). The block then fails if the code returns anything else, which catches a typo before a [Condition](/docs/blocks/condition) silently misses it.
+
+## The main() function
+
+The arguments of `main` are your input variable names. The return value is an object whose keys are your output variable names.
+
+<Tabs>
+<Tab title='Python3'>
+
+```python
+def main(arg1: str, arg2: str) -> dict:
+    return {
+        "result": arg1 + arg2,
+    }
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```js
+function main({arg1, arg2}) {
+    return {
+        result: arg1 + arg2
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+In Python, inputs are keyword arguments. In JavaScript, `main` receives one object, which you usually destructure. `main` must return its result directly: it isn't awaited, so an `async` function returns nothing usable.
+
+## Output types
+
+| Type | Python value | JavaScript value |
+|---|---|---|
+| String | `str` | string |
+| Number | `int` or `float` | number |
+| Object | `dict` | object |
+| Array[String] | `list[str]` | array of strings |
+| Array[Number] | `list[int \| float]` | array of numbers |
+| Array[Object] | `list[dict]` | array of objects |
+
+Every declared output must be present in the returned object ("Output x is missing."). A value may be `None` / `null`. The block has no file output; return file URLs as strings instead.
+
+## Inputs and outputs
+
+**Reads:** the variables mapped in **Input Variables**. Objects arrive as dicts or objects, arrays as lists. A file list (Array[File]) arrives as a list of objects describing each file (`filename`, `size`, `type`, `extension`, `mime_type`, `url` and so on). A single File variable can't be mapped directly; map one of its attributes, such as its `url`, instead.
+
+**Produces:** one variable per declared output, with the declared type. With [error handling](/docs/blocks#error-handling) set to **Default Value** or **Fail Branch**, also `error_message` and `error_type`.
+
+## Examples
+
+### Parse a JSON API response
+
+Input variable `body` = HTTP Request `body`. Outputs: `order_status` (String, permitted values `pending, shipped, delivered, cancelled`), `total` (Number), `items` (Array[Object]).
+
+<Tabs>
+<Tab title='Python3'>
+
+```python
+import json
+
+def main(body: str) -> dict:
+    data = json.loads(body)
+    items = [
+        {"sku": i["sku"], "qty": i["quantity"]}
+        for i in data.get("line_items", [])
+    ]
+    return {
+        "order_status": data["status"],
+        "total": round(float(data["total"]), 2),
+        "items": items,
+    }
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```js
+function main({body}) {
+    const data = JSON.parse(body)
+    const items = (data.line_items || []).map(i => ({ sku: i.sku, qty: i.quantity }))
+    return {
+        order_status: data.status,
+        total: Math.round(Number(data.total) * 100) / 100,
+        items: items
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+### Normalize user input
+
+Input `phone` (String). Output `e164` (String), `valid` (Number, 1 or 0).
+
+```python
+import re
+
+def main(phone: str) -> dict:
+    digits = re.sub(r"\D", "", phone or "")
+    if len(digits) == 10:
+        digits = "1" + digits
+    valid = 1 if 11 <= len(digits) <= 15 else 0
+    return {"e164": "+" + digits if valid else "", "valid": valid}
+```
+
+Follow it with a [Condition](/docs/blocks/condition) on `valid` **=** `1`.
+
+## Dependencies
+
+Code runs with the language's standard library (for example `json`, `re`, `datetime`, `math` in Python; built-ins such as `JSON`, `Math` and `Date` in JavaScript). The editor doesn't offer a way to add packages. Keep network calls in an [HTTP Request](/docs/blocks/http-request) block rather than in code, so they get timeouts, retries and logging.
+
+## Errors and limits
+
+| Limit | Value |
+|---|---|
+| Run time | About 2 minutes per execution |
+| String output length | 500,000 characters |
+| Array outputs | 20,000 items |
+| Nested object depth | 5 levels ("Depth limit 5 reached, object too deep.") |
+| Number precision | 20 decimal places |
+| Number range | ±9,223,372,036,854,775,807 |
+
+| Message | Cause | Fix |
+|---|---|---|
+| "Output x is missing." | `main` didn't return a declared output. | Return every key listed in **Output Variables**. |
+| "Output variable \`x\` must be a string" (or number…) | The returned type doesn't match the declared type. | Convert the value (`str()`, `float()`, `String()`), or change the declared type. |
+| "Output variable \`x\` is 'foo', which is not one of its declared values (…)" | A string output returned a value outside its permitted list. | Fix the code, or add the value to the list. |
+| "The length of output variable \`x\` must be less than 500000 characters" | The string is too long. | Trim it, or store the content elsewhere and return a reference. |
+| "Not all output parameters are validated." | `main` returned a key that isn't declared in **Output Variables**. | Declare the key, or stop returning it. |
+| "Output x is not a valid array. make sure all elements are of the same type." | A list inside an Object output mixes types. | Return a list of one type. |
+| A Python traceback or JavaScript error | Your code raised an exception. | Read the message in the run log. Test with **Run this step**. |
+| "Code execution service is unavailable" / "Failed to execute code, which is likely a network issue…" | The sandbox couldn't be reached. | Retry; turn on **retry on failure** for the block. If it persists, contact support. |
+
+<Callout type='tip'>
+  Use **Run this step** with sample inputs while you write the function. The result panel shows each output and any error, without running the rest of the flow.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='HTTP Request' href='/docs/blocks/http-request'>Fetch data, then parse it here.</Card>
+  <Card title='Template & variables' href='/docs/blocks/transform'>Simpler text formatting with Jinja2.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Types and how outputs are referenced.</Card>
+</Cards>

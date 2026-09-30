@@ -1,0 +1,133 @@
+export const metadata = {
+  title: 'Logs & annotations',
+  description: 'Review every conversation and workflow run, inspect step-by-step run detail, mark improvements, and use workspace audit, activity and sign-in logs.',
+}
+
+# Logs & annotations
+
+Xpectrum keeps two kinds of logs. **App logs** show what each app did: every conversation with an agent, and every workflow run with its steps, inputs, outputs and errors. **Workspace logs** (**Audit Log**, **Activity Log**, **Auth Event**) show who changed what, what ran, and who signed in, across the whole workspace.
+
+| You want to… | Go to |
+|---|---|
+| Read a customer's conversation with an agent | The app's **Logs** |
+| Find why a workflow run failed | The app's **Logs**, or **Monitoring & Analytics › Execution** |
+| Debug a run you just started from the editor | **Run History** in the editor's dock |
+| See who published an app or changed a role | **Logs › Audit Log** |
+| Check sign-ins and failed login attempts | **Logs › Auth Event** |
+| Listen to a phone call | **Monitoring & Analytics › Sessions** ([Voice sessions](/docs/monitor/voice-sessions)) |
+
+## App logs
+
+Open an app and click **Logs** in the editor header. Use the back arrow (**Go back to editor**) to return.
+
+App logs include conversations and runs from real use: the API, your website, channels and triggers. Conversations and runs you start from the editor appear here too, tagged **Editor**, and are also listed in [Run History](#run-history).
+
+### Conversational apps
+
+For Autonomous Agents, Agent Flows and AI Chatbots, the log lists conversations. Pick a **WINDOW** (from **Today** to **All time**, the default) and use **Search** to find a conversation by message text, title, end user ID or conversation ID.
+
+| Column | Shows |
+|---|---|
+| **Title** | The conversation's title |
+| **End User or Account** | The end user ID sent by the channel, widget or API (`user`), or the console account. Conversations started from the editor carry an **Editor** tag. |
+| **STATUS** | Agent Flow only: **Success**, **Partial Success** or **N Failure(s)** across the conversation's runs |
+| **Message Count** | Number of messages; a question and its reply count as one |
+| **User Rate** / **Op. Rate** | Likes and dislikes from end users, and from your team |
+| **Updated time** / **Created time** | Click the header to sort |
+
+Click a conversation to open its detail panel. It shows the model (for apps configured with a single model, with its **Model parameters**), the conversation **ID**, the variables the conversation started with, and every message. Each reply has:
+
+- A log button that opens what happened behind the reply: the **Prompt trace** (the full prompt sent to the model), **Log Detail** for an Autonomous Agent (**Agent Mode**, **Tool Used** and **Iterations**), or the run's **Conversation Log** with its steps for an Agent Flow.
+- **Token spent** for the reply (shown on hover).
+- Like / dislike buttons to rate the reply, and an annotation button (see [Annotations](#annotations)).
+
+If translation is enabled on your workspace, use the **Original** / **English** toggle to read a conversation held in another language.
+
+### Workflows
+
+For Workflows, the log lists runs from the API, web apps, triggers and the editor, grouped by day, with a count of runs and failures for each day.
+
+- The **Daily activity** chart shows runs over the selected range (default **Last 7 Days**). Click the **passed** or **failed** chip to filter by status.
+- Each row shows the status (**Success**, **Partial Success**, **Fail**, **Stop** or **Running**), the number of steps and tokens (or the error), the end user, a source badge (**API**, **Web App**, **Explore** or **Editor**), the elapsed time and when it ran.
+
+Click a row to expand it. The detail shows the outcome (for example **Completed**, **Completed with exceptions** or **Failed at** *block name*), the start time, steps and tokens, the **INPUT** and **RESULT** as JSON side by side, and a timeline of every step. Expand a step to see its inputs, outputs and error.
+
+## Run History
+
+**Run History** is a tab in the bottom dock of the canvas editor (Agent Flow and Workflow). It lists the test runs and test chats you started with **Run** or **Preview**.
+
+| Column | Shows |
+|---|---|
+| **Status** | **Success**, **Failed**, **Stopped**, **Running** or **Waiting** |
+| **Run** | `Run #N` (Workflow) or `Chat #N` (Agent Flow) |
+| **Triggered By** | Who started it |
+| **When** / **Time** | When it ran and how long it took |
+
+Select a run and the canvas switches to a read-only view of the flow as it was for that run (**View Only**). For a Workflow, a **Test Run#N** panel shows the outcome (status, elapsed time, tokens, steps, start time and who ran it), then every block in order with its inputs, outputs, duration and error; loops and iterations are nested. For an Agent Flow, the panel replays the test chat.
+
+Click **Go back to editor** to return to your draft.
+
+<Callout type='tip'>
+  To test one block in isolation instead of the whole flow, use **Run this step** on the block. See [Testing](/docs/deploy/testing).
+</Callout>
+
+## Annotations
+
+You can mark a better answer on any reply in a conversation's detail panel with the annotation button (**Add annotation**). The reply then shows **Answer edited by** *name*, and you can change it with **Edit annotation**. With **Annotation Reply** turned on in the app's **Agent Settings** (Autonomous Agents and AI Chatbots), the agent can reuse these curated answers for similar questions.
+
+<Callout type='warning'>
+  **Annotation Reply** isn't available on self-serve workspaces.
+</Callout>
+
+## Workspace logs
+
+The **Logs** section of the sidebar has three views, available to **Owners** and **Admins**:
+
+| View | Describes | Filters |
+|---|---|---|
+| **Audit Log** | Who changed what, and when. | Action (**Create**, **Update**, **Delete**, **Copy**, **Publish**, **Assign**, **Unassign**, **Invite**, **Remove**, **Update Role**) and resource (**App**, **Dataset**, **Workflow**, **Member**, **API Key**, **Model Provider**, **Voice Config**, **Agent Config**, **Phone Number**) |
+| **Activity Log** | What ran, and how it went. | Activity (**Login**, **Logout**, **App Run**, **Dataset Query**, **File Upload**) |
+| **Auth Event** | Sign-ins, sign-outs and failed attempts. | Search only |
+
+Every view has a **Search...** box. Search and the type filters take effect when you click **Apply**; **Reset** clears them. **Audit Log** and **Activity Log** also filter by app (**All Apps**), user (**All Users**) and time range.
+
+### Columns
+
+| View | Columns |
+|---|---|
+| **Audit Log** | **Time**, **User**, **Action**, **Resource Type**, **Resource**, **Details**, **IP Address** |
+| **Activity Log** | **Time**, **User**, **Activity**, **Details**, **IP Address** |
+| **Auth Event** | **Time**, **Event**, **Description**, **User**, **Connection**, **IP** |
+
+Click an **Audit Log** row to see what changed. For a workflow publish, this opens **Workflow Publish Details**, which compares the published graph with the previous version and lists blocks **Added**, **Removed** and **Modified**.
+
+Auth events include **Login Success**, **Login Failed**, **Password Changed**, **Logout Success**, **MFA Success**, **MFA Failed** and **MFA Enrolled**. A burst of **Login Failed** events for one user is worth investigating; see [Workspaces & roles](/docs/getting-started/workspaces#multi-factor-authentication) to turn on MFA.
+
+### Time ranges
+
+Choose from **Past hour**, **Past 3 hours**, **Past 6 hours**, **Past 12 hours**, **Past 24 hours**, **Past 7 days**, **Past 30 days**, **Past 60 days**, **All Time** (the default), or **Custom date** (**From** and **To**, up to today).
+
+### Export CSV
+
+Click **Export CSV** to download the current view with all your filters applied, for example `audit_logs.csv`. Export is available for **Audit Log** and **Activity Log**, not **Auth Event**. One export holds up to 10,000 rows, so narrow the time range first for large workspaces or if you only need a period for a review.
+
+## Retention
+
+The product doesn't show a fixed retention period for logs, and the time filters go back to **All time**. Export anything you must keep for compliance.
+
+## Troubleshooting
+
+- **A conversation is missing from Logs** → check the **WINDOW** (it may be set to a short period) and that you're in the right app. For Workflows, also check the **passed** / **failed** chips and the chart's date range.
+- **No Logs section in the sidebar** → workspace logs need the **Owner** or **Admin** role.
+- **Export CSV does nothing** → switch to **Audit Log** or **Activity Log**; **Auth Event** can't be exported. Try a shorter time range.
+- **End User shows a random ID** → the channel or widget sent an anonymous ID (for example `anon_…` from the JavaScript SDK when no `user` is set). Pass your own `user` value from your server to see real IDs.
+- **A run shows Partial Success** → at least one block failed but was handled by **Error Handling** (default value or fail branch). Open the run and look for the step with an error.
+
+## Next steps
+
+<Cards>
+  <Card title='Analytics' href='/docs/monitor/analytics'>Usage charts per app and across the workspace.</Card>
+  <Card title='Governance & audit' href='/docs/monitor/governance'>Execution health dashboard and traces.</Card>
+  <Card title='Testing' href='/docs/deploy/testing'>Preview, Run and single-step testing.</Card>
+  <Card title='Tracing' href='/docs/integrations/tracing'>Send traces to an external observability tool.</Card>
+</Cards>

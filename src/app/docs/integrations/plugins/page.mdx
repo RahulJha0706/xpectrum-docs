@@ -1,0 +1,83 @@
+export const metadata = {
+  title: 'Plugins',
+  description: 'How model providers, tools and agent strategies are packaged as plugins, and how to install and remove them from the Xpectrum Library.',
+}
+
+# Plugins
+
+Model providers, tools and agent strategies are all packaged as plugins. You install them per workspace from the Xpectrum Library, on the **Integrations** page. Once installed, they appear wherever you build.
+
+## Plugin types
+
+| Type | What it adds | Where you use it |
+|---|---|---|
+| **Model** | A model provider (LLMs, embedding, rerank and other model types) and its credential form. | Model selectors in every AI node and block. See [Models](/docs/integrations/models). |
+| **Tool** | A tool provider with one or more actions, such as search, calendar or CRM actions. | Agent **Tools**, tool steps in flows, the Agent block. See [Tools](/docs/integrations/tools). |
+| **Agent Strategy** | A reasoning strategy that decides how an agent plans and calls tools. | The **Agentic Strategy** setting of the [Agent](/docs/blocks/agent) block. |
+| **Extension** | Features exposed through plugin **Endpoints**. | The plugin's **Endpoints** section after install. |
+
+Model plugins are listed on the **Models** tab. All other plugin types appear on the **Tools** tab.
+
+## Install from the Xpectrum Library
+
+<Steps>
+<Step title='Open Integrations'>
+
+Go to **Resources › Integrations** and pick the **Models** or **Tools** tab.
+
+</Step>
+<Step title='Find the plugin'>
+
+The **Available Models** or **Available Tools** section lists what the Library offers that isn't installed yet. Search by name to narrow it down.
+
+</Step>
+<Step title='Install'>
+
+Click **Install**. The plugin moves to the **Installed** section. Expand it to see what it includes, for example "3 actions INCLUDED" or "12 MODELS INCLUDED".
+
+</Step>
+<Step title='Configure it'>
+
+Add the provider key for models, or authorize a tool. See [Provider keys](/docs/integrations/models#provider-keys) and [Configure credentials](/docs/integrations/tools#configure-credentials).
+
+</Step>
+</Steps>
+
+You can also install tools while building. In the flow editor's **Add a step** panel, the **Not installed** scope lists Library tools you can install in place.
+
+## Manage and uninstall
+
+Expand an installed plugin to see its version and manage it. **Uninstall** removes it from the workspace, after you confirm in **Remove plugin**.
+
+Updating a plugin installed from the Library in place isn't available on the Integrations page. If you need a newer version of a plugin, contact support.
+
+<Callout type='warning'>
+  Uninstalling a plugin breaks every app that uses it. Tools from it stop working (an Autonomous Agent shows "This tool's provider isn't available"), and model selectors lose its models. Check your apps before you uninstall, and reinstall the plugin to restore them.
+</Callout>
+
+## Agent strategies
+
+An agent strategy controls the loop inside an [Agent](/docs/blocks/agent) block: how it reasons, when it calls tools, and when it stops. The block's **Agentic Strategy** dropdown lists the strategies from installed Agent Strategy plugins. Each strategy defines its own settings, such as **Model**, **Tools** and **Max Iterations**.
+
+On Autonomous Agents, the strategy is picked for you. **Agent Mode** shows **Function Calling** or **ReAct**, depending on the model.
+
+## Availability
+
+<Callout type='warning' title='Library only'>
+  Plugins are installed from the Xpectrum Library only. Installing from a marketplace, a GitHub repository or a local package file isn't available on the Integrations page. If you need a provider or tool that isn't in the Library, contact support, or connect the API yourself as a [custom tool](/docs/integrations/custom-tools).
+</Callout>
+
+Client workspaces offer a reduced set of flow blocks. The **Agent** block and plugin tool steps may not be available there.
+
+## Troubleshooting
+
+- **"No plugins available yet." or "Nothing left to install here."** The Library has nothing more for this category, or you've installed everything it offers.
+- **The Available section shows an error instead of plugins.** Click **Retry**. If it persists, contact support.
+- **A newly installed plugin doesn't appear in the editor.** Click **Refresh** on the Integrations page, then reopen the step picker.
+
+## Next steps
+
+<Cards>
+  <Card title='Models' href='/docs/integrations/models'>Keys, quotas and model parameters.</Card>
+  <Card title='Tools' href='/docs/integrations/tools'>Credentials and adding tools to agents.</Card>
+</Cards>

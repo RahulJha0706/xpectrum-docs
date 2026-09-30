@@ -1,0 +1,252 @@
+export const metadata = {
+  title: 'Voice & phone',
+  description: 'Fix voice calls that do not connect, stay silent, talk over the caller or end early, plus phone number, outbound and batch call problems.',
+}
+
+# Voice & phone
+
+Fixes for problems with voice agents: in-browser test calls, phone calls in and out, batch calls and recordings. Most voice problems come down to three things: the agent isn't published, a speech provider key is wrong, or a call setting (duration, nudges, interruption) is doing exactly what it's set to do.
+
+## Where to look first
+
+- **Monitoring & Analytics › Sessions** lists every call with its status and outcome. The detail view has the **Recording**, **Transcript**, **Session Timeline** and **Events**. See [Voice sessions](/docs/monitor/voice-sessions).
+- The agent's **Logs** show what the agent received and answered on each turn. If the transcript looks right but the answers are wrong, it's an agent problem, not a voice problem. Test it with **Chat** on the Voice page.
+- The [end reason](#end-reasons) tells you why a call stopped.
+
+<Callout>
+  A voice call uses the agent's **published** version and the voice settings saved with **Publish Changes** on the **Voice** page. After editing either, publish again.
+</Callout>
+
+## Calls that don't connect
+
+### The call connects, then drops immediately with no greeting
+
+**Cause:** The call couldn't start. The usual reasons are an agent that isn't published or configured (end reason `config_error`), a missing or invalid speech provider key (`pipeline_error`), or not enough credit (`insufficient_credit`).
+
+**Fix:** Publish the agent, then open **Channels › Voice**, pick the agent and click **Publish Changes**. Check the keys under **Voice & Transcriber** (see [provider keys](#tts-or-stt-provider-key-problems)) and the credit balance. Then try again with **Call** on the Voice page.
+
+### insufficient credit: $X available, $Y required to start a call
+
+**Cause:** The workspace's credit balance is below what a call needs to start. The call is refused before it connects.
+
+**Fix:** An Owner or Admin adds credit in **Settings › Billing** (**Add credit**). See [Billing & credits](/docs/workspaces/billing).
+
+### Voice is disabled for this app. Enable it in the app settings and publish
+
+**Cause:** HTTP 403 from `POST /v1/voice/tokens/generate`. The app was published with the **Voice calls** toggle under **External API** off. This blocks voice calls started with the app's API key, including the SDK's `VoiceWidget` and `XpectrumVoice`.
+
+**Fix:** Turn on **Voice calls** in the publish panel and publish. The change can take about a minute to apply. See [Voice API](/docs/api/voice).
+
+### Voice server is unreachable
+
+**Cause:** HTTP 502 (or 503) from the voice token endpoint. The voice service is temporarily unavailable.
+
+**Fix:** Retry with exponential backoff (for example after 1, 2, then 4 seconds). If it keeps failing, contact support.
+
+### Room does not belong to this app
+
+**Cause:** HTTP 403 from `POST /v1/voice/call-control/end-call`. The `room_name` came from a token generated with a different app's key.
+
+**Fix:** End the call with the same app key that started it, and pass the `room_name` returned by the token call.
+
+### Already connected or connecting. Call disconnect() first
+
+**Cause:** The SDK's `XpectrumVoice.connect()` was called while a call was already active or starting.
+
+**Fix:** Call `disconnect()` before connecting again, or check `isConnected()` first. Disable your call button while `getConnectionState()` is `connecting`.
+
+### livekit-client is required for voice calls
+
+**Cause:** The voice SDK's real-time dependency, `livekit-client`, couldn't be loaded. This happens when your bundler leaves it out, or when you load the SDK module without its dependencies.
+
+**Fix:** Run `npm install livekit-client` in your project and rebuild. See [JavaScript SDK](/docs/api/javascript-sdk).
+
+## Microphone and browser
+
+### Microphone Access Required, or Microphone Access Denied
+
+**Cause:** The browser blocked the microphone. Either you dismissed the permission prompt, or microphone access is denied for the site.
+
+**Fix:** Click the site-settings icon in the address bar, set **Microphone** to allow, and reload. On macOS, also allow the browser under **System Settings › Privacy & Security › Microphone**. Close other apps that hold the microphone exclusively.
+
+### The voice widget works locally but not on my website
+
+**Cause:** Browsers only allow microphone access on secure pages (HTTPS, or `localhost` during development). Embedding in an iframe without microphone permission also blocks it.
+
+**Fix:** Serve the page over HTTPS. If the widget is inside an iframe, add `allow="microphone"` to the iframe. Start the call from a user gesture such as a button click, never on page load.
+
+### The widget shows the call as connected but nothing is heard
+
+**Cause:** The browser blocks audio playback that wasn't started by a user gesture, or the output device is muted.
+
+**Fix:** Start calls from a click handler, check the tab isn't muted, and make sure the speaker isn't muted in the in-app call panel (**Mute Speaker** / **Unmute Speaker** button).
+
+## Silence and talking over
+
+### The agent says nothing at the start of the call
+
+**Cause:** One of these:
+- **Initial Message** is empty, or **Initial Message Delay (seconds)** is long.
+- On outbound calls, the greeting waits until the callee picks up. If the carrier never reports the answer, the agent waits up to 60 seconds before greeting anyway.
+- The text-to-speech key is invalid, so no audio is produced.
+
+**Fix:** Set an **Initial Message** and a short delay (0–1 s), then **Publish Changes** on the Voice page. Check the TTS key under **Voice & Transcriber**.
+
+### The agent goes silent after the caller speaks
+
+**Cause:** The agent itself failed or is slow on that turn: a model error, a tool call that takes a long time, or a flow that ends without an answer.
+
+**Fix:** Open the agent's **Logs** for that conversation and look for the failed step. Test the same sentence with **Chat** on the Voice page. For slow tools, turn on **Tool Acknowledgement** so the agent says a short phrase (for example "One moment while I check that") while the tool runs.
+
+### The agent talks over the caller, or stops when the caller says uh-huh
+
+**Cause:** The caller's voice interrupts the agent (barge-in) once the agent has been speaking for about half a second. Short acknowledgements such as "okay" or "uh-huh" count as speech unless you filter them. On phone lines, echo of the agent's own voice can also be picked up.
+
+**Fix:** Turn on **Backchannel Filter** and list the **Filter Words** your callers use ("okay, uh-huh, yeah, right, mm-hmm"). While the agent is speaking, a reply that is only a filter word neither interrupts it nor starts a new turn. Keep agent replies short in the **Instructions**, so there is less to interrupt.
+
+### The caller can't interrupt the greeting
+
+**Cause:** **Allow Interruption** is off (the default), so the **Initial Message** always plays in full.
+
+**Fix:** Turn on **Allow Interruption** in **Configurations**. It only affects the greeting; replies after that can always be interrupted.
+
+### The agent answers before the caller has finished
+
+**Cause:** A turn ends as soon as the speech-to-text engine detects the end of the sentence, or shortly after the last recognized words. Long pauses mid-sentence can end the turn early. There are no turn-detection controls in the app.
+
+**Fix:** Have the agent ask one short question at a time, and tell it in the **Instructions** to confirm partial answers ("You said your date of birth is… is that right?").
+
+## Calls ending
+
+### The call is cut off after a fixed time
+
+**Cause:** **Call Duration** (in seconds) is the maximum length of a call. When it's reached, the call ends with the reason `max_duration`. If no value is saved, calls end after 300 seconds (five minutes).
+
+**Fix:** Raise **Call Duration** in **Configurations** and click **Publish Changes**. Set it to the longest call you expect, with some margin.
+
+### The agent keeps asking if the caller is still there, then hangs up
+
+**Cause:** Nudges. After the agent finishes speaking, it waits **Nudge Interval (seconds)** for the caller, then says the nudge text. After **Max Nudges** nudges with no reply, the call ends with the reason `max_nudges`. If the interval and count are left empty, the call nudges every 5 seconds, up to 4 times.
+
+**Fix:** In **Configurations › Call Behavior**, increase **Nudge Interval (seconds)** or **Max Nudges**, change the nudge text to fit your use case, and click **Publish Changes**. When the agent puts the caller on hold, nudges pause for 30 seconds.
+
+### The call ends when the agent says goodbye
+
+**Cause:** Expected. The agent ended the call with its end-call action, or a [Multi-prompt Agent](/docs/build/multi-prompt-agent) reached an ending (reason `end_call`). The goodbye plays in full first.
+
+**Fix:** If it ends too early, review when the instructions tell the agent to end the call, or the flow's endings.
+
+## TTS or STT provider key problems
+
+The **Voice & Transcriber** tab picks the text-to-speech provider (**OpenAI**, **ElevenLabs** or **Cartesia**, default Cartesia) and the transcriber (Deepgram, default model `nova-2`, language `en-US`). Each has an **API Key** set to **Default (Workspace Key)** or **Custom Key**. A custom key on the agent overrides the workspace key.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Call drops at start, end reason `pipeline_error` | No usable speech-to-text or TTS key | Switch to **Default (Workspace Key)**, or paste a valid **Custom Key** |
+| Call connects, caller hears nothing | TTS key invalid, out of quota, or wrong model/voice for the provider | Check the key and quota in the provider's dashboard; pick a **Model** and **Voice** from the list |
+| Agent never hears the caller | Transcriber key invalid, or wrong **Language** | Check the transcriber key, and set **Language** to the caller's language |
+| Voice is not the one you picked | Only OpenAI, ElevenLabs and Cartesia are supported; any other provider falls back to Cartesia | Choose one of the three |
+| Speech sounds rushed or slow | Speed setting | OpenAI **Speed** 0.25–4, ElevenLabs 0.8–1.2, Cartesia 0.6–2.0 (Sonic 3 models only) |
+
+See [Voice](/docs/channels/voice) for every setting.
+
+## Phone numbers and outbound calls
+
+### Inbound calls to my number don't reach the agent
+
+**Cause:** The number has no agent assigned, it was bought as **Outbound** only, or the agent isn't published.
+
+**Fix:** In **Channels › Phone Number**, check the **Assigned Agent** column and the **Inbound** badge under **Capabilities**. Use **Assign** (or **Change**) if needed, and publish the agent. See [Phone numbers](/docs/channels/phone-numbers).
+
+### My number isn't offered as the caller number
+
+**Cause:** Only outbound-capable numbers can place calls. **Direction** (Inbound, Outbound or Both) is fixed when you buy the number and can't be changed later. In **Batch Calls** you'll see "No outbound-capable phone numbers found. Set up a number with outbound first."
+
+**Fix:** Buy a number with **Direction** set to **Outbound** or **Both**. Only Owners and Admins can use **Buy Number**; other roles see **Contact support**.
+
+### Enter the phone number in E.164 format
+
+**Cause:** The number isn't in E.164 format: a `+`, the country code, then the number, with no spaces or punctuation.
+
+**Fix:** Use numbers like `+14155551234` (US) or `+447700900123` (UK). In batch CSVs, spaces, dashes, dots and brackets are stripped for you, 10-digit numbers get `+1` added, and any other number without a `+` gets one added in front, so include the country code.
+
+### The number is currently busy, No answer, or This number appears to be unreachable or switched off
+
+**Cause:** The carrier reported that the call couldn't be completed: busy, not answered, or unreachable. "The call could not be completed. Please try again." covers other failures.
+
+**Fix:** Check the number is correct and can take calls, then try again later. For lists, use a batch with retries (see below).
+
+### An outbound call reaches voicemail and the agent talks to it
+
+**Cause:** Answering machines aren't detected. When voicemail picks up, the agent treats it as a person and starts its greeting.
+
+**Fix:** Keep outbound greetings short and have the agent leave a brief message. Sessions may show these calls with the **VOICEMAIL** outcome.
+
+## Batch calls
+
+### Invalid format — must be E.164 (+1234567890)
+
+**Cause:** A row in the CSV has a phone number the upload couldn't normalize to `+` followed by 10–15 digits.
+
+**Fix:** Fix the row, or leave it out. Use the column name `phone_number` (`phone` or `number` also work), with an optional `name` column. **Download Template** gives you a correct file:
+
+```text title="contacts.csv"
+phone_number,name
++14155551234,Ada Lovelace
++14155559876,Grace Hopper
+```
+
+### Only the first 30 numbers will be used
+
+**Cause:** A batch holds at most 30 numbers. Rows past that are dropped. Duplicate numbers are also removed (you'll see "N duplicate numbers removed").
+
+**Fix:** Split larger lists into several batches.
+
+### Some numbers in a batch were never called back
+
+**Cause:** Retries are limited by **Max Attempts (1–10)** (default 2) and spaced by **Retry Gap (minutes, 1–180)** (default 120). With the defaults, a number that doesn't answer is tried again once, two hours later.
+
+**Fix:** Raise **Max Attempts** or lower **Retry Gap** in the **Configure** step. With **Sequential**, calls go out one minute apart and start about two minutes after you create the batch, so a large batch takes a while to reach the last row. See [Batch calls](/docs/channels/batch-calls).
+
+## Recordings and transcripts
+
+### There is no recording for a call
+
+**Cause:** **Record Session** is off by default, or it was switched on after the call took place.
+
+**Fix:** Turn on **Record Session** in **Configurations** and click **Publish Changes**. New calls are recorded in stereo, with the agent on one channel and the caller on the other, and appear under **Recording** in the session detail.
+
+### The greeting is missing from the live transcript
+
+**Cause:** If the greeting plays before the transcript view has joined the call, it may not appear in the live transcript.
+
+**Fix:** Check the full **Transcript** in **Sessions** after the call.
+
+## End reasons
+
+Each call ends with one of these reasons.
+
+| End reason | Meaning | What to do |
+|---|---|---|
+| `end_call` | The agent ended the call, or the flow reached an ending | Nothing, if expected |
+| `user_disconnected` | The caller hung up or closed the browser call | Nothing, if expected |
+| `max_duration` | **Call Duration** was reached | Raise **Call Duration** |
+| `max_nudges` | The caller stayed silent through every nudge | Raise **Nudge Interval** or **Max Nudges** |
+| `stt_closed` | The speech-to-text connection closed during the call | Check the transcriber key and quota; retry |
+| `cancelled` | The call was cancelled before or while the greeting started (for example, nobody joined) | Nothing, or check the caller side |
+| `config_error` | The agent couldn't be loaded: not published or not configured | Publish the agent and the voice settings |
+| `insufficient_credit` | Not enough credit to start the call | Add credit |
+| `pipeline_error` | Speech providers couldn't start, usually a missing key | Check keys under **Voice & Transcriber** |
+| `room_connect_error` | The agent couldn't join the call | Retry; contact support if it persists |
+| `setup_failed` | Another start-up failure | Retry; contact support if it persists |
+
+In **Sessions**, each call also has an outcome: **TALKED**, **NO TALK**, **NO ANSWER**, **REJECTED**, **FAILED** or **VOICEMAIL**.
+
+## Next steps
+
+<Cards>
+  <Card title='Voice channel' href='/docs/channels/voice'>Every voice setting and its default.</Card>
+  <Card title='Batch calls' href='/docs/channels/batch-calls'>CSV format, schedules and retries.</Card>
+  <Card title='Voice sessions' href='/docs/monitor/voice-sessions'>Recordings, transcripts and outcomes.</Card>
+  <Card title='Limits' href='/docs/troubleshooting/limits#voice-and-phone'>Voice and batch limits in one table.</Card>
+</Cards>

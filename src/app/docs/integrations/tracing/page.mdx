@@ -1,0 +1,109 @@
+export const metadata = {
+  title: 'Tracing',
+  description: 'Send detailed traces of app runs to LangSmith, Langfuse, Opik or Weave: provider fields, what gets traced, and how to turn it on.',
+}
+
+# Tracing
+
+Tracing sends a detailed record of every app run to a third-party LLM observability platform. Each record covers model calls, prompts, retrieved context, tool calls and timings, so you can debug, evaluate and monitor agents with the tools your team already uses.
+
+<Callout type='warning' title='Limited availability'>
+  Tracing is configured per app, in the app's tracing settings (**Tracing app performance**). This page has no entry in the sidebar or editor, and it may not be reachable on every workspace. If you can't find it, contact support. For built-in monitoring, use [Logs](/docs/monitor/logs) and [Analytics](/docs/monitor/analytics).
+</Callout>
+
+## What gets traced
+
+"Capture the full context of app execution, including LLM calls, context, prompts, HTTP requests, and more, to a third-party tracing platform." Traces are sent for:
+
+| Event | What it contains |
+|---|---|
+| Workflow runs | Each run of an Agent Flow or Workflow, with every node's inputs, outputs, status and duration. |
+| Messages | Each chat turn: the user's query, the answer, model, token usage and latency. |
+| Knowledge retrieval | The query and the chunks returned from your knowledge bases. |
+| Tool calls | The tool, its inputs and its output. |
+| Moderation | Content moderation checks and their results. |
+| Suggested questions | Generation of follow-up questions. |
+| Conversation naming | Generation of the conversation title. |
+
+<Callout type='warning'>
+  Traces include full prompts, user messages and retrieved documents. Make sure your tracing provider and project meet your data-protection requirements before you turn it on for production apps.
+</Callout>
+
+## Providers and fields
+
+Each provider asks for its own credentials. Required fields are marked.
+
+### LangSmith
+
+| Field | Required | Notes |
+|---|---|---|
+| **API Key** | Yes | A LangSmith API key. |
+| **Project** | Yes | The LangSmith project that receives traces. |
+| **Endpoint** | No | For self-hosted or regional LangSmith. Defaults to `https://api.smith.langchain.com`. |
+
+### Langfuse
+
+| Field | Required | Notes |
+|---|---|---|
+| **Secret Key** | Yes | From your Langfuse project's API keys. |
+| **Public Key** | Yes | From the same key pair. |
+| **Host** | Yes | For example `https://cloud.langfuse.com`, your region's host, or your self-hosted URL. |
+
+### Opik
+
+| Field | Required | Notes |
+|---|---|---|
+| **API Key** | No | Needed for Comet-hosted Opik. |
+| **Project** | No | The Opik project name. |
+| **Workspace** | No | The Comet workspace, for example `default`. |
+| **Url** | No | The Opik API URL. For Comet-hosted Opik: `https://www.comet.com/opik/api/`. |
+
+### Weave
+
+| Field | Required | Notes |
+|---|---|---|
+| **API Key** | Yes | A Weights &amp; Biases API key. |
+| **Project** | Yes | The Weave project name. |
+| **Entity** | No | Your W&amp;B team or username. |
+| **Endpoint** | No | Defaults to `https://trace.wandb.ai`. |
+| **Host** | No | For a dedicated or self-hosted W&amp;B instance, for example `https://api.wandb.ai`. |
+
+## Turn tracing on
+
+<Steps>
+<Step title='Open the tracing settings'>
+
+Open the app's **Tracing app performance** settings. The status shows **Disabled** until a provider is configured ("Config provider to enable tracing").
+
+</Step>
+<Step title='Configure a provider'>
+
+Pick LangSmith, Langfuse, Opik or Weave, fill in the fields and click **Save & Enable**. The credentials are checked, the provider moves under **Configured**, and tracing turns on with that provider.
+
+</Step>
+<Step title='Check the status'>
+
+The status shows **In Service**, and the active provider is marked **In use**. Providers you haven't configured are listed under **More Provider**. Use the **Tracing** switch to turn tracing off and on again.
+
+</Step>
+<Step title='Verify'>
+
+Run the app once in Preview, then check your provider's project for the new trace.
+
+</Step>
+</Steps>
+
+To stop sending traces, turn **Tracing** off. Removing an active provider's configuration also turns tracing off: "The current configuration is in use, removing it will turn off the Tracing feature."
+
+## Troubleshooting
+
+- **No traces appear.** Check that **Tracing** is on and shows **In Service**, and that the keys and project match. Langfuse keys only work against the host they were issued for.
+- **"Invalid Credentials" when saving.** The credentials are checked against the provider when you save. Check that the key belongs to the project you entered, and that the endpoint or host is a full URL. LangSmith and Weave endpoints must start with `https://`.
+- **Traces stop after a key rotation.** Update the key in the tracing settings.
+
+## Next steps
+
+<Cards>
+  <Card title='Logs' href='/docs/monitor/logs'>Built-in run logs for every app.</Card>
+  <Card title='Analytics' href='/docs/monitor/analytics'>Metrics, executions and RAG analytics.</Card>
+</Cards>

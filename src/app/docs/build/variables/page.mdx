@@ -1,0 +1,196 @@
+export const metadata = {
+  title: 'Variables',
+  description: 'Input variables, system variables, block outputs, constants and conversation variables — how to define, reference and pass them through the API.',
+}
+
+# Variables
+
+Variables carry data into an app and between its blocks: what the caller sends, what the platform knows about the conversation, what each block produces, and values you store with the app. This page covers every kind, how to reference them, and how they map to the API.
+
+## Kinds of variables
+
+| Kind | Defined by | Example | Read-only? |
+|---|---|---|---|
+| [Input variables](#input-variables) | You, on the **Trigger** | `customer_name` | Yes, during a run |
+| [System variables](#system-variables) | The platform | `thread.user_query` | Yes |
+| [Block outputs](#reference-block-outputs) | Each block | an AI Model's `text` | Yes |
+| [Constants](#constants) | You, in the **Constants** tab | `CRM_API_KEY` | Yes |
+| [Conversation variables](#conversation-variables) | You, in Agent Flows | `last_order` | No — written by **Variable Assigner** |
+
+## Input variables
+
+Input variables are fields you add to the **Trigger**. Callers fill them in a form, a channel integration, or the API's `variables` object.
+
+| Field type | Value | Options |
+|---|---|---|
+| **Short Text** | A single line of text | **Max length**, **Required** |
+| **Paragraph** | Multi-line text | **Max length**, **Required** |
+| **Select** | One of the options you list | **Required** |
+| **Number** | A number | **Required** |
+| **Single File** | One file | **Required** |
+| **File List** | Several files | **Required** |
+
+Use input variables for context the caller already has — a customer's name, account tier, language or order number — so the agent doesn't have to ask. Variable names are normalized as you type (letters, numbers and underscores).
+
+In a Workflow used as a tool or an MCP server, input variables become the tool's parameters, and their descriptions tell the model what to pass.
+
+## System variables
+
+System variables are filled in automatically. The editor shows them with friendly names; the app stores them under their original `sys.` names. You can type either — a name you type is converted to the stored form.
+
+| Displayed as | Stored as | Type | Value |
+|---|---|---|---|
+| `thread.user_query` | `sys.query` | String | The user's current message. |
+| `thread.thread_id` | `sys.conversation_id` | String | The conversation's id — the API's `thread_id`. |
+| `thread.user_id` | `sys.user_id` | String | The end-user id — the API's `user`. |
+| `channel.name` | `sys.channel` | String | The channel the message arrived on. |
+| `channel.metadata` | `sys.channel_metadata` | Object | Extra data from the channel or the API's `channel_metadata`. |
+| `thread.files` | `sys.files` | Array[File] | Files attached to the message (AI Chatbot and Autonomous Agent). |
+
+### Channel values
+
+When you call the API, the `channel` field is normalized to one of these values, which is what `channel.name` holds. Unknown values become `chat`.
+
+| You send | `channel.name` |
+|---|---|
+| `chat`, `web`, `api` (or nothing) | `chat` |
+| `whatsapp`, `wa` | `whatsapp` |
+| `sms`, `text` | `sms` |
+| `email`, `mail` | `email` |
+| `voice`, `webrtc` | `voice` |
+| `phone`, `call` | `phone` |
+| `mobile`, `app` | `mobile` |
+
+Branch on it with a **Condition** block to adapt replies per channel — for example shorter answers without markdown when `channel.name` is `voice` or `sms`.
+
+## Reference block outputs
+
+Every block produces output variables — an **AI Model** outputs `text` and `usage`, an **HTTP Request** outputs `body`, `status_code`, `headers` and `files`, an **Intent Classifier** outputs `class_name`. Later blocks can use any output from a block that ran before them.
+
+### Insert with /
+
+In any text field or prompt, type `/` to open the variable picker (**Press the '/' key to insert quickly**). Pick the block, then the variable. In Jinja2 editors, `/` or `{` opens the picker. The editor shows the reference as a chip with the block's title.
+
+### Reference syntax
+
+Behind the chip, a reference is stored as `{{#nodeId.variable#}}`. You'll see this form in exported configuration files and can type it directly:
+
+```text title="AI Model prompt"
+Customer message: {{#sys.query#}}
+Order data from our system: {{#1718352000000.body#}}
+Customer tier: {{#1718351000000.tier#}}
+
+Summarise the order status for the customer in two sentences.
+```
+
+| To reference | Syntax |
+|---|---|
+| A block's output | `{{#<block id>.<variable>#}}` |
+| A Trigger input variable | `{{#<trigger block id>.<variable>#}}` |
+| A system variable | `{{#sys.query#}}` (or type `{{#thread.user_query#}}` — it's converted) |
+| A constant | `{{#env.<NAME>#}}` |
+| A conversation variable | `{{#conversation.<name>#}}` |
+
+Block ids are generated when the block is created. Use the `/` picker rather than typing ids by hand.
+
+### In Autonomous Agent and AI Chatbot instructions
+
+The configuration-canvas apps use a simpler syntax. In **Instructions**, reference a Trigger input variable by its name in double braces:
+
+```text title="Instructions"
+You are helping {{customer_name}}, who is on the {{plan}} plan.
+```
+
+If you type a name that isn't defined, the editor offers to add it to the **Trigger** (**Undefined variables referenced in pre-prompt, are you want to add them in user input form?**). Block references such as `{{#sys.query#}}` are for canvas apps only.
+
+### In code
+
+In a **Custom Function**, you don't use the brace syntax. Map variables to **Input Variables** of the function and read them as arguments; return a dictionary whose keys match the **Output Variables**:
+
+```python title="Custom Function (Python3)"
+def main(order_total: float, tier: str) -> dict:
+    discount = 0.1 if tier == "gold" else 0
+    return {"final_total": round(order_total * (1 - discount), 2)}
+```
+
+## Constants
+
+**Constants** are the app's environment variables: fixed values every block can read, such as a base URL, an account id or an API key. Manage them in the **Constants** dock tab of Agent Flow and Workflow apps.
+
+1. Click **Add Constant**.
+2. Choose a **Type**: **TEXT**, **NUMBER** or **SECRET**. (**SECRET** isn't available in client workspaces.)
+3. Enter a **Name** and **Value**.
+
+Reference them as `{{#env.NAME#}}` or pick them with `/`.
+
+<Callout type='warning'>
+  Use the secret type for credentials. Secret values are masked in the editor after saving. Never paste API keys into prompts or text fields directly.
+</Callout>
+
+## Conversation variables
+
+**Conversation Variables** store information an Agent Flow needs to remember across turns of a conversation — a name the user gave, a selected product, a cart. They are read-write and scoped to one conversation.
+
+Each conversation variable has a **Name**, **Type**, **Default Value** and **Description**. Add a **Variable Assigner** block wherever the value should change, and read it anywhere with `/`.
+
+**Variable Assigner** operations include **Overwrite**, **Set**, **Clear**, **Extend**, **Append**, **Remove First**, **Remove Last**, and arithmetic `+=`, `-=`, `*=`, `/=` for numbers.
+
+While testing in **Preview**, the **Conversation Variables** icon shows the current values.
+
+<Callout type='warning'>
+  The current editor has no control for adding new conversation variables. Agent Flows that already have them — for example, apps imported from a configuration file — keep them and can use them as described here.
+</Callout>
+
+<Callout>
+  Multi-prompt Agents keep state in the **Flow state** panel instead of conversation variables. See [Multi-prompt Agent](/docs/build/multi-prompt-agent#what-it-remembers).
+</Callout>
+
+## Pass variables through the API
+
+Input variables are sent in the `variables` object (called `inputs` in the [classic API](/docs/api/classic)). Keys must match the Trigger's variable names.
+
+```bash title="Chat Completions with variables"
+curl -N https://cloud.xpectrum.dev/v1/chat/completions \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [{ "role": "user", "content": "Where is my order?" }],
+    "variables": { "customer_name": "Sam", "tier": "gold" },
+    "channel": "whatsapp",
+    "channel_metadata": { "phone": "+15550102233" },
+    "user": "customer-123",
+    "stream": true
+  }'
+```
+
+| API field | Becomes |
+|---|---|
+| `variables` | Trigger input variables |
+| `messages` (last user message) | `thread.user_query` |
+| `thread_id` | `thread.thread_id` |
+| `user` | `thread.user_id` |
+| `channel` | `channel.name` |
+| `channel_metadata` | `channel.metadata` |
+| `attachments` | Files for file inputs or `thread.files` |
+
+For workflows, send the same `variables` object to [Runs](/docs/api/runs).
+
+Validation errors from the API name the variable: `Missing required variable 'X'.`, `Variable 'X' must be a number.`, `Variable 'X' must be an attachment.` and `Variable 'X' must be a list of attachments.`
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| A variable shows as empty at run time | The block that produces it didn't run on this path. Check **Run History**, or merge branch outputs with a **Variable Aggregator**. |
+| `Missing required variable 'X'.` | Add `X` to the API's `variables`, or make the field not **Required**. |
+| A reference breaks after deleting a block | Re-insert it with `/`. Deleting a block removes its outputs. |
+| A value doesn't persist to the next turn | Store it in a conversation variable with a **Variable Assigner**. |
+
+## Next steps
+
+<Cards>
+  <Card title='Trigger block' href='/docs/blocks/trigger'>Define inputs and outputs.</Card>
+  <Card title='Custom Function' href='/docs/blocks/custom-function'>Transform variables with code.</Card>
+  <Card title='Chat Completions API' href='/docs/api/chat-completions'>Send variables, channels and attachments.</Card>
+  <Card title='Agent Flow' href='/docs/build/agent-flow'>Use conversation variables in flows.</Card>
+</Cards>

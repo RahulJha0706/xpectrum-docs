@@ -1,0 +1,240 @@
+export const metadata = {
+  title: 'Webhook triggers & MCP',
+  description: 'Start workflows from webhook URLs and signed event endpoints, and expose workflows to AI clients as MCP tools.',
+}
+
+# Webhook triggers & MCP
+
+Besides the API-key endpoints, a published workflow can be started in two more ways: by an HTTP request to its **webhook trigger URL**, or as a **tool** from any client that speaks the Model Context Protocol (MCP). Neither uses an API key — the secret is part of the URL.
+
+<Callout type='warning' title='The URL is the credential'>
+  Anyone who has a webhook or MCP URL can start your workflow. Share it only with the system that needs it, never put it in client-side code or public repositories, and replace it if it leaks.
+</Callout>
+
+## Webhook triggers
+
+A workflow that starts with a **Webhook Trigger** block gets its own URL. Each request to it starts one run of the published workflow with the request's contents as input. See [Triggers & schedules](/docs/build/triggers) for setting up the block.
+
+<Endpoint method='POST' path='/triggers/webhook/{webhook_id}' />
+
+The URL has the form `https://cloud.xpectrum.dev/triggers/webhook/<webhook_id>`. Copy the exact URL from the **Webhook Trigger** block. The endpoint accepts `GET`, `POST`, `PUT`, `PATCH`, `DELETE` and `HEAD`, but a request is only accepted if it matches what the block expects.
+
+**Supported app types:** <Tag tone='violet'>Workflow</Tag>
+
+### What is checked
+
+| Check | Configured in the block | Error when it fails |
+|---|---|---|
+| HTTP method | The method the webhook accepts | `400` `HTTP method mismatch. Expected POST, got GET` |
+| Content type | `application/json`, `multipart/form-data`, `application/x-www-form-urlencoded`, `text/plain` or `application/octet-stream` | `400` `Content-type mismatch. Expected application/json, got text/plain` |
+| Required headers | Header names marked required | `400` `Required header missing: X` |
+| Required query parameters | Parameter names marked required | `400` `Required parameter missing: X` |
+| Required body fields | Body fields marked required | `400` `Required body parameter missing: X` |
+| JSON body | — | `400` `Invalid JSON body: …` |
+| Body size | — | `413` when the body is over 10 MB |
+
+Validation errors have the shape `{"error": "Bad Request", "message": "…"}`.
+
+### What the workflow receives
+
+The request is passed to the workflow as these input variables:
+
+| Variable | Contents |
+|---|---|
+| `webhook_data` | The whole request: method, headers, query parameters, body and files. |
+| `webhook_headers` | The request headers. |
+| `webhook_query_params` | The query string parameters. |
+| `webhook_body` | The parsed body. |
+
+### Response
+
+The run is queued and the endpoint answers **immediately** — it does not wait for the workflow to finish, and the response never contains the workflow's outputs. The status code (default `200`) and body are the ones configured in the **Webhook Trigger** block:
+
+- If a response body is configured and it looks like JSON (starts with `{` or `[`), it is returned as JSON.
+- Any other configured body is wrapped as `{"message": "…"}`.
+- With nothing configured, you get `200` and:
+
+```json title="200 OK"
+{ "status": "success", "message": "Webhook processed successfully" }
+```
+
+To see what a run did, open the workflow's logs. To send results back to the caller's system, add an [HTTP Request](/docs/blocks/http-request) block at the end of the workflow.
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl -X POST "https://cloud.xpectrum.dev/triggers/webhook/<webhook_id>" \
+  -H "Content-Type: application/json" \
+  -d '{ "order_id": "A-1042", "email": "ada@example.com" }'
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```ts title="notify.ts"
+const res = await fetch(process.env.XPECTRUM_WEBHOOK_URL!, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ order_id: 'A-1042', email: 'ada@example.com' }),
+})
+if (!res.ok) console.error(res.status, await res.text())
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="notify.py"
+import os
+import requests
+
+resp = requests.post(
+    os.environ["XPECTRUM_WEBHOOK_URL"],
+    json={"order_id": "A-1042", "email": "ada@example.com"},
+    timeout=15,
+)
+print(resp.status_code, resp.text)
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Body or message | When |
+|---|---|---|
+| 400 | `{"error": "Bad Request", "message": "…"}` | The request doesn't match the block's settings. See [What is checked](#what-is-checked). |
+| 404 | `Webhook not found: X` | The URL is wrong or the trigger was removed. |
+| 404 | `Webhook trigger is disabled for webhook X` | The trigger is turned off. |
+| 404 | `Workflow not found for app X` | The workflow isn't published. |
+| 413 | — | The body is over 10 MB. |
+| 500 | `{"error": "Internal server error", "message": "…"}` | Unexpected failure. Retry. |
+
+### Test with the debug URL
+
+<Endpoint method='POST' path='/triggers/webhook-debug/{webhook_id}' />
+
+While you build the workflow, the **Webhook Trigger** block also shows a debug URL. Requests to it run the **draft** workflow in the editor instead of the published one, so you can see each step. It only works while the editor is listening for a test event; otherwise it returns `409`:
+
+```json title="409 Conflict"
+{
+  "error": "No active debug listener",
+  "message": "The webhook debug URL only works while the editor is listening. Use the published webhook URL to execute the workflow asynchronously.",
+  "execution_url": "…"
+}
+```
+
+## Event trigger endpoints
+
+Event triggers connect a workflow to an external service through a connection. The connected service delivers its events to an Xpectrum endpoint, so you normally don't call it yourself. When a connection asks you to register an endpoint URL with the sending service, the URL has the form `https://cloud.xpectrum.dev/triggers/event/<endpoint_id>` — copy the exact URL from the connection.
+
+<Endpoint method='POST' path='/triggers/event/{endpoint_id}' />
+
+### Responses
+
+These are the answers the sending service receives:
+
+| Status | Body | Meaning |
+|---|---|---|
+| 204 | — | Accepted. The run is queued. |
+| 401 | — | The request couldn't be verified for this connection. |
+| 404 | `{"error": "Endpoint not found"}` | Unknown endpoint id. |
+| 409 | `Trigger connection is not active` | The connection is paused or not set up. |
+| 429 | `Too many trigger requests` | Rate limited. Wait for the number of seconds in the `Retry-After` header, then resend. |
+| 503 | `{"error": "Service unavailable"}` | Temporary. Retry with backoff. |
+
+## MCP servers
+
+You can publish a workflow as an MCP tool, so that AI assistants and agent frameworks that support MCP can call it. Open **API & Access** from the workflow's name in the editor header and click **Enable MCP** in the **MCP server** section (editors and above). Each server gets a secret URL of the form `https://cloud.xpectrum.dev/mcp/<server_code>`; a group URL, `https://cloud.xpectrum.dev/mcp/groups/<server_code>`, exposes several workflows as one server with several tools. Copy the exact URL from the app.
+
+<Endpoint method='POST' path='/mcp/{server_code}' />
+
+<Endpoint method='POST' path='/mcp/groups/{server_code}' />
+
+**Supported app types:** <Tag tone='violet'>Workflow</Tag>
+
+### Requirements
+
+- The app must be a Workflow, and it must be published. Otherwise enabling MCP fails with `Only workflow apps can be published as MCP tools.` or `Publish the workflow before enabling MCP access.`
+- The tool needs a **description**, and every input variable needs a description — the client's model reads them to decide when and how to call the tool.
+- Tool names start with a letter, contain only letters, digits, `_` and `-`, are at most 64 characters, and are unique in the workspace.
+
+### Transport
+
+| Property | Value |
+|---|---|
+| Transport | Streamable HTTP, JSON responses only. `GET` returns `405` (`This MCP server accepts POST only; no SSE stream is offered.`). |
+| Authentication | None beyond the URL. No headers are needed. |
+| Protocol versions | `2025-11-25`, `2025-06-18`, `2025-03-26` (default), `2024-11-05` |
+| Methods | `initialize`, `ping`, `tools/list`, `tools/call`. Notifications are acknowledged with `202`. |
+| Tool inputs | Built from the workflow's input variables: text, paragraph and select become strings, number becomes a number, a file becomes an object and a file list an array. Unknown arguments are rejected. |
+| Tool result | `content` with the outputs as text, plus `structuredContent` with the output object. |
+| Rate limit | `tools/call` requests are rate limited per URL. Over the limit you get HTTP `429` with JSON-RPC error `-32000`; no `Retry-After` header is sent, so wait and retry with backoff. |
+
+### Connect a client
+
+Most MCP clients that support remote servers take the URL directly. The exact configuration format depends on the client:
+
+```json title="MCP client configuration"
+{
+  "mcpServers": {
+    "order-lookup": {
+      "url": "https://cloud.xpectrum.dev/mcp/<server_code>"
+    }
+  }
+}
+```
+
+To test by hand, send JSON-RPC requests with `curl`:
+
+```bash title="Terminal"
+MCP_URL="https://cloud.xpectrum.dev/mcp/<server_code>"
+
+# List the tools
+curl -s "$MCP_URL" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# Call one
+curl -s "$MCP_URL" -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"order_lookup","arguments":{"order_id":"A-1042"}}}'
+```
+
+```json title="tools/call result"
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [{ "type": "text", "text": "{\"status\": \"shipped\", \"eta\": \"2025-10-02\"}" }],
+    "structuredContent": { "status": "shipped", "eta": "2025-10-02" },
+    "isError": false
+  }
+}
+```
+
+Each `tools/call` runs the published workflow once and waits for it to finish.
+
+### Errors
+
+Protocol errors are JSON-RPC error objects:
+
+| JSON-RPC code | HTTP | Message | Fix |
+|---|---|---|---|
+| -32700 | 400 | `Request body must be JSON.` | Send a JSON body with `Content-Type: application/json`. |
+| -32600 | 400 | `Expected a single JSON-RPC 2.0 request.` | Send one request object with `"jsonrpc": "2.0"` and a `method`. Batches aren't supported. |
+| -32601 | 200 | `Method not found: X` | Use one of the supported methods. |
+| -32602 | 200 | `Unknown tool: X` | Call `tools/list` for the exact names. |
+| -32000 | 429 | `Rate limit exceeded; try again in a minute.` | Wait, then retry with backoff. |
+| -32001 | 404 | `Unknown MCP server.` | The URL is wrong, the server was turned off, or its URL was replaced. |
+| -32603 | 503 | `MCP is temporarily unavailable.` | Retry with backoff. |
+
+Problems with a specific call come back as a normal result with `isError: true`, so the client's model can correct itself. Messages include `Missing required argument(s): …`, `Unknown argument(s): … Allowed: …`, `Argument 'x' must be a string`, `The workflow could not be run: …` and `The workflow run failed: …`.
+
+## Next steps
+
+<Cards>
+  <Card title='Triggers & schedules' href='/docs/build/triggers'>Configure webhook and event triggers.</Card>
+  <Card title='Workflow runs' href='/docs/api/runs'>Run a workflow with an API key instead.</Card>
+  <Card title='MCP' href='/docs/integrations/mcp'>Use MCP servers as tools inside your agents.</Card>
+</Cards>

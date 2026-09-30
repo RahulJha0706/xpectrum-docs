@@ -1,0 +1,87 @@
+export const metadata = {
+  title: 'Intent Classifier',
+  description: 'Reference for the Intent Classifier block: classes, instruction, memory, outputs, branching behavior and errors.',
+}
+
+# Intent Classifier
+
+The **Intent Classifier** block (formerly Question Classifier) uses a model to decide which of your categories a piece of text belongs to, then continues down that category's branch. Use it to route by meaning: sales versus support, "cancel my order" versus "where is my order".
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| Routing depends on what the text means, phrased in any way | **Intent Classifier** |
+| Routing depends on an exact value, such as a number, a status or a keyword | [Condition](/docs/blocks/condition): no model call and no tokens |
+| You need the category and other extracted fields too | [Parameter Extractor](/docs/blocks/parameter-extractor) with a `string` field whose description lists the allowed categories, then a Condition |
+
+## Settings
+
+The settings are grouped into **Model & vision**, **Class** and **After it runs** (output variables and next step).
+
+| Setting | Description | Default |
+|---|---|---|
+| Model | The model that classifies. A small, fast model is usually enough. | None: required |
+| **Input Variables** | The text to classify: a string variable, usually `thread.user_query` in an Agent Flow or an input field in a Workflow. | `thread.user_query` in an Agent Flow; otherwise required |
+| **Class** (**Add Class**) | One entry per category (**Class 1**, **Class 2**, …). Write each as a short description ("Write your topic name"). You can insert variables. Each class gets its own output handle. | Two empty classes |
+| **Instruction** (**Advanced Setting**) | "Input additional instructions to help the question classifier better understand how to categorize questions." | Empty |
+| **Memory** (**Advanced Setting**) | Agent Flow only. Includes recent turns so follow-ups like "yes, that one" classify correctly. | — |
+| Vision | Sends files from a variable you choose to the model along with the text. Shown only for models that support vision. | Off |
+
+Write classes as descriptions, not single words. "Questions about invoices, charges, refunds or payment methods" classifies far better than "Billing".
+
+## Inputs and outputs
+
+**Reads:** the input variable, and the conversation history when memory is on.
+
+**Produces:**
+
+| Variable | Type | Description |
+|---|---|---|
+| `class_name` | String | The chosen class's text ("Class Name"). |
+
+**Branches:** one handle per class. Only the chosen class's branch runs.
+
+## Example
+
+Routing for a support Agent Flow:
+
+| Class | Next block |
+|---|---|
+| Questions about invoices, charges, refunds or payment methods | Knowledge Search on the billing knowledge base |
+| Problems with logging in, passwords or two-factor codes | Answer with the reset link |
+| Requests to talk to a person, or angry or urgent messages | HTTP Request to the helpdesk, then Answer |
+| Anything else | AI Model with general instructions |
+
+Instruction:
+
+```text title="Instruction"
+The customer is a business user of Acme Cloud.
+If a message mentions both billing and login, choose the login class.
+Treat "speak to someone", "human" and "agent" as a request for a person.
+```
+
+<Callout type='warning'>
+  If the model's reply can't be matched to a class, the block picks the **first** class and succeeds anyway. Put your safest route first, or add an "Anything else" class, so ambiguous messages don't land somewhere risky.
+</Callout>
+
+## Errors and limits
+
+| Symptom or message | Cause | Fix |
+|---|---|---|
+| "model is required" / "Input Variables is required" in the **Checklist** | No model or input chosen. | Pick a model and an input variable. |
+| "Topic Name is required" | A class is empty. | Fill in or delete the empty class. |
+| "Vision Variable is required" | Vision is on but no file variable is chosen. | Choose a variable, or turn vision off. |
+| Messages keep landing in the wrong class | Class descriptions overlap or are too short. | Make classes specific and mutually exclusive, and add tie-break rules to **Instruction**. |
+| Follow-up messages ("the second one") are misrouted | No conversation history. | Turn on **Memory** (Agent Flow). |
+| The run fails at this block | The model call failed, for example a provider error or no credits. | Check the error in the run log. See [AI Model errors](/docs/blocks/ai-model#errors-and-limits). |
+
+Each run of the block is one model call and uses tokens. Test your classes with realistic messages using **Run this step**.
+
+## Next steps
+
+<Cards>
+  <Card title='Condition' href='/docs/blocks/condition'>Branch on exact values without a model call.</Card>
+  <Card title='Parameter Extractor' href='/docs/blocks/parameter-extractor'>Pull fields out of the same text.</Card>
+  <Card title='Build a support agent' href='/docs/guides/support-agent'>A full routing example.</Card>
+</Cards>

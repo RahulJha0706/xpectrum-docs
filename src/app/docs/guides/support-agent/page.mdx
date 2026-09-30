@@ -1,0 +1,167 @@
+export const metadata = {
+  title: 'Support agent on every channel',
+  description: 'Build a support agent that answers from your documentation site with citations, routes billing and technical questions differently, and replies on email and WhatsApp.',
+}
+
+# Support agent on every channel
+
+By the end of this guide you have a support agent that answers customer questions from your public documentation, keeps its knowledge current by re-syncing the site automatically, handles billing, technical and other questions differently, shows which pages its answers came from, and replies to customers on email and WhatsApp as well as your website.
+
+You build it as an [Agent Flow](/docs/build/agent-flow) so you can see and control each step.
+
+## Before you begin
+
+- An Owner, Admin or Editor role.
+- A public documentation or help-center site, ideally with a sitemap (for example `https://docs.example.com/sitemap.xml`).
+- For email: an address you want customers to write to.
+- For WhatsApp: a Meta Business account you can sign in to, and a phone number that can receive an SMS or voice call for verification.
+
+## What you'll build
+
+```text title="Flow"
+Trigger
+  └─ Intent Classifier ── billing ──▶ AI Model (billing prompt) ──▶ Answer
+                      ├── technical ─▶ Knowledge Search ─▶ AI Model (with context) ─▶ Answer
+                      └── other ─────▶ Knowledge Search ─▶ AI Model (with context) ─▶ Answer
+```
+
+| Why this shape | Benefit |
+|---|---|
+| Classify first | Billing questions often need a policy answer or a handoff, not a docs search. |
+| Search only when needed | Fewer tokens and faster replies on the branches that don't need knowledge. |
+| One **Answer** per branch | Each branch can have its own tone and fallback message. |
+
+## Build the agent
+
+<Steps>
+<Step title='Create a website knowledge base'>
+
+Go to **Resources › Knowledge Base**, click **Create Knowledge**, and choose **From Website**.
+
+| Field | Value |
+|---|---|
+| **URL Source** | **Discover from site** |
+| **Discovery Method** | **Sitemap** if your site has one (up to 1,500 URLs); otherwise **Crawl**, with **Max Pages** and **Max Depth** (default 3) set to cover your docs |
+| **Sync Schedule** (on the next step) | **Automatic**, every `24` hours (1–720). The default is **Manual**. |
+
+Add your site under **Base URLs** and click **Discover Pages**. On **Review & Create**, set the **Knowledge Base Name** (for example `Acme Docs`) and **Source Name**, deselect pages you don't want (changelogs, legal pages, marketing), check the **Index Settings** and **Sync Schedule**, and click **Create Knowledge Base**. The first sync starts straight away.
+
+Website knowledge bases are always indexed with the **Embedding Model** shown under **Index Settings**; there is no index method to choose.
+
+Automatic sync re-reads the site on your schedule, so when you update a docs page the agent's answers follow. You can add more sites later from the knowledge base's **Sources** tab with **Add Source**. See [Knowledge sources](/docs/knowledge/sources).
+
+</Step>
+<Step title='Check retrieval'>
+
+Open the knowledge base's **Retrieval Testing** tab and try a few real customer questions, such as `How do I reset my API key?`. If the right page isn't in the top results, see [Retrieval](/docs/knowledge/retrieval) before building the flow; a flow can't answer well from the wrong chunks.
+
+</Step>
+<Step title='Create the Agent Flow'>
+
+Go to **Conversational Apps › Agent Flow**, click **Create from Blank**, name it `Acme Support`, and click **Create**. The canvas opens with a starter flow: **Trigger** → **AI Model** → **Answer**. The customer's message is available as `thread.user_query`. Delete the starter **AI Model** and **Answer** blocks (or reuse them in one of the branches below) so the Trigger leads straight into the classifier.
+
+</Step>
+<Step title='Add the Intent Classifier'>
+
+Click **+** on the Trigger and add **Intent Classifier** (under **AI**). Set **Input Variables** to `thread.user_query`, pick a small, fast model, and fill in the classes. The block starts with two; click **Add Class** for the third. Each class is one line of text describing the topic; start it with a short name so the branches are easy to tell apart:
+
+| Class | Text to enter |
+|---|---|
+| Class 1 | `Billing: invoices, payments, refunds, plan changes, pricing, receipts.` |
+| Class 2 | `Technical: how to use the product, setup, errors, API and integrations.` |
+| Class 3 | `Other: anything else, including greetings and feedback.` |
+
+Under **Advanced Setting**, add an **Instruction** to settle edge cases, for example `If a message mentions both an error and a charge, choose billing.` Each class gets its own branch on the canvas.
+
+</Step>
+<Step title='Build the technical branch'>
+
+From the Technical branch, add **Knowledge Search**. Set **Query Variable** to `thread.user_query` and add the `Acme Docs` knowledge base.
+
+After it, add an **AI Model** block. On its **Context** tab, choose the Knowledge Search `result`. Then write the system prompt on the **Prompt** tab, typing <Kbd>/</Kbd> to insert variables:
+
+```text title="System prompt"
+You are Acme's support assistant. Answer using only the context below.
+If the context doesn't contain the answer, say you're not sure and offer to connect the customer with the support team at support@acme.example.
+Be concise: short paragraphs, numbered steps for procedures.
+The customer is writing on this channel: {{#sys.channel#}}. On whatsapp or sms, keep replies under 600 characters and don't use tables.
+
+Context:
+{{#context#}}
+```
+
+In the editor the channel variable shows as `channel.name`. Finish the branch with an **Answer** block whose reply is the AI Model's `text`.
+
+</Step>
+<Step title='Build the billing and other branches'>
+
+For the Billing branch, add an **AI Model** with a billing-specific prompt, for example: `Answer general billing questions from the policy below. Never promise refunds. For anything about a specific invoice, ask for the invoice number and tell the customer a billing specialist will reply within one business day.` Paste your refund and plan policy into the prompt, then add an **Answer**.
+
+For the Other branch, reuse the technical pattern (Knowledge Search → AI Model → Answer) with a friendlier prompt that also handles greetings.
+
+<Callout type='tip'>
+  Add **Error Handling** on each AI Model block (**Default Value** or **Fail Branch**) so a model timeout returns a helpful fallback like `Sorry, I'm having trouble right now — please email support@acme.example.` instead of an error.
+</Callout>
+
+</Step>
+<Step title='Turn on citations'>
+
+Open the **Agent Settings** tab in the bottom dock and turn on **Citations and Attributions**. Replies that used Knowledge Search then carry their sources: the API and the JavaScript SDK return them as `citations`, each with the document name, the chunk content and a score. The chat widget doesn't display citations. Optionally turn on **Follow-up** to suggest next questions, which the chat widget shows under each reply.
+
+</Step>
+<Step title='Test and publish'>
+
+Click **Preview** and send one message per class, such as `Why was I charged twice?`, `The webhook returns 401`, and `Hi there`. Check that each takes the branch you expect; **Run History** in the dock shows every block's inputs and outputs.
+
+When all three work, click **Publish Changes**, then **Publish**. Channels always use the published version.
+
+</Step>
+</Steps>
+
+## Put it on email and WhatsApp
+
+<Steps>
+<Step title='Email'>
+
+Go to **Channels › Email**, open **Email Addresses** and click **Add Email**. Choose `Acme Support` in **Assign to Agent**, enter the **Email Address** customers will write to and a **Description**, and pick a **Conversation expiry**: **Default (3 days)** works for most support, since a reply within that window continues the same conversation. Use **Send Test Email** to check the round trip; threads appear in the **Conversations** tab. See [Email](/docs/channels/email).
+
+</Step>
+<Step title='WhatsApp'>
+
+Go to **Channels › WhatsApp** and click **Connect Account**. Complete Meta's signup in the pop-up; the page shows **Waiting for Meta…** until it finishes, then your business appears under **Business Accounts**.
+
+On **Phone Numbers**, choose **Verify Number** on your number's row and confirm the code Meta sends by SMS or voice call (**Verify Phone Number**). Then choose **Complete Setup** and set a six-digit **Two-Step Verification** PIN. When the status is **Registered**, click **Assign** on the row and pick `Acme Support`. See [WhatsApp](/docs/channels/whatsapp).
+
+</Step>
+<Step title='Website (optional)'>
+
+Add the chat widget with [Add chat to your website](/docs/guides/website-chat). Follow-up questions appear there automatically if **Follow-up** is on.
+
+</Step>
+</Steps>
+
+## Test it
+
+1. **Email:** send `How do I rotate my API key?` from a personal address. You get a reply that matches your docs.
+2. **WhatsApp:** message the registered number with `I was charged twice this month`. The reply follows the billing prompt and is short.
+3. **Freshness:** change a sentence on a docs page, wait for the next scheduled sync (check the source on the knowledge base's **Sources** tab), then ask about it again.
+4. **Logs:** click **Logs** in the editor header. Each conversation is listed; open one to see which branch ran.
+
+## Troubleshooting
+
+- **Everything goes to `other`** → make class descriptions concrete and add examples to the classifier's **Instruction**. Test with **Run this step** on the Intent Classifier.
+- **Answers are generic or wrong** → check **Retrieval Testing** with the same question. If the right page isn't found, re-discover the site or adjust chunking and **Top K**.
+- **No citations shown** → **Citations and Attributions** must be on and the flow republished. Only answers that used Knowledge Search carry citations.
+- **New docs pages aren't known** → pages added after discovery may need a new discovery run. Open the knowledge base's **Sources** tab and check the source's sync.
+- **WhatsApp messages get no reply** → the number must be **Registered** and have an agent assigned. **Verification Pending** or **Registration Failed** numbers don't receive messages.
+- **Email replies start a new conversation each time** → the conversation expired. Choose a longer expiry on the address.
+- **Publishing is blocked** → resolve every item in the checklist (for example, a block with no model or no input selected). Make sure each branch ends in an **Answer**, or that branch replies with nothing.
+
+## Next steps
+
+<Cards>
+  <Card title='Intent Classifier' href='/docs/blocks/intent-classifier'>Classes, instructions and outputs.</Card>
+  <Card title='Knowledge Search' href='/docs/blocks/knowledge-search'>Retrieval settings and metadata filtering.</Card>
+  <Card title='Logs' href='/docs/monitor/logs'>Review conversations and runs.</Card>
+  <Card title='Channels' href='/docs/channels'>Every channel and how conversations continue across them.</Card>
+</Cards>

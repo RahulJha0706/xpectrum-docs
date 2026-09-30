@@ -1,0 +1,115 @@
+export const metadata = {
+  title: 'SMS',
+  description: 'Let an agent answer text messages on your phone number, choose how inbound texts join conversations, and send SMS.',
+}
+
+# SMS
+
+Turn on SMS for a phone number and an agent answers every text sent to it. SMS runs on the same numbers you use for calls, so one number can take calls and texts with the same agent.
+
+## Before you begin
+
+- A phone number in the workspace. SMS runs on numbers bought on **Channels › Phone Number** — pick one with the **SMS** capability when you buy. See [Phone numbers](/docs/channels/phone-numbers).
+- A published conversational agent. Any type works: Autonomous Agent, Agent Flow, Multi-prompt Agent or AI Chatbot.
+- The **Owner** or **Admin** role to enable, change or disable SMS and to send messages.
+
+## The SMS page
+
+Open **Channels › SMS**. The **Overview** shows **Phone Numbers**, **SMS Enabled** and **Agents Handling SMS**, with quick actions **Enable SMS on a Number**, **Get a Phone Number** and **Refresh**.
+
+**SMS Numbers** lists every number in the workspace:
+
+| Column | Shows |
+|---|---|
+| **Phone Number** | The number and its display name. |
+| **SMS** | **SMS On** or **Off**. |
+| **Voice** | **Inbound** / **Outbound** calling badges for the same number. |
+| **Status** | The number's status. |
+| **Agent** | The agent that replies to texts. |
+| **Actions** | **Send SMS**, **Enable SMS** / **Change**, and the row menu. |
+
+Filter with **All numbers**, **SMS on** or **SMS off**.
+
+## Enable SMS on a number
+
+<Steps>
+<Step title='Open Configure SMS'>
+
+Click **Enable SMS** on the number's row, or **Enable SMS on a Number** in the overview.
+
+</Step>
+<Step title='Pick the agent'>
+
+Choose the agent that should reply to texts on this number.
+
+</Step>
+<Step title='Choose the inbound conversation mode'>
+
+Pick an **Inbound Conversation Mode** (see below).
+
+</Step>
+<Step title='Save'>
+
+Click **Enable SMS**. Xpectrum connects the number's incoming texts to the agent. You see "SMS enabled for … → …" when it's done.
+
+</Step>
+</Steps>
+
+If you see "Agent mapped. Note: …" with a webhook warning, the agent was mapped but incoming texts may not reach it yet. Try **Enable SMS** again. If the warning persists, contact support.
+
+## Inbound conversation modes
+
+| Mode | Behavior | Use it when |
+|---|---|---|
+| **Continue Conversation** (default) | When someone texts in, the agent picks up from their last voice or SMS conversation. If there's none, a new conversation starts. | You want continuity. For example, a caller hangs up and texts a follow-up question, and the agent still knows what the call was about. |
+| **New Conversation** | Every inbound SMS starts a fresh conversation with no prior context. | Each text is independent, such as one-off status lookups or opt-in keywords. |
+
+To change the mode or the agent later, click **Change** on the row.
+
+## Send an SMS
+
+Click **Send SMS** on a number with SMS on:
+
+| Field | What to enter |
+|---|---|
+| **From Number** | The number you clicked. |
+| **To Number** | The recipient, in E.164 format, for example `+14155551234`. |
+| **Message** | The text. A counter shows characters against 160. |
+
+You see "SMS sent successfully" when the message is accepted. If the recipient replies, the agent answers under the inbound conversation mode.
+
+<Callout>
+  One SMS segment holds 160 standard characters. Longer messages, and messages with emojis or non-Latin characters, are split into several segments, and carriers may charge for each one.
+</Callout>
+
+## E.164 format
+
+Enter numbers as `+`, country code, then number, with no spaces or punctuation: `+14155551234`, `+442079460958`. See [E.164 format](/docs/channels/phone-numbers#e164-format).
+
+## Disable SMS
+
+Choose **Disable SMS** from the row menu. The number keeps working for calls. Texts to it are no longer answered by the agent.
+
+## Tips
+
+- **Write for small screens.** Add to your instructions: `Reply in plain text, under 300 characters. No Markdown, tables or headings. Send one link at most.`
+- **Branch on the channel.** If the agent also takes calls or web chat, branch on `channel.name` to switch to the short texting style. See [Channels](/docs/channels#knowing-which-channel-a-message-came-from).
+- **Use Continue Conversation with voice.** On a number that takes calls and texts, callers can hang up and text "what time was that again?" and get a sensible answer.
+- **Respect opt-outs and local rules.** Only text people who agreed to hear from you, and honor requests to stop.
+
+## Troubleshooting
+
+- **Texts get no reply** → Check the row shows **SMS On** with an agent, and that the agent is published. Re-run **Enable SMS** if you saw a webhook warning.
+- **"No SMS numbers assigned" or no numbers listed** → Buy a number on **Channels › Phone Number** first.
+- **The number can't send or receive SMS** → The number may not have SMS capability. Buy one that shows the **SMS** badge in search results.
+- **The agent forgets earlier messages** → The mode is **New Conversation**. Switch to **Continue Conversation**.
+- **The agent brings up an old call in a new text** → That's **Continue Conversation**. Switch to **New Conversation** if texts should stand alone.
+- **You can't see Enable SMS or Send SMS** → You need the Owner or Admin role.
+
+## Next steps
+
+<Cards>
+  <Card title='Phone numbers' href='/docs/channels/phone-numbers'>Buy a number with SMS capability.</Card>
+  <Card title='WhatsApp' href='/docs/channels/whatsapp'>Answer WhatsApp messages too.</Card>
+  <Card title='Channels overview' href='/docs/channels'>How channels, agents and conversations fit together.</Card>
+</Cards>

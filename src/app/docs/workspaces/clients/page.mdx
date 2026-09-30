@@ -1,0 +1,169 @@
+export const metadata = {
+  title: 'Client workspaces',
+  description: 'Create and manage separate workspaces for the businesses you build agents for: admins, statuses, lifecycle actions, logs, traces, usage and credit.',
+}
+
+# Client workspaces
+
+A client workspace is a separate workspace you create for another company. The client's apps, knowledge, conversations and members stay private to that workspace, while you keep lifecycle control and can monitor its activity, traces and spend from **Settings › Client Workspaces**.
+
+<Callout type='warning'>
+  **Client Workspaces** is available to agency and platform accounts. It may not be enabled on every workspace; contact support if you don't see it in **Settings**.
+</Callout>
+
+## How it works
+
+| Party | What they do |
+|---|---|
+| **You (the agency)** | Create the workspace, name its admin, suspend or reactivate it, change its admin, delete it, and read its logs, traces and usage. |
+| **The client admin** | Accepts the invitation, then runs the workspace: invites members, builds and publishes apps, connects channels. |
+| **Client members** | Build or use apps according to their role (**Editor** or **Normal**). |
+
+The **Client Workspaces** page doesn't let you switch into a client workspace. You appear in a client's workspace switcher only if you are a member of it, for example because you were named as its admin or the admin invited you. See [Workspaces & roles](/docs/getting-started/workspaces).
+
+## Create a client workspace
+
+<Steps>
+<Step title='Open Client Workspaces'>
+
+Go to **Settings › Client Workspaces** and click **Create Client Workspace**.
+
+</Step>
+<Step title='Fill in the details'>
+
+| Field | Required | Notes |
+|---|---|---|
+| **Workspace Name** | Yes | The client's name, for example `Acme Corporation`. |
+| **About the organization** | No | Up to 255 characters. Shown to your team when reviewing the workspace. |
+| **Designated admin email** | Yes | The person who will run the workspace. They receive the invitation. |
+
+Click **Create Client Workspace**. The new row appears with status **Pending**.
+
+</Step>
+<Step title='The admin accepts'>
+
+The designated admin gets an email invitation. The invitation page shows the workspace name and when the invitation expires; the admin clicks **Accept invitation** (or **Sign in and join** if they aren't signed in). The workspace becomes **Active**.
+
+The person who created the client workspace can't accept its admin invitation themselves; name someone else as the admin.
+
+If the invitation expires first, the status changes to **Expired**; use **Re-invite** to send a new one.
+
+</Step>
+</Steps>
+
+<Callout>
+  API calls made with a client workspace's app keys run as that workspace's admin. Until the admin accepts, API requests are refused with `This client workspace has no admin yet. Accept the admin invitation before calling the API.`
+</Callout>
+
+## Provisioning modes
+
+Each row shows a pill with the workspace's provisioning mode.
+
+| Mode | What it means | Billing |
+|---|---|---|
+| **Agency-managed** | Provisioned on the client's behalf. Every workspace you create with **Create Client Workspace** is agency-managed. | Not billed on credit; you invoice the client outside Xpectrum. Credit columns show "—" and the **Usage** tab says **This workspace is agency-managed — it is not billed on credit.** |
+| **Self-serve** | A business that signed up on its own. | Pays for its own usage with credits and gets a one-time signup grant. See [Billing & credits](/docs/workspaces/billing). |
+
+## Statuses and actions
+
+| Status | Meaning | Actions available |
+|---|---|---|
+| **Pending** | Invitation sent, not yet accepted. The row can't be opened yet. | **Change Admin**, **Delete** |
+| **Active** | The admin accepted; the workspace is in use. | **View details & logs**, **Suspend**, **Delete** |
+| **Inactive** | Suspended by you. | **View details & logs**, **Reactivate**, **Delete** |
+| **Expired** | The invitation expired before it was accepted. | **Re-invite**, **Delete** |
+
+- **Suspend** and **Reactivate** take effect immediately, without a confirmation step.
+- **Change Admin** and **Re-invite** open the same dialog, prefilled with the current **Designated admin email**. Edit the address and click **Save** to send a new invitation.
+- **Delete** permanently deletes the workspace and all its data. Type the workspace name in **Type the workspace name** to enable **Delete**. This can't be undone.
+
+## The clients table
+
+Search by name, admin email or ID with **Search name, admin email or id**. Click a row to open it.
+
+| Column | Shows |
+|---|---|
+| **Workspace** | Name, provisioning mode and short ID |
+| **Status** | **Pending**, **Active**, **Inactive** or **Expired** |
+| **Admin** | The designated admin's email |
+| **Apps**, **Executions** | Published apps in the workspace and executions run in the selected window |
+| **Balance**, **Credit spent**, **Topped up**, **Revenue** | Credit figures for self-serve workspaces |
+| **Numbers** | Phone numbers in the workspace (self-serve workspaces) |
+| **Members**, **Joined** | Member count and creation date |
+| **Credit** | Health chip: **Healthy**, **Running low**, **Blocked**, **Unused** or **Unknown** |
+
+By default, the most recently active workspaces are listed first. **Apps**, **Executions**, **Credit spent** and **Revenue** are sortable: click the header once for highest first, again for lowest first, and a third time to clear.
+
+**Download emails** exports a CSV of the member email addresses (and invited admins) across all your client workspaces, one row per address.
+
+## Client credit overview
+
+Above the table, **Client credit** summarizes your clients over **7d**, **30d** or **90d** (30 days by default). Credit figures cover self-serve clients only; agency-managed workspaces are not billed on credit.
+
+| KPI | Meaning |
+|---|---|
+| **Clients** | All client workspaces, with self-serve and agency-managed counts |
+| **Active** | Clients used in the last 7 days |
+| **Apps deployed** | Published apps across every client |
+| **Revenue** | Top-ups plus phone-number charges |
+| **Credit outstanding** | Unspent balance your clients hold |
+| **Credit spent** | Usage drawn down in the window |
+| **Running low** | Clients below the low-balance threshold (they are emailed) |
+| **Blocked** | Clients below the minimum balance; new work is refused |
+
+Panels below show a **Weekly trend** over the last 12 weeks (new workspaces, active, apps published), a **Funnel** of self-serve clients (ran anything, active this week, published an app, paying), **Credit spend by category** (**Voice**, **Execution**, **Messaging**, **Third party**) and **Needs attention**, which lists the clients closest to running out.
+
+## Client detail
+
+Open a row (or **View details & logs**) for these tabs. **Logs**, **Traces** and **Usage** share one date-range picker.
+
+| Tab | Contents |
+|---|---|
+| **Overview** | **Workspace info**: organization, created date, members, status, about; and the pending invitation with its expiry. |
+| **Members** | Read-only list: name, email, role, joined date. |
+| **Logs** | Log stats, then **Timeline**, **Audit Logs**, **Activity Logs**, **Access Logs** and sign-in events for the workspace. |
+| **Traces** | **Workflow runs**, **Success rate**, **Avg latency**, and a list of **Workflow traces**. |
+| **Usage** | **Access events**, **Unique users**, **Error rate**, then the client's credit detail. |
+
+### Credit detail (self-serve)
+
+| Figure | Meaning |
+|---|---|
+| **Balance** | Credit left. New work is refused below the minimum shown. |
+| **Granted** | The one-time signup grant. |
+| **Topped up** | Credit the client paid in by card. |
+| **Credit spent** | Usage in the window. |
+| **Our fees** | The platform's share: executions, voice and messaging. |
+| **Passed through** | Model, speech and telephony costs at cost. |
+
+**Money in · two rails** separates the credit ledger (pays for voice, chat, speech and messaging) from card charges (phone numbers only). **Vendor split** breaks down passed-through cost by provider, and **Ledger** lists every entry, newest first.
+
+<Callout type='warning'>
+  You can't add or grant credit to a client from this page. Self-serve clients top up their own balance from **Billings**.
+</Callout>
+
+## Admins in a client workspace
+
+- Client workspaces have **no owners**; the admin is the highest role.
+- A client workspace is limited to **one admin**. Other members can be **Editor** or **Normal**. To ask for a second admin, the admin uses **Contact support** on the **Members** page (**Request another admin**).
+- If the only admin tries to leave, they must **Hand off admin access** to another active member first (**Hand off & leave**).
+- Some features are narrower in client workspaces: there is no **Multi-prompt Agent**, the template gallery isn't offered, and the canvas offers a smaller set of blocks.
+
+## Troubleshooting
+
+- **The row stays Pending** → the admin hasn't accepted. Ask them to check spam, or use **Change Admin** to resend to a different address.
+- **"Invitation not available"** → the invitation expired, was replaced by a newer one, or was already accepted. Use **Re-invite** (expired) or **Change Admin** (pending) from the row to send a new one.
+- **"You created this client workspace, so you can't also be its admin."** → the creator can't accept the admin invitation. Use **Change Admin** to send it to someone else.
+- **"This invitation was sent to … You are signed in as …"** → the admin is signed in with a different email. Sign out and sign back in with the invited address.
+- **You can't open a Pending or Expired workspace** → details are available only once the workspace is **Active** or **Inactive**.
+- **Credit figures are unavailable** → the page shows the workspace list regardless; try again later.
+- **You can't see a client's apps** → you need to be a member of that workspace. Ask the client admin to invite you.
+
+## Next steps
+
+<Cards>
+  <Card title='Set up an agency' href='/docs/guides/agency'>An end-to-end walkthrough for your first client.</Card>
+  <Card title='Branding' href='/docs/workspaces/branding'>Replace the Powered by badge with your brand.</Card>
+  <Card title='Billing & credits' href='/docs/workspaces/billing'>How credits, executions and pass-through costs work.</Card>
+  <Card title='Workspaces & roles' href='/docs/getting-started/workspaces'>Members, roles and MFA.</Card>
+</Cards>

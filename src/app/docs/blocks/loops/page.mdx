@@ -1,0 +1,162 @@
+export const metadata = {
+  title: 'For Each & Repeat Until',
+  description: 'Reference for the For Each, Repeat Until and Exit Loop blocks: inputs, loop variables, parallel mode, error modes, outputs and limits.',
+}
+
+# For Each & Repeat Until
+
+Two blocks repeat a group of steps. **For Each** (formerly Iteration) runs the same steps once for every item in a list and collects a result from each pass. **Repeat Until** (formerly Loop) runs the same steps over and over until a condition is met, up to a maximum number of passes. **Exit Loop** leaves a Repeat Until early.
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| You have a list and want to do the same thing to each item: summarize each file, enrich each lead, translate each paragraph | **For Each** |
+| You don't know how many passes you need: page through an API until there's no next page, retry a draft until it passes a check | **Repeat Until** |
+| Inside a Repeat Until, stop as soon as something happens | **Exit Loop** |
+| You only need to filter or sort a list | [List Operator](/docs/blocks/transform#list-operator): no loop needed |
+
+Both blocks appear on the canvas as a container. Add the steps to repeat inside it. The canvas labels them **FOR EACH** (with "sequential" or "parallel ×N") and **REPEAT UNTIL** (with "max N").
+
+<Callout type='warning'>
+  A For Each or Repeat Until can't contain another For Each or Repeat Until, and can't contain an **End** block. To process nested lists, flatten them first with a [Custom Function](/docs/blocks/custom-function), or call a second workflow as a tool.
+</Callout>
+
+## For Each
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Input** | The list to go through. Any array variable: `Array[String]`, `Array[Number]`, `Array[Object]` or `Array[File]`. | Required ("Pick the list this should repeat over.") |
+| **Output Variables** | The variable, produced inside the loop, to collect from each pass. | Required |
+| **Parallel Mode** | Runs several passes at the same time instead of one after another. | Off |
+| **Maximum parallelism** | How many passes run at once in parallel mode, 1–10. | 10 |
+| **Error response method** | What happens when a pass fails. See below. | **Terminated** |
+
+**Error response method** options:
+
+| Option | Effect |
+|---|---|
+| **Terminated** | The first failed pass stops the block, and the run fails. |
+| **Continue on Error** | Failed passes put an empty value (null) in `output`. Other passes continue. |
+| **Remove Abnormal Output** | Failed passes are left out of `output`, so it can be shorter than the input. |
+
+### Inputs and outputs
+
+Inside the loop, steps can read **Current Iteration** variables:
+
+| Variable | Type | Description |
+|---|---|---|
+| `item` | The list's item type | The current item. For files, its attributes too (`item.name`, `item.url`…). |
+| `index` | Number | The current position, starting at 0. |
+
+After the loop, the block produces:
+
+| Variable | Type | Description |
+|---|---|---|
+| `output` | Array | One result per pass, from the variable you chose in **Output Variables**, in input order. |
+
+If every pass produces a list, the lists are joined into one flat list in `output`. An empty input list succeeds immediately with an empty `output`.
+
+To put blocks that are already on the canvas inside a new For Each, open a block's menu (or select several blocks first) and choose **Wrap in Repeat**. Connections that cross the new container's edge are removed, so reconnect them afterwards.
+
+### Example
+
+Summarize a list of web pages, one per line:
+
+1. **Trigger**: a **Paragraph** field `urls`, one URL per line.
+2. **Custom Function**: split the text into a list and return it as an **Array[String]** output `items`:
+
+   ```python
+   def main(urls: str) -> dict:
+       return {"items": [u.strip() for u in urls.splitlines() if u.strip()]}
+   ```
+
+3. **For Each**: **Input** `items`. Inside it: **HTTP Request** with **GET** on `item`, then **AI Model** "Summarize this page in three bullet points", reading the HTTP Request's `body`.
+4. **Output Variables**: the AI Model's `text`. Turn on **Parallel Mode** with **Maximum parallelism** 5.
+5. After the loop, a **Template** joins the summaries:
+
+```text title="Template"
+{% for s in summaries %}
+### Report {{ loop.index }}
+{{ s }}
+{% endfor %}
+```
+
+where `summaries` is the For Each `output`.
+
+<Callout type='warning'>
+  "Parallel mode warning: Answer nodes, conversation variable assignments, and persistent read/write operations within iterations may cause exceptions." Keep **Answer** blocks and **Variable Assigner** writes outside a parallel For Each, and remember that parallel passes can hit the same API at once.
+</Callout>
+
+## Repeat Until
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Loop Variables** | Variables that live for the whole loop and can change on each pass. Each has a **Variable Name**, a type (string, number, object, `array[string]`, `array[number]` or `array[object]`) and an **Input Mode**: **Constant** (a fixed starting value) or **Variable** (a value from an earlier step). | None |
+| **Loop Termination Condition** | The condition that ends the loop. The same operators as the [Condition](/docs/blocks/condition#operators-by-variable-type) block (object variables offer only **is empty** and **is not empty**), combined with **and** or **or**. "Only variables within loops with termination conditions and conversation variables can be referenced." | None ("Add a condition that stops this repeating.") |
+| **Maximum Loop Count** | The most passes allowed, 1–100. | 10 |
+
+Update loop variables inside the loop with a [Variable Assigner](/docs/blocks/transform#variable-assigner) (for example **+=** 1 on a counter, or **Extend** a results list). The Variable Assigner isn't offered in [client workspaces](/docs/blocks#client-workspaces).
+
+### How it runs
+
+1. Loop variables are set to their starting values.
+2. The steps inside run in order.
+3. The termination condition is checked after each step inside the loop completes. As soon as it's true, the loop ends, even partway through a pass.
+4. Otherwise the next pass starts, until **Maximum Loop Count** is reached.
+
+If any step inside fails, the whole Repeat Until fails. Use [error handling](/docs/blocks#error-handling) on the inner steps to keep going.
+
+### Inputs and outputs
+
+Inside the loop, steps can read the loop variables. To count passes, keep a number loop variable and add 1 to it on each pass.
+
+After the loop, the block produces its **Loop Variables** with their final values. Outputs of the blocks inside the loop are cleared after each pass, so copy anything you need later into a loop variable. The run log also shows the number of passes (`loop_round`) and the variables after each pass.
+
+### Example
+
+Page through an API that returns results a page at a time with a `has_more` flag:
+
+| Loop variable | Type | Start value |
+|---|---|---|
+| `page` | number | `1` |
+| `has_more` | string | `yes` |
+| `records` | array[object] | `[]` |
+
+Inside the loop:
+
+1. **HTTP Request**: `GET https://api.example.com/contacts`, with a **Params** entry `page` set to the `page` loop variable.
+2. **Custom Function**: parses the body and returns `items` (array[object]) and `more` (string, `yes` or `no`).
+3. **Variable Assigner**: `records` **Extend** `items`; `has_more` **Overwrite** `more`; `page` **+=** `1`.
+
+**Loop Termination Condition**: `has_more` **is** `no`. **Maximum Loop Count**: 20.
+
+Because the condition is checked after every inner step, make sure it can only become true once the pass has finished its work. Here, `has_more` changes only in the last step.
+
+## Exit Loop
+
+**Exit Loop** is "Equivalent to "break". This node has no configuration items. When the loop body reaches this node, the loop terminates." Put it on a branch inside a Repeat Until, usually after a [Condition](/docs/blocks/condition), to stop early. It's only offered inside a Repeat Until and isn't available in client workspaces.
+
+## Errors and limits
+
+| Symptom or message | Cause | Fix |
+|---|---|---|
+| "invalid iterator value: …, please provide a list." | The For Each input isn't an array. | Pick an array variable, or build one in a Custom Function. |
+| "Please enter a valid maximum loop count, ranging from 1 to 100" | **Maximum Loop Count** out of range. | Use 1–100. For more, page in bigger chunks or split the job. |
+| The canvas shows "no condition set" | No termination condition. The loop always runs **Maximum Loop Count** passes. | Add a condition, even if it's only a counter check. |
+| The loop always runs the maximum number of passes | The condition never becomes true, often because loop variables aren't updated. | Update loop variables with a Variable Assigner inside the loop. Check the log's per-pass values. |
+| "Invalid value for loop variable …" | A loop variable's **Variable** input points to a value that doesn't exist on this path. | Pick a variable that is always set, or use **Constant**. |
+| "Max steps 500 reached." | Each For Each or Repeat Until has its own 500-step allowance across all of its passes. | Reduce passes or inner steps, or split the work across runs. |
+| "Max execution time 1200s reached." | The run exceeded 1,200 seconds. | Use **Parallel Mode** on a For Each, fewer passes, or smaller batches. |
+
+## Next steps
+
+<Cards>
+  <Card title='Template & variables' href='/docs/blocks/transform'>Variable Assigner, List Operator and Template.</Card>
+  <Card title='Custom Function' href='/docs/blocks/custom-function'>Reshape lists before and after a loop.</Card>
+  <Card title='HTTP Request' href='/docs/blocks/http-request'>Call an API once per item or page.</Card>
+</Cards>

@@ -1,0 +1,110 @@
+export const metadata = {
+  title: 'Tools',
+  description: 'Install tools from the Xpectrum Library, authorize them with credentials, and add them to agents, flows and workflows — including your own workflows as tools.',
+}
+
+# Tools
+
+Tools let an agent act: search the web, read a calendar, create a ticket, call your API or run one of your workflows. You install and authorize a tool once per workspace, then add it to any agent or flow.
+
+## Kinds of tools
+
+| Kind | Where it comes from | Set up in |
+|---|---|---|
+| **Plugin tools** | Tool providers from the Xpectrum Library, each with one or more actions. | **Integrations › Tools** |
+| **Workflow tools** | Your own published [Workflows](/docs/build/workflows). | Automatic when you publish |
+| **Custom tools** | Any HTTP API described with an OpenAPI schema. | The tool picker of an [Agent](/docs/blocks/agent) block. See [Custom tools](/docs/integrations/custom-tools). |
+
+For a one-off API call in a flow, you can also use the [HTTP Request](/docs/blocks/http-request) block instead of a tool.
+
+## Install a tool
+
+<Steps>
+<Step title='Open the Tools tab'>
+
+Go to **Resources › Integrations** and select **Tools**. **Installed Tools** lists what the workspace already has. **Available Tools** lists what you can install from the Xpectrum Library.
+
+</Step>
+<Step title='Install'>
+
+Find the tool, using search if needed, and click **Install**. It moves to **Installed Tools**.
+
+</Step>
+<Step title='Review its actions'>
+
+Expand the installed tool to see its actions, each with its parameters, marked **Required** where applicable.
+
+</Step>
+</Steps>
+
+You can also install tools while building. In the flow editor's **Add a step** panel, the **Not installed** scope lists Library tools you can install in place.
+
+## Configure credentials
+
+Many tools need an account with the vendor, such as an API key or token. Until one is set, the tool appears under **Needs authorising** in the step picker, and its node can't run.
+
+1. Expand the tool in **Integrations › Tools**, or select its node in a flow, and click **Authorize**.
+2. Fill in the fields. On the Integrations page the form opens inside the tool's card; in a flow it opens as **Set Up Authorization**. Use the **How to get** link to find where the vendor issues the key.
+3. Click **Save**.
+
+Credentials apply to the whole workspace: "After configuring credentials, all members within the workspace can use this tool when orchestrating applications." They are stored encrypted and never shown again. Only Owners and Admins can change them; other members see "Only workspace managers can change these credentials." Once saved, the tool shows **Authorized**.
+
+<Callout type='warning'>
+  Every app using the tool shares the workspace credentials, so actions run as that vendor account. Use a service account with only the permissions your agents need.
+</Callout>
+
+## Add tools to an Autonomous Agent
+
+1. Select the **Tools** node. The **Tools** list shows how many are enabled, for example **2/3 Enabled**.
+2. Under **Add Tool**, pick a tool. The picker has two tabs: **Plugin** (installed tools) and **Workflow** (your workflow tools).
+3. Toggle tools on or off without removing them.
+
+<Callout type='warning'>
+  [Custom tools](/docs/integrations/custom-tools) can't be added to an Autonomous Agent's **Tools** node. To give an agent your own API, publish a [Workflow](/docs/build/workflows) that calls it with an [HTTP Request](/docs/blocks/http-request) block, and add that workflow from the **Workflow** tab.
+</Callout>
+
+The agent decides when to call each tool from the tool's name and description. Help it in the Instructions node, for example:
+
+```text title="Instructions"
+When the caller asks about an existing order, call get_order_status with the
+order number before you answer. Never guess delivery dates.
+```
+
+On the Instructions node, **Tool Prompt** adds guidance just for tool use, and **Tool Model (Optional)** lets a different model make tool decisions. **Maximum Iterations** in **Agent Settings** caps how many reasoning and tool rounds one reply can take.
+
+## Add tools to flows and workflows
+
+In an Agent Flow or Workflow, you can use a tool in two ways:
+
+- **As a step.** Click **+** on a node to open **Add a step**, pick **Tools**, then the scope: **Plugins**, **Workflows** or **Not installed**. The tool becomes its own node. Fill its parameters with fixed values or variables (type `/` to insert one).
+- **Inside an Agent block.** Add tools to the [Agent](/docs/blocks/agent) block's **Tools** list, and the agent's strategy decides when to call them.
+
+Tool nodes support **Error Handling** (**None**, **Default Value** or **Fail Branch**) and **Retry**, so a flaky API doesn't end the run.
+
+## Workflows as tools
+
+When you publish a Workflow with **Publish Changes**, it's registered (or updated) as a workflow tool automatically. Agents in the same workspace can then call it, like any other tool.
+
+- The tool's parameters come from the workflow's **Trigger** variables, including each variable's description.
+- Each Trigger variable has a **Method**: **Parameter** (the model fills it at run time, the default) or **Setting** (the builder fills it in when adding the tool).
+- Workflows started by a Webhook Trigger or Custom App Trigger can't be used as tools.
+- Only Workflows become tools. Agent Flows don't.
+
+Write clear descriptions for the workflow's inputs, because the model reads them to decide what to pass. Use workflow tools to package multi-step logic, such as "look up a customer, check entitlement, open a ticket", behind one tool call.
+
+To expose a workflow to assistants outside Xpectrum, publish it as an [MCP server](/docs/integrations/mcp).
+
+## Troubleshooting
+
+- **A tool shows under Needs authorising.** Set its credentials. See [Configure credentials](#configure-credentials).
+- **"This tool's provider isn't available".** The plugin providing the tool isn't installed in this workspace, or was uninstalled. Reinstall it from **Available Tools**.
+- **A workflow doesn't appear in the Workflow tab, or "No workflows are published as tools yet".** Publish it with **Publish Changes**, and make sure it starts from a regular **Trigger**.
+- **The agent never calls the tool.** Improve the tool's description and your instructions, and use a model that supports function calling.
+- **"No plugins are installed yet".** Install a tool from **Integrations › Tools** first.
+
+## Next steps
+
+<Cards>
+  <Card title='Custom tools' href='/docs/integrations/custom-tools'>Connect your own API with an OpenAPI schema.</Card>
+  <Card title='MCP' href='/docs/integrations/mcp'>Publish a workflow as a tool for other assistants.</Card>
+</Cards>

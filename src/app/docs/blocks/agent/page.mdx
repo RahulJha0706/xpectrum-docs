@@ -1,0 +1,86 @@
+export const metadata = {
+  title: 'Agent',
+  description: 'Reference for the Agent block: agentic strategy, model, tools, max iterations, memory, outputs and errors.',
+}
+
+# Agent
+
+The **Agent** block gives a model a goal and a set of tools and lets it decide which tools to call, in what order, and when it's done. Use it inside an Agent Flow or Workflow when one step needs open-ended reasoning, for example "find the customer's last three orders and summarize any delivery problems".
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| You know exactly which API to call and with what | [HTTP Request](/docs/blocks/http-request) or a tool block: faster, cheaper, predictable |
+| One model call answers the question | [AI Model](/docs/blocks/ai-model) |
+| The model must choose among several tools, possibly several times | **Agent** |
+| The whole app should be a tool-using agent, with no canvas | [Autonomous Agent](/docs/build/autonomous-agent) app |
+
+<Callout type='warning'>
+  An Agent can call a model and tools many times in one step, so it's slower and uses more tokens than an AI Model block. Keep **Max Iterations** low and give it only the tools it needs. The Agent block isn't available in client workspaces.
+</Callout>
+
+## Settings
+
+The settings are grouped into **Strategy & tools** and **After it runs** (**Output Variables** and **Next Step**). Choose an **Agentic Strategy** first. "After configuring the agentic strategy, this node will automatically load the remaining configurations." The strategy decides "how the system plans and executes multi-step tool calls". Strategies come from installed agent-strategy plugins, so the exact fields depend on the one you pick.
+
+| Setting | Description | Default |
+|---|---|---|
+| **Agentic Strategy** | How the agent reasons, for example function calling (the model calls tools natively) or ReAct (the model reasons in text before each call). Pick one your model supports. | None: required |
+| Model | The model that plans and answers. | None: required |
+| **Tools** | The tools the agent may call: installed plugins, custom tools and workflow tools. Authorize each tool before use. | None |
+| Instruction | The agent's goal, rules and output format. | Empty |
+| Query | The input to work on, usually the user's message or an earlier block's output. | — |
+| **Max Iterations** | The maximum number of reasoning and tool-call rounds before the agent must answer. | Set by the strategy |
+| **Memory** | Agent Flow only, and only for strategies that support history. Includes earlier turns of the conversation (**Window Size** 1–100). | Off |
+
+## Inputs and outputs
+
+**Reads:** the variables you insert into the strategy's fields.
+
+**Produces:**
+
+| Variable | Type | Description |
+|---|---|---|
+| `text` | String | The agent's final answer ("agent generated content"). |
+| `files` | Array[File] | Files produced by tools during the run ("agent generated files"). |
+| `json` | Array[Object] | Structured data produced by tools ("agent generated json"). |
+
+Some strategies declare more output variables. They appear in the variable picker alongside these.
+
+The run log shows each round: the model's reasoning, each tool call with its arguments, and each tool result.
+
+## Example
+
+An order-status step in an Agent Flow, with two tools: an order lookup (custom tool) and a shipment tracker (plugin).
+
+```text title="Instruction"
+You help customers of Acme Store with order questions.
+1. Look up the customer's orders with order_lookup using their email.
+2. For any order that has shipped, call track_shipment.
+3. Answer in two or three sentences. Never invent tracking numbers.
+If you can't find an order, ask for the order number.
+```
+
+Set **Query** to the user's message (`thread.user_query`), **Max Iterations** to 5, and connect an **Answer** block that shows the Agent's `text`.
+
+## Errors and limits
+
+| Symptom or message | Cause | Fix |
+|---|---|---|
+| "Strategy not selected" / "Agentic strategy Not Set" | No strategy chosen. | Pick an **Agentic Strategy**. |
+| "This plugin is not installed" / "Unsupported strategy" | The strategy's plugin was removed or its installed version doesn't provide the strategy. | Reinstall or switch the plugin version, or choose another strategy. |
+| "… Not Authorized" / "… is not installed" on a tool | The tool needs credentials or was uninstalled. | Authorize or reinstall it under [Tools](/docs/integrations/tools). |
+| The agent stops without a useful answer | It hit **Max Iterations**. | Tighten the instruction, remove unneeded tools, or raise the limit. |
+| The agent loops calling the same tool | The tool's description or output is unclear. | Improve the tool description and return concise results. |
+
+The Agent block has no **Error Handling** or **Retry** setting. If the agent fails, the run fails. To catch a weak answer, follow the agent with a [Condition](/docs/blocks/condition) that checks `text`. Workflow-wide limits apply: 500 steps and 1,200 seconds per run.
+
+## Next steps
+
+<Cards>
+  <Card title='Tools' href='/docs/integrations/tools'>Install and authorize tools.</Card>
+  <Card title='Custom tools' href='/docs/integrations/custom-tools'>Wrap your own API as a tool.</Card>
+  <Card title='AI Model' href='/docs/blocks/ai-model'>For single, predictable model calls.</Card>
+  <Card title='Autonomous Agent' href='/docs/build/autonomous-agent'>A whole app built around one agent.</Card>
+</Cards>

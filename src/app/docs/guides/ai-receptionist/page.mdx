@@ -1,0 +1,164 @@
+export const metadata = {
+  title: 'Build an AI receptionist',
+  description: 'Build a voice receptionist for a clinic that answers questions from your own information, books appointments through your API and picks up a real phone number.',
+}
+
+# Build an AI receptionist
+
+By the end of this guide you have a phone number that a voice agent answers around the clock. It greets callers, answers questions about opening hours and services from your own documents, checks availability and books appointments through your booking system's API, and every call is recorded in **Sessions** for review.
+
+The example is a physiotherapy clinic, "Riverside Physio". Swap in your own business details as you go.
+
+## Before you begin
+
+- An Owner, Admin or Editor role in the workspace. Buying a phone number needs **Owner** or **Admin**.
+- A document with your business information: hours, address, services, prices, cancellation policy. A PDF, Word file or plain-text file is fine.
+- A booking system with an HTTP API (or a test endpoint) that can list free slots and create a booking, plus an API key for it.
+- A payment method on file if your workspace asks for one when buying a number. See [Billing & credits](/docs/workspaces/billing).
+
+## How it fits together
+
+| Piece | What it does | Where you set it up |
+|---|---|---|
+| Autonomous Agent | Holds the instructions and decides when to look things up or book | **Conversational Apps › Autonomous Agent** |
+| Knowledge base | Answers "When are you open?" and "Do you treat sports injuries?" | **Resources › Knowledge Base** |
+| Booking tools | Check free slots and book appointments in your system | Two published **Workflows**, added in the agent's **Tools** node |
+| Voice configuration | Voice, transcriber, greeting, call length, recording | **Channels › Voice** |
+| Phone number | The number patients dial | **Channels › Phone Number** |
+
+## Build the receptionist
+
+<Steps>
+<Step title='Create the knowledge base'>
+
+Go to **Resources › Knowledge Base**, click **Create Knowledge**, and choose **Upload Files**. Upload your clinic information, keep the default chunking and **Embedding Model**, and click **Save & Process**.
+
+Short, factual documents work best for voice. For example:
+
+```text title="riverside-physio-info.txt"
+Riverside Physio — 12 Mill Lane, Riverside.
+Opening hours: Monday to Friday 8am–7pm, Saturday 9am–1pm, closed Sunday and public holidays.
+Services: sports injury assessment (45 min), follow-up treatment (30 min), post-surgery rehab (45 min), sports massage (60 min).
+New patients: no GP referral needed. Please arrive 10 minutes early.
+Cancellation: at least 24 hours' notice, otherwise the full fee is charged.
+Parking: free parking behind the building.
+```
+
+When processing finishes, open the **Retrieval Testing** tab and try `What time do you close on Saturday?` to check the right chunk comes back. See [Test retrieval](/docs/knowledge/testing).
+
+</Step>
+<Step title='Build the booking tools'>
+
+The agent books through tools. To give it tools that call your booking API, build two small [Workflows](/docs/build/workflows), each wrapping one API call in an [HTTP Request](/docs/blocks/http-request) block. When you publish a workflow, it's registered as a tool automatically and appears in the **Workflow** tab of the agent's tool picker.
+
+1. Go to **Automation Apps › Workflow**, click **Create from Blank**, and name the workflow `check_availability`. The tool name comes from the workflow name, and the description you enter becomes the tool's description, so write one the model can act on, such as `List free appointment slots for a service on a given date.`
+2. The canvas asks you to **Pick a start node**; choose **Trigger**. On the **Trigger** block, add two variables: `service` with the description `One of sports_injury, follow_up, post_surgery, massage.` and `date` with the description `Date in YYYY-MM-DD format.` Mark both **Required** and leave **Method** on **Parameter**, so the agent fills them in during the call.
+3. Add an **HTTP Request** block. Set the method to `GET` and the **API** URL to your availability endpoint, typing `/` to insert `service` and `date` as query parameters. Under **Authorization**, choose **API-Key**, pick **Bearer** (or whatever your API expects), and paste your booking API key.
+4. Add an **Output** block that returns the HTTP Request block's `body`. Test with **Run**, then click **Publish Changes**.
+5. Repeat for a `book_appointment` workflow with the variables `service`, `start_time` (`ISO 8601 start time, e.g. 2026-03-04T09:00:00.`), `patient_name` and `phone` (`Phone number in E.164 format.`), and an HTTP Request block that sends them to your booking endpoint with `POST` and a `json` body.
+
+<Callout type='tip'>
+  Variable descriptions are what the model reads when deciding what to send. Spell out formats (`YYYY-MM-DD`, E.164) and allowed values.
+</Callout>
+
+</Step>
+<Step title='Create the Autonomous Agent'>
+
+Go to **Conversational Apps › Autonomous Agent**, click **Create from Blank**, name it `Riverside Receptionist`, and click **Create**. The settings canvas opens with node cards; any card marked **Needs setup** still needs attention.
+
+Click the **AI Agent** card and pick a fast model with tool calling. Low latency matters more on the phone than in chat.
+
+</Step>
+<Step title='Write the instructions'>
+
+Click the **Instructions** card and paste a prompt written for speech. Callers can't see formatting, so ask for short spoken sentences:
+
+```text title="Instructions"
+You are the receptionist for Riverside Physio, a physiotherapy clinic. You are speaking on the phone.
+
+How to speak:
+- Keep every reply to one or two short sentences. Never use lists, markdown, emojis or URLs.
+- Say times as "nine a.m." and dates as "Tuesday the fourth of March".
+- Ask one question at a time.
+
+What you do:
+- Answer questions about hours, location, services, prices and policies using the knowledge base only. If the answer isn't there, say you'll ask a team member to call back.
+- Book appointments. Collect: the service, preferred day and time, the caller's full name and a phone number. Use check_availability before offering times, offer at most two options, then use book_appointment.
+- Before booking, read the details back and ask the caller to confirm.
+- Never give medical advice. For severe pain, chest pain or an emergency, tell the caller to hang up and call emergency services.
+
+When the caller has what they need, thank them and say goodbye.
+```
+
+</Step>
+<Step title='Attach the knowledge base'>
+
+Click the **Knowledge** card, choose **Select reference Knowledge**, tick the knowledge base you created, and click **Add**. Under **Retrieval settings**, keep **Multi-path retrieval**.
+
+</Step>
+<Step title='Add the booking tools'>
+
+Click the **Tools** card. Under **Add Tool**, open the **Workflow** tab and pick `check_availability` and `book_appointment`. Make sure both are enabled in the tool list.
+
+</Step>
+<Step title='Test in chat, then publish'>
+
+Open **Preview** and try a few realistic requests, such as `Are you open Saturday afternoon?` and `I'd like a sports massage next Tuesday morning`. Check that the agent calls `check_availability` before offering times and reads the booking back before calling `book_appointment`.
+
+Click **Publish Changes**, then **Publish** in the panel that opens. Calls use the configuration you last published. The **Voice calls** toggle in that panel controls whether voice calls can be started with the app's API key (for example from a website); it doesn't affect phone numbers.
+
+</Step>
+<Step title='Configure the voice'>
+
+Go to **Channels › Voice** and pick `Riverside Receptionist` (it's listed under **Autonomous Agents**).
+
+On the **Voice & Transcriber** tab, under **Voice Selection**, choose a **Provider**, **Model** and **Voice**. The transcriber defaults to Deepgram `nova-2` in `en-US`; change **Language** if your callers speak something else.
+
+On the **Configurations** tab, set:
+
+| Setting | Suggested value | Why |
+|---|---|---|
+| **Initial Message** | `Thanks for calling Riverside Physio, how can I help?` | The first thing callers hear. |
+| **Allow Interruption** | On | Callers can talk over the greeting. |
+| **Call Duration** | `600` seconds | Bookings can take a few minutes; the call ends when this limit is reached. |
+| **Record Session** | On | Lets you replay calls in **Sessions**. Tell callers they're being recorded if the law where you operate requires it. |
+| **Tool Acknowledgement** | On, with a phrase such as `One moment while I check the diary.` | Fills the silence while the booking API responds. |
+
+Click **Publish Changes** on the Voice page to save the voice configuration. See [Voice](/docs/channels/voice) for every setting.
+
+</Step>
+<Step title='Buy a number and assign the agent'>
+
+Go to **Channels › Phone Number** and click **Buy Number**. In **Buy & Setup Phone Number**, choose the **Country**, optionally an **Area Code** or digits the number **Contains**, click **Search**, and pick a number. Set **Direction** to **Inbound** (or **Both** if you also want to place calls from it later; direction can't be changed after purchase). Choose `Riverside Receptionist` in **Assign to Agent**, add a **Display Name**, and click **Buy & Setup**.
+
+The number appears in the table with an **Inbound** badge and your agent under **Assigned Agent**. To move a number to another agent later, click **Change** on its row. See [Phone numbers](/docs/channels/phone-numbers).
+
+</Step>
+</Steps>
+
+## Test it
+
+1. **In the browser first.** On **Channels › Voice**, click **Call**, allow the microphone, and have a full booking conversation. The live **Call Transcript** shows what the transcriber heard and what the agent said.
+2. **On a real phone.** Dial the number you bought from a mobile. Try interrupting the greeting, asking something that isn't in your documents, and booking a slot.
+3. **Check the result.** Open **Monitoring & Analytics › Sessions** with the agent selected. Your calls appear with an outcome such as **TALKED**. Open one to see the **AI Summary**, the **Recording** and the transcript. Confirm the booking reached your system.
+
+## Troubleshooting
+
+- **The call connects but the agent says nothing** → the agent isn't published or has no model. Publish the agent, then click **Publish Changes** on the Voice page.
+- **The agent reads out lists, asterisks or links** → tighten the "How to speak" rules in the instructions, and keep knowledge chunks short and plain.
+- **Long silences while booking** → turn on **Tool Acknowledgement**, and check your booking API's response time.
+- **The agent books without confirming, or invents slots** → make the rule explicit ("Use check_availability before offering times") and test in **Preview**, where you can see each tool call.
+- **Calls cut off mid-conversation** → raise **Call Duration**. Calls also end after the **Max Nudges** reminders go unanswered.
+- **The agent mishears names or numbers** → set the transcriber **Language** to match your callers, and have the agent repeat details back.
+- **Outcome shows `NO TALK`** → the call connected but no conversation happened. Replay the recording to see whether the greeting played.
+
+More fixes are in [Voice troubleshooting](/docs/troubleshooting/voice).
+
+## Next steps
+
+<Cards>
+  <Card title='Voice sessions' href='/docs/monitor/voice-sessions'>Read outcomes, summaries, recordings and timelines.</Card>
+  <Card title='Tools' href='/docs/integrations/tools'>Plugin tools and published workflows as tools.</Card>
+  <Card title='Run an outbound campaign' href='/docs/guides/outbound-campaign'>Call a list of patients for reminders.</Card>
+  <Card title='SMS' href='/docs/channels/sms'>Let patients text the same number.</Card>
+</Cards>

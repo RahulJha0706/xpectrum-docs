@@ -1,0 +1,126 @@
+export const metadata = {
+  title: 'Blocks',
+  description: 'Every block you can add to an Agent Flow or Workflow canvas, where each one is available, and the settings they share: connections, error handling, retries and single-step testing.',
+}
+
+# Blocks
+
+Blocks are the steps of an Agent Flow, Workflow or Multi-prompt Agent. Each block reads variables from the blocks before it, does one job (calls a model, searches knowledge, branches, runs code, calls an API) and hands its output variables to the blocks after it. This page lists every block and covers the settings they share.
+
+## Add a step
+
+Click the **+** on the right edge of a block (or on a connection) to open the **Add a step** panel.
+
+- **Search steps and tools** finds a block by name or by what it does. Common words work too: typing `if` finds **Condition**, `python` finds **Custom Function**, `question` finds **Intent Classifier**.
+- The filter chips **All**, **AI**, **Logic**, **Transform** and **Tools** narrow the list. Blocks are grouped under **Triggers**, **AI**, **Knowledge**, **Logic**, **Transform**, **Tools** and **Output**.
+- Tools have their own scopes: **Plugins** (installed tools), **Workflows** (your published workflows, usable as tools) and **Not installed** (tools you can install from the library).
+- Select a row to see a preview. **Needs** lists what you must configure before the block can run. **Hands on** lists the output variables later blocks can use.
+
+The panel only offers blocks that can go where you clicked. For example, a Workflow never offers **Answer**, and nothing can be added before a trigger.
+
+<Callout>
+  Blocks were renamed in the new editor. Pages in this section use the new names and give the old name in parentheses once, for example **AI Model** (LLM). Search in the panel accepts both.
+</Callout>
+
+## All blocks
+
+| Block | Group | What it does | Available in |
+|---|---|---|---|
+| [Trigger](/docs/blocks/trigger) (Start) | Triggers | Defines the inputs a run starts with | Agent Flow, Workflow |
+| [Webhook Trigger](/docs/blocks/trigger#webhook-trigger) | Triggers | Starts a run when an HTTP request reaches a generated URL | Workflow |
+| [Custom App Trigger](/docs/blocks/trigger#custom-app-trigger) | Triggers | Starts a run from an event in a connected app | Workflow |
+| [AI Model](/docs/blocks/ai-model) (LLM) | AI | Sends a prompt to a model and returns its reply | Agent Flow, Workflow |
+| [Agent](/docs/blocks/agent) | AI | Lets a model pick and call tools until it reaches an answer | Agent Flow, Workflow |
+| [Intent Classifier](/docs/blocks/intent-classifier) (Question Classifier) | AI | Routes to one branch per category | Agent Flow, Workflow |
+| [Parameter Extractor](/docs/blocks/parameter-extractor) | AI | Pulls typed fields out of free text | Agent Flow, Workflow |
+| [Knowledge Search](/docs/blocks/knowledge-search) (Knowledge Retrieval) | Knowledge | Searches your knowledge bases | Agent Flow, Workflow, Multi-prompt Agent |
+| [Doc Extractor](/docs/blocks/doc-extractor) | Knowledge | Turns an uploaded file into text | Agent Flow, Workflow |
+| [Condition](/docs/blocks/condition) (IF/ELSE) | Logic | Branches on rules | Agent Flow, Workflow |
+| [For Each](/docs/blocks/loops) (Iteration) | Logic | Runs the same steps once per list item | Agent Flow, Workflow |
+| [Repeat Until](/docs/blocks/loops#repeat-until) (Loop) | Logic | Repeats steps until a condition is met | Agent Flow, Workflow |
+| [Exit Loop](/docs/blocks/loops#exit-loop) | Logic | Leaves a Repeat Until early | Inside Repeat Until |
+| [Custom Function](/docs/blocks/custom-function) (Code) | Transform | Runs your Python or JavaScript | Agent Flow, Workflow |
+| [Template](/docs/blocks/transform) (Templating Transform) | Transform | Builds text with Jinja2 | Agent Flow, Workflow |
+| [Variable Aggregator](/docs/blocks/transform#variable-aggregator) | Transform | Merges one value from several branches | Agent Flow, Workflow |
+| [Variable Assigner](/docs/blocks/transform#variable-assigner) | Transform | Writes to conversation or loop variables | Agent Flow, Workflow (loop variables only) |
+| [List Operator](/docs/blocks/transform#list-operator) | Transform | Filters, sorts and slices a list | Agent Flow, Workflow |
+| [HTTP Request](/docs/blocks/http-request) | Tools | Calls any HTTP endpoint | Agent Flow, Workflow |
+| Tools | Tools | Runs an installed tool, custom tool or workflow tool ([Tools](/docs/integrations/tools)) | Agent Flow, Workflow |
+| [Answer](/docs/blocks/output) | Output | Streams a reply to the user | Agent Flow |
+| [End](/docs/blocks/output#end) (shown as **Output** on the canvas) | Output | Returns the workflow's result | Workflow |
+| [Hand off](/docs/blocks/output#hand-off) | Output | Moves the caller into another flow | Multi-prompt Agent |
+
+A Multi-prompt Agent offers a reduced palette: **Start**, **Conversation**, **Tool**, **Knowledge Search** and **Hand off**. See [Multi-prompt Agent](/docs/build/multi-prompt-agent).
+
+AI Chatbot and Autonomous Agent apps don't use blocks. They are configured with node cards instead; see [AI Chatbot](/docs/build/chatbot) and [Autonomous Agent](/docs/build/autonomous-agent).
+
+## Connect and branch
+
+- Drag from a block's right handle to another block's left handle to connect them, or use **+** to add and connect in one step.
+- One block can connect to several next blocks. They run in parallel. The editor allows up to 10 parallel branches from one point and up to 3 levels of nested parallel branches.
+- Branching blocks have one handle per outcome: **Condition** has IF, ELIF and ELSE handles; **Intent Classifier** has one handle per class. Only the matching branch runs.
+- A block that isn't connected to anything shows "This step is not connected to anything" in the **Checklist**. Fix every checklist item before you publish ("Make sure all issues are resolved before publishing").
+- Every flow needs a start block. A Workflow without one shows "A start node is required — add a Trigger or a Webhook Trigger".
+
+To reuse a value from an earlier block, type `/` in any text field to insert a variable (in Jinja2 editors, `/` or `{`). The editor shows it as a chip such as **AI Model › text**. See [Variables](/docs/build/variables) for system variables, constants and conversation variables.
+
+## Error handling
+
+**AI Model**, **Custom Function**, **HTTP Request** and tool blocks have an **Error Handling** setting. It decides what happens when the block fails, for example on a model timeout, an exception in your code or a failed API call.
+
+| Option | What happens on error | Use it when |
+|---|---|---|
+| **None** (default) | The block stops and the whole run fails. | Any failure should stop the run. |
+| **Default Value** | The block succeeds with fixed output values you enter, and the run continues. | A fallback value is good enough, for example an empty list or "unknown". |
+| **Fail Branch** | The run continues down a separate failure branch (**Add Fail Branch**). The success branch doesn't run. | You want to log, notify, reply with an apology or try another route. |
+
+With **Default Value** or **Fail Branch**, the block also exposes `error_message` and `error_type` so later blocks can report what went wrong. In the run logs the block shows "Node exception, outputting according to default values." or "Node exception, will automatically execute the fail branch."
+
+<Callout type='tip'>
+  In an Agent Flow, put an **Answer** block on the fail branch ("Sorry, I couldn't look that up right now") so the user never sees a silent failure.
+</Callout>
+
+### Retry
+
+The same four block types have a **Retry** setting (**retry on failure**). When it's on, a failed block runs again before error handling applies.
+
+| Setting | Range | Default |
+|---|---|---|
+| **max retries** | 1–10 | 3 |
+| **retry interval** | 100–5000 ms | 1000 ms when you turn Retry on |
+
+**HTTP Request** blocks start with Retry already on: 3 retries, 100 ms apart. The block shows "Retrying..." while it retries, and the run log records each attempt.
+
+## Test a single step
+
+Most blocks can run on their own. Select the block and click **Run this step** (or **Test & Preview**), fill in the variables it reads, and check its outputs without running the whole flow. This works for **AI Model**, **Agent**, **Intent Classifier**, **Parameter Extractor**, **Knowledge Search**, **Doc Extractor**, **Custom Function**, **Template**, **HTTP Request**, tools, **For Each** and **Repeat Until**.
+
+To test the whole flow, use **Preview** (Agent Flow) or **Run** (Workflow). See [Testing](/docs/deploy/testing).
+
+## Client workspaces
+
+Client workspaces get a smaller palette: **Trigger**, **Webhook Trigger**, **AI Model**, **Knowledge Search**, **Intent Classifier**, **Condition**, **Custom Function**, **Doc Extractor**, **HTTP Request**, **For Each**, **Repeat Until**, **Answer** and **End**.
+
+Blocks that aren't offered there are **Agent**, **Parameter Extractor**, **Template**, **Variable Aggregator**, **Variable Assigner**, **List Operator**, **Exit Loop**, **Custom App Trigger** and **Hand off**. Most of their jobs can be done with a **Custom Function**. See [Client workspaces](/docs/workspaces/clients).
+
+## Workflow limits
+
+| Limit | Value |
+|---|---|
+| Steps executed in one run | 500 ("Max steps 500 reached.") |
+| Run time | 1,200 seconds ("Max execution time 1200s reached.") |
+| Blocks in one branch | 50 |
+| Parallel branches from one point | 10 |
+| Nested parallel levels | 3 |
+| Size of a constant or conversation variable | 10 MB |
+
+The blocks inside a **For Each** or **Repeat Until** are counted separately: each loop block has its own 500-step allowance across all of its passes. See [Limits](/docs/troubleshooting/limits) for account-wide limits.
+
+## Next steps
+
+<Cards>
+  <Card title='AI Model' href='/docs/blocks/ai-model'>The block at the center of most flows.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Reference outputs, system variables and constants.</Card>
+  <Card title='Build a workflow' href='/docs/build/workflows'>Put blocks together into an automation.</Card>
+  <Card title='Build an Agent Flow' href='/docs/build/agent-flow'>Multi-step conversations on a canvas.</Card>
+</Cards>

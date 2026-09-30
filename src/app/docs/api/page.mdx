@@ -1,0 +1,185 @@
+export const metadata = {
+  title: 'API overview',
+  description: 'Call your Xpectrum agents, workflows and knowledge bases from code with the OpenAI-compatible REST API.',
+}
+
+# API overview
+
+The Xpectrum API lets you call a published agent, workflow or knowledge base from your own code. It is a REST API over HTTPS that speaks JSON, streams with Server-Sent Events, and is OpenAI-compatible where an equivalent exists, so the official JavaScript SDK and standard OpenAI clients both work against it.
+
+## Base URL
+
+Every endpoint in this reference is relative to:
+
+```text
+https://cloud.xpectrum.dev/v1
+```
+
+Your app's **API & Access** panel shows it as the start of the **Endpoint** URL (the panel's full URL points at the app's [classic](/docs/api/classic) endpoint). If you have an older integration that points at `cloud.xpectrum.co`, update it: the old host answers with a permanent redirect, and not every HTTP client follows a redirect on `POST`.
+
+## Two API generations
+
+Xpectrum serves two APIs under the same `/v1` prefix. Both are supported and both use the same API keys.
+
+| | Recommended API | Classic API |
+|---|---|---|
+| Style | OpenAI-compatible (`/chat/completions`, `/models`) plus plain REST (`/threads`, `/runs`) | Event-based REST (`/chat-messages`, `/workflows/run`) |
+| Field names | `thread_id`, `variables`, `attachments`, `run_id`, `citations` | `conversation_id`, `inputs`, `files`, `task_id`, `retriever_resources` |
+| Streaming | `chat.completion.chunk` objects, then `data: [DONE]` | Named events (`message`, `message_end`, `workflow_finished`, …) |
+| Error body | `{"error": {"message", "type", "param", "code"}}` | `{"code", "message", "status"}` |
+| Used by | The `xpectrum` JavaScript SDK and widgets | Older integrations and the in-app API page |
+
+Use the recommended API for new work. Use the [classic API](/docs/api/classic) when you need something only it offers — Text Generator apps, file upload, feedback, speech-to-text and text-to-speech, conversation renaming and deletion, or annotations.
+
+## Which endpoint to call
+
+An API key belongs to exactly one app, and the app type decides which endpoint accepts it. Calling `/chat/completions`, `/runs` or suggestions with the wrong kind of key returns `404` with code `model_not_found` and a message naming the app types the endpoint supports; the thread endpoints return `400` with code `not_chat_app`.
+
+| App type | Endpoint to call | Notes |
+|---|---|---|
+| AI Chatbot | `POST /chat/completions` | Streaming or blocking. |
+| Autonomous Agent | `POST /chat/completions` | Streaming only — blocking requests are rejected. |
+| Agent Flow | `POST /chat/completions` | Add `include_steps` to see which step ran. |
+| Multi-prompt Agent (Beta) | `POST /chat/completions` | |
+| Analytics | `POST /chat/completions` | Only where Analytics apps are enabled for the workspace. Answers arrive as one chunk. |
+| Workflow | `POST /runs` | Also callable from a webhook trigger or as an MCP tool. |
+| Text Generator | `POST /completion-messages` (classic) | Not available on the recommended API. See [Completion messages](/docs/api/classic/completion-messages). |
+| Knowledge base | `POST /knowledge/{knowledge_id}/search` and `/datasets/…` | Uses a knowledge API key, not an app key. |
+
+The conversational app types (AI Chatbot, Autonomous Agent, Agent Flow, Multi-prompt Agent) also get [threads](/docs/api/threads), [suggestions](/docs/api/agent-info#get-follow-up-suggestions) and [voice sessions](/docs/api/voice).
+
+## Request and response conventions
+
+### JSON and headers
+
+Send request bodies as JSON with `Content-Type: application/json`, and authenticate with `Authorization: Bearer <key>` (see [Authentication](/docs/api/authentication)). Responses are JSON unless you asked for a stream. Timestamps are Unix epoch seconds.
+
+### Streaming
+
+Endpoints that generate text or run a workflow accept `"stream": true`. The response is then `text/event-stream`: each event is a `data: {json}` line, keep-alive comments (`: ping`) arrive while the model is thinking, and the stream always ends with `data: [DONE]`. Errors that happen after the stream has started arrive as a `data: {"error": {...}}` chunk followed by `[DONE]`. See [Streaming](/docs/api/streaming) for the full format and a parser.
+
+### Pagination
+
+List endpoints on the recommended API use cursors. A page looks like this:
+
+```json
+{
+  "object": "list",
+  "data": [],
+  "has_more": true,
+  "limit": 20,
+  "first_id": "…",
+  "last_id": "…"
+}
+```
+
+`limit` is 1–100 and defaults to 20. Pass `last_id` back as `after` to page through [threads](/docs/api/threads#list-threads), or `first_id` back as `before` to walk further back through a [transcript](/docs/api/threads#list-messages-in-a-thread). The dataset endpoints of the [Knowledge API](/docs/api/knowledge) use `page` and `limit` instead.
+
+### The user identifier
+
+Most endpoints take a `user` string that says which end user a request belongs to. It is how Xpectrum separates one person's history from another's.
+
+- **Each unique value gets its own history.** Threads are scoped to the app and the `user`: a `thread_id` created for one `user` returns `404 Thread does not exist.` when sent with another.
+- **Always send it.** When `user` is omitted on `/chat/completions` or `/threads`, every such call shares one anonymous default user — and therefore one history.
+- **Logged-in users:** set `user` on your server from your own authenticated session (for example your database user id). Never take it from something the browser sent you, or one visitor could read another's history. The API key is the only thing Xpectrum verifies.
+- **Anonymous visitors:** use a random, unguessable id stored per browser. The [JavaScript SDK](/docs/api/javascript-sdk#anonymous-users) does this for you (`anon_` followed by a UUID, kept for 30 days of inactivity).
+- **Never use an IP address as the user id.** Addresses are shared behind office networks and mobile carriers — everyone on one connection would share a history — and they change when a network changes, silently losing history.
+
+`POST /runs` and `POST /runs/{run_id}/cancel` require `user`; a missing value returns `400 Arg user must be provided.`
+
+## Limits that affect clients
+
+| Limit | Value |
+|---|---|
+| Request body size | 50 MB |
+| Stream keep-alive | The server sends `: ping` roughly every 10 seconds. Any proxy between you and the API must allow a stream to be idle for up to 300 seconds. |
+| Page size | 1–100 items, default 20 |
+| Knowledge search query | 1–250 characters. The number of matches follows the knowledge base's retrieval settings. |
+| Workflow runs | Stop after 500 steps or 1,200 seconds |
+| API keys | Up to 10 per app |
+| CORS | Methods `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`; request headers `Content-Type`, `Authorization`, `x-api-key` |
+| Rate limits | Requests may be rate limited and answered with `429`. No rate-limit headers are sent; back off and retry (see [Errors](/docs/api/errors#retries)). |
+
+<Callout type='warning'>
+  A blocking (non-streaming) request holds the connection open until the whole reply is ready, and long ones can be cut off by proxies along the way. Stream anything that may take more than a few seconds.
+</Callout>
+
+## Your first request
+
+Find your app's API key under **API & Access** (see [Authentication](/docs/api/authentication#create-an-app-api-key)), then send a message:
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/chat/completions \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [{ "role": "user", "content": "What are your opening hours?" }],
+    "user": "user-123",
+    "stream": true
+  }'
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="first-request.ts"
+import { XpectrumChat } from 'xpectrum'
+
+const chat = new XpectrumChat({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: process.env.XPECTRUM_API_KEY!,
+  user: 'user-123',
+})
+
+const reply = await chat.send('What are your opening hours?')
+console.log(reply.content)
+
+// Continue the same conversation
+const next = await chat.send('And on Sundays?', { threadId: reply.threadId })
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="first_request.py"
+import requests
+
+# Blocking request. Autonomous Agent apps only support streaming: add "stream": True and read the SSE lines.
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/chat/completions",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "messages": [{"role": "user", "content": "What are your opening hours?"}],
+        "user": "user-123",
+    },
+    timeout=120,
+)
+resp.raise_for_status()
+body = resp.json()
+print(body["choices"][0]["message"]["content"])
+print("thread:", body["thread_id"])
+```
+
+</Tab>
+</Tabs>
+
+<Callout type='tip'>
+  History lives on the server. To continue a conversation, send only the new user message plus the `thread_id` from the previous reply — never resend the whole transcript.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='Authentication' href='/docs/api/authentication'>App and knowledge keys, headers and access toggles.</Card>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>Send messages to chatbots, agents and flows.</Card>
+  <Card title='Threads' href='/docs/api/threads'>List conversations and load transcripts.</Card>
+  <Card title='Workflow runs' href='/docs/api/runs'>Run a workflow and follow its steps.</Card>
+  <Card title='Voice sessions' href='/docs/api/voice'>Start browser voice calls with your agent.</Card>
+  <Card title='Knowledge API' href='/docs/api/knowledge'>Search and manage knowledge bases.</Card>
+  <Card title='Streaming' href='/docs/api/streaming'>Parse streamed replies and run events.</Card>
+  <Card title='Errors' href='/docs/api/errors'>Every error code and how to fix it.</Card>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk'>The official client for browsers and Node.</Card>
+</Cards>

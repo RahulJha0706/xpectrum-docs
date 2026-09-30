@@ -1,0 +1,88 @@
+export const metadata = {
+  title: 'AI Chatbot',
+  description: 'Build a prompt-driven chat app that answers from your instructions and knowledge — and when to switch to an agent or a flow.',
+}
+
+# AI Chatbot
+
+An AI Chatbot is the simplest conversational app: a prompt-driven chat app that answers from your instructions and connected knowledge. It has no tools, so every reply is a single model call grounded in your content. It's the quickest way to put an FAQ or documentation assistant in front of users.
+
+## When to use it
+
+| Use an AI Chatbot when… | Use something else when… |
+|---|---|
+| Answers come from your instructions and documents. | The agent must look things up or take action in other systems — use an [Autonomous Agent](/docs/build/autonomous-agent). |
+| You want fast, predictable, low-cost replies. | You need branching by intent or multi-step logic — use an [Agent Flow](/docs/build/agent-flow). |
+| You're prototyping and want to test prompts and knowledge quickly. | The conversation must follow a fixed script — see [Multi-prompt Agent](/docs/build/multi-prompt-agent). |
+
+## Create a chatbot
+
+Open **Conversational Apps › AI Chatbot**, click **Create from Blank**, enter an **App Name** and click **Create**. The app opens on the configuration canvas.
+
+## Configure it
+
+The editor works like the [Autonomous Agent](/docs/build/autonomous-agent) editor — node cards across the canvas, a dock with **Configurations** and **Agent Settings**, and **Preview**, **Logs** and **Publish Changes** in the header — with these differences:
+
+| Node | In an AI Chatbot |
+|---|---|
+| **Trigger** | Same: input variables plus system variables. |
+| **Instructions** | The system prompt. There is no **Knowledge Prompt** or **Tool Prompt**. |
+| **Knowledge** | **Select reference Knowledge**, plus a **Retrieval Setting** button for **Multi-path retrieval** options such as **Top K**, **Score Threshold** and a rerank model. (Autonomous Agents don't have these settings.) |
+| **Tools** | Not available. |
+| **Vision** | Same **Vision Settings**. |
+| **AI Model** | The model and its parameters (called **AI Agent** in an Autonomous Agent). **Debug as Multiple Models** compares up to 4 models. |
+| **Output** | Informational. |
+
+A card shows **Needs setup** when **Instructions** is empty or no model is selected.
+
+### Feature cards
+
+In **Agent Settings**, the chatbot offers the same feature cards: **Conversation Opener**, **Follow-up**, **Citations and Attributions**, **Content moderation** and **Annotation Reply** (the last two aren't shown on self-serve workspaces). There are no **Agent Mode** or **Maximum Iterations** settings, because the chatbot doesn't call tools.
+
+### Example instructions
+
+```text title="Instructions"
+You are the help assistant for Brightline Dental.
+Answer questions about opening hours, services, insurance and aftercare
+using only the knowledge provided. If the answer isn't there, say you're
+not sure and give the front desk number: (555) 010-2233.
+Keep answers to three sentences or fewer. Never give medical diagnoses.
+```
+
+See [Writing instructions](/docs/build/instructions) for more patterns.
+
+## Test and publish
+
+Use **Preview** to chat with the draft, then click **Publish Changes**. Call the chatbot with [Chat Completions](/docs/api/chat-completions) (streaming or blocking) or put it on any [channel](/docs/channels).
+
+## Switch to Workflow Orchestrate
+
+When a chatbot outgrows its fixed layout — you need branching, API calls or tools — you can convert it to a canvas flow instead of rebuilding it.
+
+1. On the **AI Chatbot** list page, open the app card's menu and choose **Switch to Workflow Orchestrate**.
+2. Enter a name for **The app copy to be created**.
+3. Optionally tick **Delete the original app**.
+4. Click **Start switch**.
+
+A new copy of the app is created as a canvas-based flow with your instructions, model and knowledge carried over. The copy can't be switched back.
+
+<Callout type='warning'>
+  Channels and API keys stay attached to the original app. After switching, publish the new copy, create a key for it and reassign channels. Don't tick **Delete the original app** until the copy is live.
+</Callout>
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Answers are generic and ignore your documents | Attach the knowledge base on the **Knowledge** card, confirm it finished indexing, and check [Retrieval](/docs/knowledge/retrieval) settings. |
+| The chatbot makes up answers | Tell it in **Instructions** to answer only from the provided knowledge and what to say when it doesn't know. Turn on **Citations and Attributions** to check sources. |
+| You need it to look something up in another system | Chatbots can't call tools. Use an Autonomous Agent or switch to a flow. |
+
+## Next steps
+
+<Cards>
+  <Card title='Knowledge' href='/docs/knowledge'>Create and tune knowledge bases.</Card>
+  <Card title='Website chat guide' href='/docs/guides/website-chat'>Put your chatbot on your website.</Card>
+  <Card title='Autonomous Agent' href='/docs/build/autonomous-agent'>Add tools and autonomy.</Card>
+  <Card title='Agent Flow' href='/docs/build/agent-flow'>Build branching conversations.</Card>
+</Cards>

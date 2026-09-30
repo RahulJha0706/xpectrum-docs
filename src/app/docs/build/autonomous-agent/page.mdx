@@ -1,0 +1,182 @@
+export const metadata = {
+  title: 'Autonomous Agent',
+  description: 'Configure an Autonomous Agent node by node: trigger variables, instructions, knowledge, tools, vision, model, agent settings, preview and publishing.',
+}
+
+# Autonomous Agent
+
+An Autonomous Agent is a conversational app that picks its own tools and steps to reach the goal you set. You give it instructions, knowledge and tools; on each message it reasons about what to do, calls tools as often as it needs, and replies. This page is the full reference for its editor.
+
+## How it works
+
+When a message arrives, the agent reads your **Instructions**, the conversation so far and the user's message. It can search the knowledge bases on the **Knowledge** card and call any tool enabled on the **Tools** card. It repeats *think → call a tool → read the result* until it can answer or reaches **Maximum Iterations**, then streams the reply.
+
+Use an Autonomous Agent when the path to an answer varies from conversation to conversation. If you want to control the exact sequence of steps, use an [Agent Flow](/docs/build/agent-flow) instead.
+
+## The editor
+
+The editor shows a set of connected node cards, a bottom dock, and a header with **Preview**, **Logs** and **Publish Changes**.
+
+Each card shows a subtitle and a status of **Configured** or **Needs setup**. Click a card to open its settings in the dock.
+
+| Node | Subtitle | Shows **Needs setup** when |
+|---|---|---|
+| **Trigger** | "N variable(s)" or "No variables defined" | — |
+| **Instructions** | "N chars" or "No instructions set" | The prompt is empty |
+| **Knowledge** | "N dataset(s)" or "No datasets" | — |
+| **Tools** | "N tool(s) enabled" | — |
+| **Vision** | "Vision & file settings" | — |
+| **AI Agent** | The model id, or "No model selected" | No model is selected |
+| **Output** | "Final response" | — |
+
+### The dock
+
+The dock at the bottom has two tabs: **Configurations** (settings for the selected node) and **Agent Settings** (agent-wide options). Drag its edge to resize it (from 180 to 640 px; it opens at 420 px) or collapse it to see more of the canvas.
+
+## Trigger
+
+The **Trigger** defines the input variables the agent receives with each conversation, in addition to the user's message. Use them for facts the caller already knows, such as a customer name or account tier.
+
+Under **Variables**, add a field and pick a type:
+
+| Type | Use it for |
+|---|---|
+| **Short Text** | Names, ids, short values. |
+| **Paragraph** | Longer free text. |
+| **Select** | One value from a list of options you define. |
+| **Number** | Numeric values. |
+| **Single File** | One uploaded file. |
+| **File List** | Several uploaded files. |
+
+Each field can be marked **Required**; **Short Text** and **Paragraph** fields also take a **Max length**. The read-only **Output Variables** list shows everything the agent can use: your input variables plus the system variables `thread.user_query` (String), `thread.files` (Array[File]), `thread.thread_id`, `thread.user_id`, `channel.name` and `channel.metadata` (Object).
+
+Over the API, set input variables with the `variables` object. See [Variables](/docs/build/variables).
+
+## Instructions
+
+The **Instructions** field is the agent's system prompt: who it is, what it should do and what it must never do. See [Writing instructions](/docs/build/instructions) for a structure you can copy.
+
+The Autonomous Agent adds two optional prompts, each on its own tab of the **Instructions** card, that fine-tune how it uses knowledge and tools:
+
+| Setting | What it does |
+|---|---|
+| **Knowledge Prompt** | Guides how the agent searches your linked datasets and works the results into its answer. |
+| **Knowledge Model (Optional)** | A separate model to run the knowledge prompt on. When empty, the agent's own model is used. |
+| **Tool Prompt** | Guides how the agent chooses which tools to call and how it handles what they return. |
+| **Tool Model (Optional)** | A separate model to run the tool prompt on. When empty, the agent's own model is used. |
+
+Example **Tool Prompt**:
+
+```text title="Tool Prompt"
+Before booking, always call check_availability for the requested date.
+Only call create_booking after the customer has confirmed the time.
+If a tool returns an error, apologise once and offer to take a message instead.
+```
+
+## Knowledge
+
+Attach one or more knowledge bases so the agent can answer from your content.
+
+1. Click the **Knowledge** card.
+2. Under **Select reference Knowledge**, click a knowledge base to add it. Attached knowledge bases are listed at the top under **Knowledge**.
+3. Optionally narrow results with **Metadata Filtering**.
+
+The agent decides when to search its knowledge, guided by the **Knowledge Prompt**. Unlike an [AI Chatbot](/docs/build/chatbot), an Autonomous Agent's Knowledge card has no retrieval settings (**Top K**, **Score Threshold**, rerank).
+
+To show sources under each answer, turn on **Citations and Attributions** in **Agent Settings**. See [Retrieval](/docs/knowledge/retrieval).
+
+## Tools
+
+The **Tools** card's settings list the tools the agent may call, with a count such as "3/4 Enabled". Under **Add Tool**, browse or search (**Search tools...**) and click a tool to add it straight away:
+
+- **Plugin** — tools from [Integrations](/docs/integrations/tools), grouped as **Installed** and **Not installed**.
+- **Workflow** — your published Workflows. See [Workflows](/docs/build/workflows).
+
+Turn individual tools on or off without removing them. The model decides when to call each tool based on its name and description, so clear tool descriptions matter as much as your instructions.
+
+## Vision
+
+**Vision Settings** control images and files users send to the agent:
+
+| Setting | Options |
+|---|---|
+| **Resolution** | **High** or **Low**. High reads fine detail and uses more tokens. |
+| **Upload Method** | **Both**, **Local Upload** or **URL**. |
+| **Upload Limit** | Maximum number of files per message. |
+
+A **Documents** tab appears only for models that can read documents. If the selected model can't read images, you see **Please select a model which supports vision in the AI AGENT node.**
+
+## AI Agent
+
+Pick the model that powers the agent and tune its parameters. Only models installed in your workspace appear — see [Models](/docs/integrations/models). Self-serve workspaces show only the temperature and top P parameters.
+
+**Debug as Multiple Models** runs the same Preview conversation against up to 4 models side by side, so you can compare quality and speed. It isn't available on self-serve workspaces.
+
+## Output
+
+The **Output** card is informational: the agent's final response is streamed to the caller. There is nothing to configure.
+
+## Agent Settings
+
+| Setting | What it does | Default |
+|---|---|---|
+| **Agent Mode** | Read-only. **Function Calling** or **ReAct**, chosen automatically from what the model supports. | Set by the model |
+| **Maximum Iterations** | Caps how many reasoning-and-tool-call rounds the agent gets before it must respond. Minimum 1. | 10 |
+| **Prompt** | Read-only, shown only in **ReAct** mode. The built-in prompt that wraps your instructions; expand it to read it. | — |
+
+Feature cards below add conversation features:
+
+| Feature | What it does |
+|---|---|
+| **Conversation Opener** | An opening line and suggested questions shown when a conversation starts. |
+| **Follow-up** | Suggests 3 next questions after each answer. |
+| **Citations and Attributions** | Shows which knowledge sources an answer used. Also returned as `citations` in the API. |
+| **Content moderation** | Checks INPUT and/or OUTPUT with OpenAI Moderation or a keyword list and replies with a preset message when content is flagged. |
+| **Annotation Reply** | Answers matching questions with curated replies you've saved. |
+
+<Callout>
+  **Content moderation** and **Annotation Reply** aren't shown on self-serve workspaces.
+</Callout>
+
+## Preview
+
+Click **Preview** to open the test panel beside the canvas. It's closed by default and you can drag to resize it. It shows **Nothing to test yet** until you send a message in **Ask something to test the agent**.
+
+If the **Trigger** has variables, fill them in first with the **User Input Field** icon. Preview always runs the current draft, including unpublished changes. See [Testing](/docs/deploy/testing).
+
+## Publish
+
+Click **Publish Changes** (<Kbd>Ctrl</Kbd> <Kbd>Shift</Kbd> <Kbd>P</Kbd>). In the panel, choose the **External API** options, then click **Publish Changes** at the bottom of the panel:
+
+| Toggle | What it allows | Default |
+|---|---|---|
+| **Voice calls** | Starting voice calls with the API key. | On |
+| **Conversation history over API** | Listing conversations and transcripts with the API key. | On |
+
+<Callout type='warning'>
+  Anyone with this app's API key can read conversation history while **Conversation history over API** is on. Keep the key on your server, or turn the toggle off if the key will be used in a browser widget.
+</Callout>
+
+After publishing, **API & Access** opens with the endpoint and **Create new Secret key**. Call the agent with [Chat Completions](/docs/api/chat-completions) — Autonomous Agents reply in streaming mode only, so send `"stream": true`. See [Publishing & versions](/docs/deploy/publishing).
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **Instructions** shows **Needs setup** | The prompt is empty. Add instructions. |
+| **AI Agent** shows **No model selected** | Pick a model. If the list is empty, install a model provider in **Integrations › Models**. |
+| **Please select a model which supports vision in the AI AGENT node.** | The model can't read images. Pick a vision-capable model, or turn off image uploads. |
+| The agent never calls a tool | Check the tool is enabled on the **Tools** card. Make the instructions say when to use it, and give the tool a clear description. Try a model that supports **Function Calling**. |
+| The agent calls tools in a loop, then stops | It hit **Maximum Iterations**. Tighten the **Tool Prompt**, fix tool errors in **Logs**, or raise the limit. |
+| Answers ignore your knowledge | Confirm the knowledge base is attached and indexed, and test the query in **Retrieval Testing**. Tell the agent when to search in the **Knowledge Prompt** or **Instructions**. |
+| API returns `Agent apps only support streaming. Omit "stream": false.` | Send `"stream": true`. |
+| Preview works but callers get old behavior | Publish the draft with **Publish Changes**. |
+
+## Next steps
+
+<Cards>
+  <Card title='Writing instructions' href='/docs/build/instructions'>Prompts that make agents reliable.</Card>
+  <Card title='Tools' href='/docs/integrations/tools'>Give your agent plugins and workflows.</Card>
+  <Card title='Knowledge' href='/docs/knowledge'>Ground answers in your content.</Card>
+  <Card title='Chat Completions API' href='/docs/api/chat-completions'>Call the agent from code.</Card>
+</Cards>

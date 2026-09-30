@@ -1,0 +1,111 @@
+export const metadata = {
+  title: 'App types',
+  description: 'Compare Autonomous Agent, Agent Flow, AI Chatbot, Multi-prompt Agent and Workflow, and learn how to create, import and manage apps.',
+}
+
+# App types
+
+Every app in Xpectrum has a type. The type decides which editor you build in, whether the app holds a conversation, and which API endpoint calls it. This page compares the types, helps you choose, and covers creating and managing apps.
+
+## Compare app types
+
+| Type | Best for | Editor | Conversational? | API endpoint |
+|---|---|---|---|---|
+| **Autonomous Agent** | Open-ended assistants that decide which tools to call and when — support, research, booking with several tools. | Configuration canvas (node cards) | Yes | `POST /v1/chat/completions` (streaming only) |
+| **Agent Flow** | Multi-step conversations where you control the path — branch on intent, call specific tools in order, carry context across turns. | Flow canvas + **Preview** | Yes | `POST /v1/chat/completions` |
+| **AI Chatbot** | Simple Q&A from your instructions and knowledge, with no tools. | Configuration canvas (node cards, no **Tools**) | Yes | `POST /v1/chat/completions` |
+| **Multi-prompt Agent** | Scripted conversations that must follow a fixed path, such as phone intake or appointment booking. | Flow canvas + **Agent** flow-state panel | Yes | `POST /v1/chat/completions` |
+| **Workflow** | Automations that run start to finish on a trigger, a schedule or an API call — no conversation. | Flow canvas + **Run** | No | `POST /v1/runs` |
+
+The list page for each type describes it in one line:
+
+| Type | Description in the app |
+|---|---|
+| **Agent Flows** | "Multi-step conversations built as a flow — branch on intent, call tools, and carry context across turns." |
+| **AI Chatbots** | "Prompt-driven chat apps that answer from your instructions and connected knowledge." |
+| **Autonomous Agents** | "Agents that pick their own tools and steps to reach the goal you set." |
+| **Multi-prompt Agents** | "Scripted conversations that follow a fixed path — each step captures what it needs and decides where to go next." |
+| **Workflows** | "Automations that run start to finish on a trigger or a schedule, with no conversation." |
+
+## Which type should I use?
+
+Work through these questions in order:
+
+1. **Is there a conversation?** If nothing talks back — you process a form, sync data, summarize a file on a schedule — use a **Workflow**.
+2. **Do you need tools?** If the agent only answers from instructions and knowledge, an **AI Chatbot** is the simplest option.
+3. **Should the model decide what to do, or should you?**
+   - Let the model decide → **Autonomous Agent**. You give it instructions, knowledge and tools; it chooses which tools to call and how many times.
+   - You decide → **Agent Flow**. You draw the path: classify the intent, then run a fixed set of steps for each branch. It's more predictable and easier to audit.
+4. **Must every conversation follow the same script?** For phone scripts with required questions, captured fields and defined endings, consider a **Multi-prompt Agent** (limited availability).
+
+| If you need… | Choose |
+|---|---|
+| The fastest route to a working support bot | AI Chatbot or Autonomous Agent |
+| An agent that books, looks up and updates records with several tools | Autonomous Agent |
+| Deterministic routing: billing questions go one way, bookings another | Agent Flow |
+| Strict control over what the agent says at each step | Agent Flow or Multi-prompt Agent |
+| A reusable tool that other agents call | Workflow |
+| A job that runs on a webhook or schedule | Workflow |
+
+<Callout type='tip'>
+  You can combine types. Build a **Workflow** for a task such as "look up an order", publish it, and it becomes a tool that any Autonomous Agent or Agent Flow can call.
+</Callout>
+
+## Availability
+
+- **Multi-prompt Agent** has limited availability and isn't shown in client workspaces. It's in Beta — see [Multi-prompt Agent](/docs/build/multi-prompt-agent).
+- **Analytics** apps, which read finished conversations from your chat apps and grade them, may not be enabled on every workspace.
+- **Create from Template** may not be available on every workspace and isn't available in client workspaces.
+- Client workspaces get a reduced set of canvas blocks. See [Blocks](/docs/blocks).
+
+## Create an app
+
+Open the type's page from the sidebar (for example **Conversational Apps › Agent Flow**). The toolbar offers up to three ways to create an app. **Create from Blank** and **Import configuration file** are icon buttons — hover them to see their names.
+
+| Option | What it does |
+|---|---|
+| **Create from Blank** | Opens a **Create …** dialog named after the type — **Create Agent** (Autonomous Agent), **Create Chatbot**, **Create Agentic Flow** (Agent Flow), **Create Multi-prompt Agent** or **Create Workflow**. Enter an **App Name** and an optional **Description**, then click **Create** (<Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd>). The app gets a default emoji icon and default voice settings. |
+| **Import configuration file** | Opens **Import from configuration file**. Use the **From file** tab to upload an exported file, or **From URL** and paste a link into **Paste configuration file link here**. If the file was exported from a different version, you see **Version Incompatibility**; click **Confirm** to import anyway. |
+| **Create from Template** | Starts from a ready-made app. May not be available on every workspace. |
+
+### Where each type opens
+
+| Type | Opens in |
+|---|---|
+| Agent Flow, Workflow, Multi-prompt Agent | The flow canvas |
+| AI Chatbot, Autonomous Agent | The configuration canvas with node cards |
+| Analytics | Its own page |
+
+## Manage apps
+
+Each app card on a list page has a menu with these actions:
+
+| Action | What it does |
+|---|---|
+| **Edit Info** | Change the name and description. |
+| **Duplicate** | Create a copy of the app in the same workspace. |
+| **Export configuration file** | Download the app's configuration to import elsewhere or keep as a backup. |
+| **Switch to Workflow Orchestrate** | AI Chatbot apps only. Creates a copy of the app as a canvas-based flow. See [below](#switch-to-workflow-orchestrate). |
+| **Web App Access Control** | Choose who can open the app's web app. Shown only when web app access control is enabled for your workspace. |
+| **Delete** | Delete the app. Channels and API keys that use it stop working. |
+
+<Callout type='warning'>
+  An exported configuration file can contain your full prompts and settings. Treat it like source code and don't share it publicly.
+</Callout>
+
+### Switch to Workflow Orchestrate
+
+**Switch to Workflow Orchestrate** turns an AI Chatbot into a canvas-based flow when you outgrow the node cards. A new copy of the app is created and switched; the copy can't be switched back. In the dialog you name **The app copy to be created** and can tick **Delete the original app**. Then click **Start switch**. See [AI Chatbot](/docs/build/chatbot#switch-to-workflow-orchestrate).
+
+## Text Generator (legacy)
+
+Older workspaces may contain **Text Generator** apps, which produce a single completion from a form with no conversation. You can't create new Text Generator apps; existing ones still open in a configuration editor and can be called through the [classic completion API](/docs/api/classic/completion-messages). For new single-shot tasks, use a **Workflow**.
+
+## Next steps
+
+<Cards>
+  <Card title='Autonomous Agent' href='/docs/build/autonomous-agent'>Instructions, knowledge, tools and agent settings.</Card>
+  <Card title='Agent Flow' href='/docs/build/agent-flow'>Build conversations as a flow of blocks.</Card>
+  <Card title='Workflows' href='/docs/build/workflows'>Automations, tools and MCP from a canvas.</Card>
+  <Card title='AI Chatbot' href='/docs/build/chatbot'>The simplest conversational app.</Card>
+</Cards>

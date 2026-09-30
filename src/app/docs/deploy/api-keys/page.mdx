@@ -1,0 +1,144 @@
+export const metadata = {
+  title: 'API keys',
+  description: 'Create, copy, rotate and delete an app’s secret keys, understand key scope, and keep keys out of the browser.',
+}
+
+# API keys
+
+A secret key lets your code, a widget or another system call a published app through the [API](/docs/api). Each key belongs to one app: the key alone decides which agent or workflow answers. You manage keys in the app's **API & Access** panel.
+
+## Key types
+
+| Key | Scope | Used for | Managed in |
+|---|---|---|---|
+| **App API key** | One app. | Chat, runs, threads, voice calls and the classic app routes for that app. | The app's **API & Access** panel. |
+| **Knowledge API key** | The whole workspace. | Searching and managing knowledge bases through the [Knowledge API](/docs/api/knowledge). | Created separately, not in an app's panel. See [Knowledge API](/docs/api/knowledge). |
+
+A key only works on its own kind of endpoint. An app key on a knowledge route, or the reverse, returns `401 Access token is invalid`.
+
+<Callout type='warning'>
+  A knowledge API key can reach every knowledge base in the workspace, not only one, and acts with the workspace owner's access. Treat it like an admin credential and keep it on a server.
+</Callout>
+
+## Create a key
+
+<Steps>
+<Step title='Publish the app'>
+
+**API & Access** only appears once the app has been published. See [Publishing & versions](/docs/deploy/publishing).
+
+</Step>
+<Step title='Open API & Access'>
+
+Hover over the app's name in the editor header. The panel shows the **Endpoint** and the **Secret Key** list (or "No key yet").
+
+</Step>
+<Step title='Create and store the key'>
+
+Click **Create new Secret key**. The full key appears at the top of the panel with the note "Keep this key in a secure and accessible place." Copy it and store it in your server's secret manager or environment. The panel stays open until you click **OK**.
+
+</Step>
+</Steps>
+
+After you click **OK**, the list shows the key masked, with only its first and last few characters, so you can tell keys apart. The copy button on a row copies the full key.
+
+Use the key in the `Authorization` header:
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/chat/completions \
+  -H "Authorization: Bearer $XPECTRUM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"Hello"}],"user":"user-123"}'
+```
+
+See [Authentication](/docs/api/authentication) for headers, errors and the voice `x-api-key` header.
+
+## The key list
+
+| Column | Shows |
+|---|---|
+| **Secret Key** | The key, masked, with a copy button. |
+| **CREATED** | When the key was created. |
+| **LAST USED** | When a request last used the key, or **Never**. Updated at most once a minute. |
+
+**LAST USED** is the quickest way to find unused keys, and to confirm a new key is live during rotation.
+
+## Delete a key
+
+Click the delete icon on a key's row. The row asks **Delete this secret key?** Click **Delete** to confirm. Requests with that key fail with `401` straight away, and deletion can't be undone.
+
+## Who can manage keys
+
+| Action | Roles |
+|---|---|
+| Create a key | **Owner**, **Admin**, **Editor** |
+| Delete a key | **Owner**, **Admin** |
+
+## Limits
+
+- Up to **10 keys per app**. Creating an eleventh returns `400 max_keys_exceeded` — "Cannot create more than 10 API keys for this resource type." Delete unused keys first.
+- Keys don't expire. They work until you delete them.
+
+<Callout>
+  The first time you use **Chat** on **Channels › Voice** for an app with no keys, a key is created for the app automatically. It appears in this list like any other.
+</Callout>
+
+## Rotate a key
+
+Rotate when a key may have leaked, when someone with access leaves, or on a regular schedule. Because an app can have several keys, you can rotate without downtime:
+
+<Steps>
+<Step title='Create the new key'>
+
+Click **Create new Secret key** and store the new key.
+
+</Step>
+<Step title='Deploy it'>
+
+Update every server, job and widget that uses the old key, and deploy.
+
+</Step>
+<Step title='Confirm the switch'>
+
+Watch **LAST USED**: the new key should update and the old key should stop changing. Allow a few minutes, since it refreshes at most once a minute.
+
+</Step>
+<Step title='Delete the old key'>
+
+Delete the old key. Anything still using it now fails with `401`, which tells you what you missed.
+
+</Step>
+</Steps>
+
+<Callout type='danger' title='If a key has leaked'>
+  Don't wait for a deploy. Create a new key, delete the leaked one right away, then update your systems. A short outage is better than someone else using your agent and your credit.
+</Callout>
+
+## Keep keys out of the browser
+
+Anyone can read a key that is sent to a browser: it shows up in developer tools and in the page source. With an app key, they can chat with your agent on your credit and, if **Conversation history over API** is on, read your conversations.
+
+- **Server-side code** (your backend, serverless functions, jobs): the right place for keys. Keep them in server-only environment variables. In Next.js, never prefix them with `NEXT_PUBLIC_`.
+- **Website widgets**: acceptable only for a public, low-risk agent. Use a dedicated app, turn **Conversation history over API** off (and **Voice calls** off if you don't use voice), and publish. Better still, use the [proxy pattern](/docs/channels/web#proxy-pattern).
+- **Mobile apps**: treat like the browser. Call your own backend, which holds the key.
+- **Never** commit keys to source control, paste them into tickets or chats, or put them in URLs.
+
+See [Authentication](/docs/api/authentication#keep-keys-on-your-server) for a server proxy example.
+
+## Troubleshooting
+
+- **`401 Access token is invalid`** → The key was mistyped, deleted, or is the wrong type (a knowledge key on an app route, or the reverse).
+- **`401 Authorization header must be provided and start with 'Bearer'`** → Send `Authorization: Bearer xpectrum_xxxxxxxxxxxx`, with one space after `Bearer`.
+- **`404 model_not_found`** → The key belongs to an app type that doesn't support the endpoint. Workflow keys use `/runs`; chat and agent keys use `/chat/completions`.
+- **`400 max_keys_exceeded`** → The app already has 10 keys. Delete unused ones, starting with those whose **LAST USED** is **Never** or old.
+- **Create new Secret key is disabled** → You need the Editor role or higher.
+- **No delete icon on keys** → Only Owners and Admins can delete keys.
+- **API & Access doesn't open** → Publish the app first.
+
+## Next steps
+
+<Cards>
+  <Card title='Authentication' href='/docs/api/authentication'>Headers, key types and every auth error.</Card>
+  <Card title='Publishing & versions' href='/docs/deploy/publishing'>External API toggles and what publishing updates.</Card>
+  <Card title='Website & widgets' href='/docs/channels/web'>Use a key safely in a website widget.</Card>
+</Cards>

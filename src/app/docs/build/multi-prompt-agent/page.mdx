@@ -1,0 +1,135 @@
+export const metadata = {
+  title: 'Multi-prompt Agent',
+  description: 'Build scripted conversations that follow a fixed path of steps, capture fields, call tools and end in defined outcomes.',
+}
+
+# Multi-prompt Agent
+
+A Multi-prompt Agent runs a scripted conversation that follows a fixed path. Each step has its own prompt, captures specific information, and decides where the conversation goes next. It's designed for structured calls such as phone intake, appointment booking and qualification scripts, where every conversation must cover the same ground and end in a known outcome.
+
+<Callout type='warning' title='Beta — limited availability'>
+  Multi-prompt Agent is in Beta and isn't available on every workspace. It isn't shown in client workspaces. Behavior and labels may change.
+</Callout>
+
+## How it works
+
+The conversation starts at the **Start** block ("When the conversation begins") and moves from step to step. At each **Conversation** step the agent says something, listens, captures what it needs into flow variables, and follows the matching outgoing condition. **Tool** steps call your systems. The conversation finishes when it reaches one of the endings you define — or a built-in ending such as the caller hanging up.
+
+Unlike an [Autonomous Agent](/docs/build/autonomous-agent), the model never chooses the path. Unlike an [Agent Flow](/docs/build/agent-flow), the flow describes the whole conversation rather than running once per message.
+
+## Blocks
+
+| Block | What it does |
+|---|---|
+| **Start** | "When the conversation begins". Entry point of the flow. |
+| **Conversation** (Step) | Says something to the user, captures answers and routes to the next step. |
+| **Tool** | Calls a tool with values from the flow and keeps parts of the result. |
+| **Knowledge Search** | Looks something up in a knowledge base. |
+| **Hand off** | Passes the conversation to another flow. Has no outgoing connections. |
+
+## Conversation steps
+
+When you add a step, you first pick what kind of step it is — **Ask** (asks a question and captures the answer), **Say** (says something and carries on), **Decide** (reads what the caller meant and branches on it), **Route** (branches on what is already known, without speaking) or **End** (says a last line and ends the call). The settings are grouped into collapsible sections; only the ones that kind of step uses are shown:
+
+| Group | What you set |
+|---|---|
+| **What it says** | **What this step says** — **Say exactly this**, **Let the model word it** or **Say nothing** — and whether to **Wait for a reply**. Also **What it says coming back** (the line used when the conversation loops back to this step) and **End the call here** with the ending it records. |
+| **What it captures** | **What to capture**: the values this step stores from the user's reply into flow variables (**Add a field**). |
+| **Where it goes** | **Where it goes next**: the step's exits (**Add an exit**), **When nothing matches**, and **Give up after** — a limit on how many times the conversation can arrive at this step, with the exit to take when it runs out. |
+| **Model & advanced** | **Model**, **Work through a list**, **Verification** (**This step verifies who the caller is**), **Interruptions** (**Allow the caller to go off-script**) and **Show the exits as buttons**. |
+
+## Tool steps
+
+| Group | What you set |
+|---|---|
+| **Tool** | Which tool to call. |
+| **What it gets & keeps** | **What it gets** (the inputs, mapped from flow variables) and **What to keep** (which parts of the result to store). |
+| **Where it goes** | **Where it goes next**: the next step for each outcome. |
+| **Checks & failures** | **Verification** and **When it goes wrong** (what happens if the tool fails). |
+
+## Hand off
+
+A **Hand off** block passes the conversation to another Multi-prompt Agent, which runs its published flow. The caller doesn't come back, and the other flow's first step does the talking. Choose the **Flow that takes over** (**Choose a flow…**) and map **What it starts with** — the values the next flow receives. Nothing is carried over unless you map it. Use it to split a long script into smaller flows, for example a shared "take a message" flow.
+
+## Flow state panel
+
+Click **Agent** in the header to open **Flow state** — "What this flow remembers across steps, and who may write it."
+
+### Who this agent is
+
+The persona that applies to every step, for example:
+
+```text
+You are Ada, a receptionist for a dental practice. Be brief and warm.
+Never give clinical advice.
+```
+
+### What it remembers
+
+Typed flow variables that steps capture and read. Click **Add a variable**, set its type, optionally limit it to **permitted values**, and use **Restrict who can write it** so only specific steps can change it — for example only the confirmation step may set `appointment_time`.
+
+### How calls end
+
+**Ways this call can end** lists your outcomes. Click **Add an ending** to add one such as `appointment_confirmed` or `message_taken`, or click **Use the usual set** to start from a suggested list. Under **When it ends another way**, map each built-in ending — **The caller hung up**, **The call ran too long** and **Something went wrong** — to one of your endings, so every call still gets an outcome.
+
+Endings give every conversation a clear outcome you can count and act on.
+
+### Going off-script
+
+**Handle something else** decides what happens when the user says something the current step doesn't expect:
+
+| Response | Behavior |
+|---|---|
+| **Answer it** | Says exactly what you write, then returns to the question. |
+| **Answer from what we know** | Reads a value the flow has already captured. Says nothing if it hasn't been captured yet. |
+| **Acknowledge and move on** | For things the flow can't help with but shouldn't ignore. |
+| **Pass to a person** | "Ends the call by transferring it." |
+| **Go somewhere else in the flow** | Jumps to another step — for a digression that's really a change of intent, such as "actually, cancel it". |
+
+Each step then decides whether to accept off-script input with **Allow the caller to go off-script**.
+
+## Example: dental receptionist
+
+A receptionist that books cleanings and takes messages.
+
+**Flow state**
+
+- Persona: "You are Ada, a receptionist for Brightline Dental. Be brief and warm. Never give clinical advice."
+- Variables: `patient_name` (text), `reason` (text, permitted values `cleaning`, `checkup`, `other`), `preferred_day` (text), `appointment_time` (text, writable only by the confirmation step).
+- Endings: `appointment_confirmed`, `message_taken`, `unresolved`; under **When it ends another way**, map all three built-in endings to `unresolved`.
+- Off-script: **Answer it** with your opening hours when callers ask about them; **Pass to a person** for emergencies.
+
+**Steps**
+
+```text
+Start
+ └─ Greet & ask reason          (capture: reason, patient_name)
+     ├─ reason = cleaning/checkup → Ask preferred day (capture: preferred_day)
+     │     └─ Tool: check_availability (gets: preferred_day; keeps: slots)
+     │           ├─ slots found → Offer slots (show the exits as buttons)
+     │           │     └─ Confirm (capture: appointment_time)
+     │           │           └─ Tool: create_booking → end: appointment_confirmed
+     │           └─ no slots → Offer another day (give up after 2)
+     └─ reason = other → Take a message → end: message_taken
+```
+
+Test it in Preview and publish. Then tune its voice in **Channels › Voice** — Multi-prompt Agents appear in their own group in the agent picker — and assign it to a number in **Channels › Phone Number**. See the [AI receptionist guide](/docs/guides/ai-receptionist).
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| The agent keeps repeating a question | Check **What to capture** matches what users actually say, and set **Give up after** in **Where it goes** with an exit to take when it runs out. |
+| A step never advances | Make sure every expected answer matches an exit in **Where it goes next**, and set **When nothing matches** — without it, a step that understood nothing fails. |
+| A variable is overwritten by the wrong step | Use **Restrict who can write it** in **What it remembers**. |
+| Calls end as "another way" | Add explicit endings for common outcomes in **How calls end**. |
+| You can't find Multi-prompt Agent in the sidebar | It isn't available in client workspaces. |
+
+## Next steps
+
+<Cards>
+  <Card title='AI receptionist guide' href='/docs/guides/ai-receptionist'>Answer calls and book appointments.</Card>
+  <Card title='Voice channel' href='/docs/channels/voice'>Voices, greetings and call behavior.</Card>
+  <Card title='Agent Flow' href='/docs/build/agent-flow'>A flexible alternative for chat.</Card>
+  <Card title='Writing instructions' href='/docs/build/instructions'>Voice-friendly prompt tips.</Card>
+</Cards>

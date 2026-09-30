@@ -1,0 +1,250 @@
+export const metadata = {
+  title: 'Voice sessions',
+  description: 'Start and end real-time browser voice calls with your agent using an app API key.',
+}
+
+# Voice sessions
+
+The voice endpoints let a browser or app talk to your agent in real time over WebRTC. You exchange the app's API key for a short-lived session token, connect to the voice room with it, and end the call when you are done. The easiest way to do all of this is the SDK's [`XpectrumVoice`](/docs/api/javascript-sdk#xpectrumvoice) client or the ready-made [voice widget](/docs/channels/web).
+
+**Supported app types:** <Tag tone='green'>AI Chatbot</Tag> <Tag tone='green'>Autonomous Agent</Tag> <Tag tone='green'>Agent Flow</Tag> <Tag tone='amber'>Multi-prompt Agent (Beta)</Tag>
+
+The agent that answers is always the one behind the API key — you can't pick a different agent per call. Its voice, greeting and call behavior come from the app's voice settings; see [Voice agents](/docs/channels/voice).
+
+## How a call works
+
+1. Your client calls `POST /v1/voice/tokens/generate` with the app key.
+2. The response contains a `token`, the `room_name`, and the `livekit_url` of the voice server.
+3. The client connects to `livekit_url` with the token using a WebRTC client (the SDK uses the `livekit-client` package, which is installed with `xpectrum`), publishes the microphone, and plays the agent's audio. Live transcripts of both sides arrive on the same connection.
+4. To hang up, the client disconnects and calls `POST /v1/voice/call-control/end-call` with the `room_name`.
+
+`XpectrumVoice` performs all four steps in `connect()` and `disconnect()`.
+
+## Browser requirements
+
+- **HTTPS.** Browsers only allow microphone access on secure pages (`https://`, or `http://localhost` during development).
+- **A user gesture.** Start the call from a click or tap handler. Browsers block microphone prompts and audio playback that are not triggered by the user.
+- **Microphone permission.** The first call shows the browser's permission prompt. If the user denies it, `connect()` fails and the `error` event fires; ask them to allow the microphone in the site settings.
+- **WebRTC.** Any current desktop or mobile browser works. Corporate networks that block WebRTC traffic prevent calls from connecting.
+
+## Generate a session token
+
+<Endpoint method='POST' path='/v1/voice/tokens/generate' />
+
+Creates a voice session for the app's agent and returns the credentials to join it. Each call creates a new room. The request has no body.
+
+Authenticate with `Authorization: Bearer <key>` or `x-api-key: <key>`. The app's **Voice calls** toggle must be on (it is by default).
+
+<Params title='Query parameters'>
+  <Param name='caller_phone' type='string'>
+    Optional phone number to associate with the caller, for example `+14155550123`. It is passed to the voice service with the request.
+  </Param>
+</Params>
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='token' type='string'>Access token for the voice room. Pass it to the WebRTC client together with `livekit_url`.</Param>
+  <Param name='livekit_url' type='string'>The WebRTC server to connect to. Always use the value returned here; don't hardcode it.</Param>
+  <Param name='room_name' type='string'>The room created for this call. Keep it — you need it to end the call.</Param>
+  <Param name='agent_name' type='string'>Identifies the agent in the room.</Param>
+  <Param name='unique_id' type='string'>Unique id of this session.</Param>
+  <Param name='participant_identity' type='string'>The identity the caller joins as.</Param>
+  <Param name='participant_name' type='string'>The caller's display name in the room.</Param>
+  <Param name='client_ip' type='string'>The caller IP address the session was issued for.</Param>
+  <Param name='expires_in' type='string'>How long the token stays valid for joining.</Param>
+</Params>
+
+```json title="200 OK"
+{
+  "token": "eyJhbGciOiJIUzI1NiIs…",
+  "livekit_url": "wss://…",
+  "room_name": "9d2c4e57_3b8a_4f2e_a1c6_0e7b5d3f8a21-6f3a…",
+  "agent_name": "9d2c4e57_3b8a_4f2e_a1c6_0e7b5d3f8a21",
+  "unique_id": "6f3a…",
+  "participant_identity": "…",
+  "participant_name": "…",
+  "client_ip": "203.0.113.24",
+  "expires_in": "…"
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl -X POST https://cloud.xpectrum.dev/v1/voice/tokens/generate \
+  -H "x-api-key: xpectrum_xxxxxxxxxxxx"
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="voice.ts"
+import { XpectrumVoice } from 'xpectrum'
+
+const voice = new XpectrumVoice({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: 'xpectrum_xxxxxxxxxxxx',
+})
+
+voice.on('transcription', (seg) => upsertLine(seg.id, seg.speaker, seg.text, seg.isFinal))
+voice.on('agentSpeaking', ({ isSpeaking }) => setOrb(isSpeaking))
+voice.on('disconnected', ({ reason }) => console.log('call ended:', reason))
+voice.on('error', ({ message }) => showError(message))
+
+// Must run inside a click handler
+callButton.onclick = () => voice.connect()
+hangUpButton.onclick = () => voice.disconnect()
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="voice_token.py"
+# Server-side: mint a session and hand token + livekit_url + room_name to your client
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/voice/tokens/generate",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    timeout=15,
+)
+resp.raise_for_status()
+session = resp.json()
+print(session["room_name"], session["livekit_url"])
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Message | When | What to do |
+|---|---|---|---|
+| 401 | `Access token is invalid` and other [auth errors](/docs/api/authentication#authentication-errors) | Missing or wrong key. | Check the key and header. |
+| 403 | `Voice is disabled for this app. Enable it in the app settings and publish.` | The **Voice calls** toggle is off. | Turn it on and publish. |
+| 502 | `Voice server is unreachable.` | The voice service didn't respond. | Retry with backoff. |
+| 503 | `Voice is not configured for this deployment.` | Voice isn't available on this environment. | Contact support. |
+| 503 | A message from the voice service | The voice service is busy or temporarily unavailable. | Retry after a few seconds with exponential backoff, and tell the user you are connecting. |
+
+Other errors reported by the voice service are passed through with their original status and body.
+
+## End a call
+
+<Endpoint method='POST' path='/v1/voice/call-control/end-call' />
+
+Ends an active call and releases its room. Call it when the user hangs up, in addition to disconnecting your WebRTC client — `XpectrumVoice.disconnect()` does both. This endpoint works even if **Voice calls** has been turned off since the call started, so a live call can always be hung up.
+
+Authenticate with `Authorization: Bearer <key>` or `x-api-key: <key>`.
+
+<Params title='Request body'>
+  <Param name='room_name' type='string' required>
+    The `room_name` returned by the token endpoint. It must be a room created for this app.
+  </Param>
+  <Param name='reason' type='string'>
+    Optional free-text reason, for example `User hung up`.
+  </Param>
+</Params>
+
+### Response
+
+On success the voice service returns a `200` acknowledgement. Treat any `2xx` status as success.
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/voice/call-control/end-call \
+  -H "x-api-key: xpectrum_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "room_name": "9d2c4e57_3b8a_4f2e_a1c6_0e7b5d3f8a21-6f3a…", "reason": "User hung up" }'
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="hangup.ts"
+// Disconnects the room and calls end-call for you
+await voice.disconnect()
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="end_call.py"
+import requests
+
+requests.post(
+    "https://cloud.xpectrum.dev/v1/voice/call-control/end-call",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"room_name": room_name, "reason": "User hung up"},
+    timeout=15,
+).raise_for_status()
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Message | When |
+|---|---|---|
+| 400 | `room_name is required.` | The body has no `room_name`. |
+| 403 | `Room does not belong to this app.` | The room was created with a different app's key. Use the same app key that generated the token. |
+| 502 | `Voice server is unreachable.` | Retry. The call also ends on its own when both sides leave. |
+
+## Keep the key off the page
+
+`XpectrumVoice` sends the API key from the browser, so anyone can read it. For a public voice widget that is acceptable if **Conversation history over API** is off for the app. Otherwise, proxy the two voice routes through your server and point the SDK at it:
+
+```ts title="app/api/xpectrum/voice/[...path]/route.ts"
+// Forwards /api/xpectrum/voice/tokens/generate and /api/xpectrum/voice/call-control/end-call
+export async function POST(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  const { path } = await params
+  const route = path.join('/')
+  if (route !== 'tokens/generate' && route !== 'call-control/end-call') {
+    return new Response('Not found', { status: 404 })
+  }
+
+  const upstream = await fetch(`https://cloud.xpectrum.dev/v1/voice/${route}`, {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.XPECTRUM_API_KEY!, // server-only
+      'Content-Type': 'application/json',
+    },
+    body: route === 'call-control/end-call' ? await req.text() : undefined,
+  })
+  return new Response(upstream.body, { status: upstream.status, headers: { 'Content-Type': 'application/json' } })
+}
+```
+
+```ts title="Browser"
+const voice = new XpectrumVoice({
+  baseUrl: `${window.location.origin}/api/xpectrum`, // must be an absolute URL
+  apiKey: 'unused', // your proxy adds the real key
+})
+```
+
+Add your own session check and rate limiting to the proxy route before exposing it.
+
+## Troubleshooting
+
+- **`connect()` fails straight away with a permission error** — the page isn't on HTTPS, the call wasn't started from a click, or the user blocked the microphone.
+- **`Already connected or connecting. Call disconnect() first.`** — `connect()` was called twice. Disable the call button while a call is active.
+- **`403 Room does not belong to this app.`** — you are ending the call with a different app's key than the one that created it.
+- **Connected but no audio from the agent** — the browser blocked autoplay; make sure the call starts from a user gesture, and check the tab isn't muted.
+- **The agent's greeting is missing from the transcript** — the greeting can be spoken before the caller has fully joined the room, in which case it isn't transcribed. Register your event handlers before calling `connect()` so you receive everything that is.
+
+## Next steps
+
+<Cards>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk#xpectrumvoice'>All `XpectrumVoice` methods and events.</Card>
+  <Card title='Website & widgets' href='/docs/channels/web'>Drop in the voice widget with no code.</Card>
+  <Card title='Voice agents' href='/docs/channels/voice'>Configure voice, greeting and call behavior.</Card>
+  <Card title='Voice troubleshooting' href='/docs/troubleshooting/voice'>Fix call quality and connection issues.</Card>
+</Cards>

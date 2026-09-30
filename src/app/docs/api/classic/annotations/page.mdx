@@ -1,0 +1,485 @@
+export const metadata = {
+  title: 'Annotations',
+  description: 'Create, list, update and delete annotations, and turn annotation replies on or off, with the classic API.',
+}
+
+# Annotations
+
+Annotations are curated question-and-answer pairs. When **annotation reply** is on, an incoming question that closely matches an annotation's question is answered with the annotation's answer instead of a newly generated one. Use these endpoints to sync annotations from your own system and to switch annotation reply on or off.
+
+**Supported app types (whole page):** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag>
+
+These endpoints don't take a `user`: annotations belong to the app, not to an end user.
+
+## The annotation object
+
+<Params title='Annotation'>
+  <Param name='id' type='string'>The annotation id.</Param>
+  <Param name='question' type='string'>The question to match.</Param>
+  <Param name='answer' type='string'>The answer to reply with.</Param>
+  <Param name='hit_count' type='integer'>How many times the annotation has been used to answer.</Param>
+  <Param name='created_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+## List annotations
+
+<Endpoint method='GET' path='/v1/apps/annotations' />
+
+Returns the app's annotations, one page at a time.
+
+<Params title='Query parameters'>
+  <Param name='page' type='integer' def='1'>Page number.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page.</Param>
+  <Param name='keyword' type='string'>Only return annotations whose question or answer contains this text.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='data' type='array'>The annotations on this page.</Param>
+  <Param name='has_more' type='boolean'>Whether there is another page.</Param>
+  <Param name='limit' type='integer'>Items per page.</Param>
+  <Param name='total' type='integer'>Total number of matching annotations.</Param>
+  <Param name='page' type='integer'>The current page.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/apps/annotations?page=1&limit=20' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/apps/annotations",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"page": 1, "limit": 20},
+)
+for a in resp.json()["data"]:
+    print(a["question"], "->", a["answer"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/apps/annotations?page=1&limit=20', {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { data, has_more, total } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "data": [
+    {
+      "id": "69d48372-ad81-4c75-9c46-2ce197b4d402",
+      "question": "Do you validate parking?",
+      "answer": "Yes. Bring your ticket to the front desk and we'll validate it for up to 2 hours.",
+      "hit_count": 12,
+      "created_at": 1735625869
+    }
+  ],
+  "has_more": false,
+  "limit": 20,
+  "total": 1,
+  "page": 1
+}
+```
+
+## Create an annotation
+
+<Endpoint method='POST' path='/v1/apps/annotations' />
+
+Adds a question-and-answer pair to the app.
+
+<Params title='Request body'>
+  <Param name='question' type='string' required>The question to match.</Param>
+  <Param name='answer' type='string' required>The answer to reply with.</Param>
+</Params>
+
+The response is the new [annotation object](#the-annotation-object).
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/apps/annotations' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "Do you validate parking?", "answer": "Yes. Bring your ticket to the front desk and we will validate it for up to 2 hours."}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/apps/annotations",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "question": "Do you validate parking?",
+        "answer": "Yes. Bring your ticket to the front desk and we will validate it for up to 2 hours.",
+    },
+)
+annotation_id = resp.json()["id"]
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/apps/annotations', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    question: 'Do you validate parking?',
+    answer: 'Yes. Bring your ticket to the front desk and we will validate it for up to 2 hours.',
+  }),
+})
+const annotation = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "id": "69d48372-ad81-4c75-9c46-2ce197b4d402",
+  "question": "Do you validate parking?",
+  "answer": "Yes. Bring your ticket to the front desk and we will validate it for up to 2 hours.",
+  "hit_count": 0,
+  "created_at": 1735625869
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `question` or `answer` is missing. |
+
+## Update an annotation
+
+<Endpoint method='PUT' path='/v1/apps/annotations/{annotation_id}' />
+
+Replaces an annotation's question and answer. Send both fields.
+
+<Params title='Path parameters'>
+  <Param name='annotation_id' type='string' required>The annotation id.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='question' type='string' required>The new question.</Param>
+  <Param name='answer' type='string' required>The new answer.</Param>
+</Params>
+
+The response is the updated [annotation object](#the-annotation-object).
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X PUT 'https://cloud.xpectrum.dev/v1/apps/annotations/69d48372-ad81-4c75-9c46-2ce197b4d402' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"question": "Do you validate parking?", "answer": "Yes, for up to 3 hours. Bring your ticket to the front desk."}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+annotation_id = "69d48372-ad81-4c75-9c46-2ce197b4d402"
+resp = requests.put(
+    f"https://cloud.xpectrum.dev/v1/apps/annotations/{annotation_id}",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "question": "Do you validate parking?",
+        "answer": "Yes, for up to 3 hours. Bring your ticket to the front desk.",
+    },
+)
+print(resp.json())
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const annotationId = '69d48372-ad81-4c75-9c46-2ce197b4d402'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/apps/annotations/${annotationId}`, {
+  method: 'PUT',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    question: 'Do you validate parking?',
+    answer: 'Yes, for up to 3 hours. Bring your ticket to the front desk.',
+  }),
+})
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "id": "69d48372-ad81-4c75-9c46-2ce197b4d402",
+  "question": "Do you validate parking?",
+  "answer": "Yes, for up to 3 hours. Bring your ticket to the front desk.",
+  "hit_count": 12,
+  "created_at": 1735625869
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `question` or `answer` is missing. |
+| 403 | `forbidden` | The workspace account the key acts as isn't allowed to edit the app. |
+| 404 | `not_found` | "Annotation not found" |
+
+## Delete an annotation
+
+<Endpoint method='DELETE' path='/v1/apps/annotations/{annotation_id}' />
+
+Deletes an annotation. A successful delete returns `204 No Content` with an empty body.
+
+<Params title='Path parameters'>
+  <Param name='annotation_id' type='string' required>The annotation id.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X DELETE 'https://cloud.xpectrum.dev/v1/apps/annotations/69d48372-ad81-4c75-9c46-2ce197b4d402' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+annotation_id = "69d48372-ad81-4c75-9c46-2ce197b4d402"
+resp = requests.delete(
+    f"https://cloud.xpectrum.dev/v1/apps/annotations/{annotation_id}",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+)
+assert resp.status_code == 204
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const annotationId = '69d48372-ad81-4c75-9c46-2ce197b4d402'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/apps/annotations/${annotationId}`, {
+  method: 'DELETE',
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+console.log(res.status) // 204
+```
+
+  </Tab>
+</Tabs>
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 403 | `forbidden` | The workspace account the key acts as isn't allowed to edit the app. |
+| 404 | `not_found` | "Annotation not found" |
+
+## Enable or disable annotation reply
+
+<Endpoint method='POST' path='/v1/apps/annotation-reply/{action}' />
+
+Turns annotation reply on or off for the app. Turning it on indexes every annotation with the embedding model you choose, so the change runs as a background job: the call returns a `job_id` straight away, and you poll [the job status](#get-the-annotation-reply-job-status) until it is `completed`.
+
+<Params title='Path parameters'>
+  <Param name='action' type='string' required>`enable` or `disable`.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='score_threshold' type='number' required>The minimum similarity score for a question to be answered from an annotation. Higher values require closer matches.</Param>
+  <Param name='embedding_provider_name' type='string' required>The model provider of the embedding model, as configured in your workspace's model providers.</Param>
+  <Param name='embedding_model_name' type='string' required>The embedding model used to match questions.</Param>
+</Params>
+
+<Callout>
+  All three body fields are required for `disable` as well as `enable`. Send the current values when disabling.
+</Callout>
+
+<Params title='Response'>
+  <Param name='job_id' type='string'>The id of the background job.</Param>
+  <Param name='job_status' type='string'>`waiting` for a new job, or `processing` if the same action is already running (the existing `job_id` is returned).</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/apps/annotation-reply/enable' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "score_threshold": 0.9,
+    "embedding_provider_name": "openai",
+    "embedding_model_name": "text-embedding-3-small"
+  }'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/apps/annotation-reply/enable",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "score_threshold": 0.9,
+        "embedding_provider_name": "openai",
+        "embedding_model_name": "text-embedding-3-small",
+    },
+)
+job_id = resp.json()["job_id"]
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/apps/annotation-reply/enable', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    score_threshold: 0.9,
+    embedding_provider_name: 'openai',
+    embedding_model_name: 'text-embedding-3-small',
+  }),
+})
+const { job_id } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "job_id": "b15c8f68-1cf4-4877-bf21-ed7cf2011802",
+  "job_status": "waiting"
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | A body field is missing or `score_threshold` is not a number, or `action` is not `enable` or `disable` ("Unsupported annotation reply action"). |
+
+## Get the annotation reply job status
+
+<Endpoint method='GET' path='/v1/apps/annotation-reply/{action}/status/{job_id}' />
+
+Returns the progress of an enable or disable job. Use the same `action` you started the job with.
+
+<Params title='Path parameters'>
+  <Param name='action' type='string' required>`enable` or `disable`.</Param>
+  <Param name='job_id' type='string' required>The `job_id` from the enable or disable call.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='job_id' type='string'>The job id.</Param>
+  <Param name='job_status' type='string'>`waiting`, `processing`, `completed` or `error`.</Param>
+  <Param name='error_msg' type='string'>The reason the job failed when `job_status` is `error`; otherwise `""`.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/apps/annotation-reply/enable/status/b15c8f68-1cf4-4877-bf21-ed7cf2011802' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import time
+import requests
+
+job_id = "b15c8f68-1cf4-4877-bf21-ed7cf2011802"
+while True:
+    status = requests.get(
+        f"https://cloud.xpectrum.dev/v1/apps/annotation-reply/enable/status/{job_id}",
+        headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    ).json()
+    if status["job_status"] in ("completed", "error"):
+        break
+    time.sleep(2)
+print(status)
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const jobId = 'b15c8f68-1cf4-4877-bf21-ed7cf2011802'
+const res = await fetch(
+  `https://cloud.xpectrum.dev/v1/apps/annotation-reply/enable/status/${jobId}`,
+  { headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' } },
+)
+const { job_status, error_msg } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "job_id": "b15c8f68-1cf4-4877-bf21-ed7cf2011802",
+  "job_status": "completed",
+  "error_msg": ""
+}
+```
+
+A finished job's status is kept for about 10 minutes. After that, the status call returns an error.
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "The job does not exist." The `job_id` or `action` is wrong, or the status has expired. |
+
+## Next steps
+
+<Cards>
+  <Card title='Chat messages' href='/docs/api/classic/chat-messages'>Send messages that annotation reply can answer.</Card>
+  <Card title='Feedback, audio & app info' href='/docs/api/classic/app'>Check whether annotation reply is on with `GET /v1/parameters`.</Card>
+</Cards>

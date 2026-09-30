@@ -1,0 +1,244 @@
+/**
+ * Xpectrum docs — theme and article typography.
+ *
+ * Layout follows the Next.js docs (sticky header, grouped left sidebar,
+ * article, "On this page" on the right); colours are the Xpectrum palette
+ * (see xpectrum-landing.css for the names). Everything is scoped to .xd.
+ */
+
+.xd {
+  --xd-bg: #0a0826;
+  --xd-bg-deep: #07051c;
+  --xd-surface: #151135;
+  --xd-surface2: #1d1843;
+  --xd-border: rgba(126, 114, 168, 0.22);
+  --xd-border-strong: rgba(126, 114, 168, 0.4);
+  --xd-txt: #ffffff;
+  --xd-txt2: #d9d5e6;
+  --xd-txt3: #aaa4bf;
+  --xd-txt4: #7e7795;
+  --xd-brand: #1966ca;
+  --xd-sky: #5a99eb;
+  --xd-cyan: #22d3ee;
+  --xd-violet: #7c5cff;
+  --xd-code-bg: #0f0c28;
+
+  background: var(--xd-bg);
+  color: var(--xd-txt2);
+  font-family: var(--font-xp-body), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.xd ::selection { background: rgba(90, 153, 235, 0.35); }
+
+/* ── Article typography ─────────────────────────────────────────────── */
+.xd-prose { font-size: 16px; line-height: 1.75; color: var(--xd-txt2); }
+.xd-prose > * + * { margin-top: 1.1em; }
+
+.xd-prose h1 {
+  font-family: var(--font-xp-body);
+  font-size: 2.25rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--xd-txt);
+  margin: 0 0 0.4em;
+}
+/* The paragraph straight after the H1 is the page description. */
+.xd-prose h1 + p { font-size: 1.125rem; color: var(--xd-txt3); margin-top: 0; }
+
+.xd-prose h2,
+.xd-prose h3,
+.xd-prose h4 {
+  position: relative;
+  color: var(--xd-txt);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  scroll-margin-top: 88px;
+}
+/* H2s open a new section with a hairline, as in the Next.js docs. */
+.xd-prose h2 { font-size: 1.5rem; line-height: 1.3; margin-top: 2.6em; padding-top: 1.1em; border-top: 1px solid var(--xd-border); }
+.xd-prose h1 + p + h2, .xd-prose h1 + h2 { border-top: 0; padding-top: 0.2em; }
+.xd-prose h3 { font-size: 1.2rem; line-height: 1.4; margin-top: 1.9em; }
+.xd-prose h4 { font-size: 1.02rem; margin-top: 1.6em; }
+.xd-prose h2 + *,
+.xd-prose h3 + *,
+.xd-prose h4 + * { margin-top: 0.6em; }
+
+.xd-anchor {
+  position: absolute;
+  left: -1.1em;
+  padding-right: 0.3em;
+  color: var(--xd-txt4);
+  opacity: 0;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.xd-prose h2:hover .xd-anchor,
+.xd-prose h3:hover .xd-anchor { opacity: 1; }
+
+.xd-prose a:not(.xd-card):not(.xd-anchor) {
+  color: var(--xd-sky);
+  text-decoration: underline;
+  text-decoration-color: rgba(90, 153, 235, 0.35);
+  text-underline-offset: 3px;
+}
+.xd-prose a:not(.xd-card):not(.xd-anchor):hover { text-decoration-color: var(--xd-sky); }
+
+.xd-prose strong { color: var(--xd-txt); font-weight: 600; }
+.xd-prose ul, .xd-prose ol { padding-left: 1.4em; }
+.xd-prose ul { list-style: disc; }
+.xd-prose ol { list-style: decimal; }
+.xd-prose li { margin-top: 0.35em; }
+.xd-prose li::marker { color: var(--xd-txt4); }
+.xd-prose hr { border: 0; border-top: 1px solid var(--xd-border); margin: 2.5em 0; }
+
+.xd-prose blockquote {
+  border-left: 3px solid var(--xd-border-strong);
+  padding-left: 1em;
+  color: var(--xd-txt3);
+}
+
+/* Inline code */
+.xd-prose :not(pre) > code {
+  font-family: var(--font-xp-mono), ui-monospace, monospace;
+  font-size: 0.86em;
+  padding: 0.14em 0.4em;
+  border-radius: 6px;
+  background: rgba(124, 92, 255, 0.14);
+  border: 1px solid rgba(124, 92, 255, 0.22);
+  color: #ddd4ff;
+  white-space: normal;
+  overflow-wrap: break-word;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.xd-prose a > code { color: var(--xd-sky); }
+
+/* Tables */
+.xd-prose table {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14.5px;
+  border: 1px solid var(--xd-border);
+  border-radius: 10px;
+}
+.xd-prose thead th {
+  background: var(--xd-surface);
+  color: var(--xd-txt);
+  font-weight: 600;
+  text-align: left;
+}
+.xd-prose th, .xd-prose td {
+  padding: 0.6em 0.9em;
+  border-bottom: 1px solid var(--xd-border);
+  vertical-align: top;
+}
+.xd-prose tr:last-child td { border-bottom: 0; }
+.xd-prose td code { white-space: normal; }
+.xd-prose td { overflow-wrap: break-word; }
+@media (max-width: 640px) {
+  .xd-prose table { display: block; overflow-x: auto; }
+}
+
+/* ── Code blocks (rehype-pretty-code) ───────────────────────────────── */
+.xd-prose figure[data-rehype-pretty-code-figure] {
+  position: relative;
+  margin: 1.4em 0;
+  border: 1px solid var(--xd-border);
+  border-radius: 12px;
+  background: var(--xd-code-bg);
+  overflow: hidden;
+}
+.xd-prose figcaption[data-rehype-pretty-code-title] {
+  padding: 0.55em 1em;
+  border-bottom: 1px solid var(--xd-border);
+  background: var(--xd-surface);
+  font-family: var(--font-xp-mono), ui-monospace, monospace;
+  font-size: 12.5px;
+  color: var(--xd-txt3);
+}
+.xd-prose pre {
+  overflow-x: auto;
+  padding: 1em 0;
+  font-family: var(--font-xp-mono), ui-monospace, monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.xd-prose pre > code { display: grid; }
+.xd-prose pre [data-line] { padding: 0 1.1em; }
+.xd-prose pre [data-highlighted-line] {
+  background: rgba(90, 153, 235, 0.12);
+  box-shadow: inset 2px 0 0 var(--xd-sky);
+}
+.xd-prose pre code[data-line-numbers] { counter-reset: line; }
+.xd-prose pre code[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.4rem;
+  margin-right: 1.1rem;
+  text-align: right;
+  color: #4a4466;
+}
+
+/* ── Callouts ───────────────────────────────────────────────────────── */
+.xd-callout {
+  display: flex;
+  gap: 0.75em;
+  padding: 0.9em 1.1em;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.xd-callout > div > * + * { margin-top: 0.5em; }
+.xd-callout-note { background: rgba(90, 153, 235, 0.08); border-color: rgba(90, 153, 235, 0.3); }
+.xd-callout-tip { background: rgba(40, 172, 106, 0.08); border-color: rgba(40, 172, 106, 0.32); }
+.xd-callout-warning { background: rgba(240, 169, 25, 0.08); border-color: rgba(240, 169, 25, 0.32); }
+.xd-callout-danger { background: rgba(240, 68, 56, 0.08); border-color: rgba(240, 68, 56, 0.32); }
+
+/* ── Steps: numbered, with a rail ───────────────────────────────────── */
+.xd-steps { counter-reset: step; margin-left: 0.9em; border-left: 1px solid var(--xd-border); padding-left: 1.75em; }
+.xd-step { position: relative; counter-increment: step; }
+.xd-step + .xd-step { margin-top: 2em; }
+.xd-step::before {
+  content: counter(step);
+  position: absolute;
+  left: calc(-1.75em - 15px);
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--xd-surface2);
+  border: 1px solid var(--xd-border-strong);
+}
+.xd-step > h3:first-child { margin-top: 0.1em; }
+
+/* ── API: method badges ─────────────────────────────────────────────── */
+.xd-method {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-family: var(--font-xp-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.xd-method-GET { background: rgba(40, 172, 106, 0.15); color: #4ade80; }
+.xd-method-POST { background: rgba(90, 153, 235, 0.16); color: #7cb2f5; }
+.xd-method-PUT, .xd-method-PATCH { background: rgba(240, 169, 25, 0.15); color: #fbbf24; }
+.xd-method-DELETE { background: rgba(240, 68, 56, 0.15); color: #f87171; }
+
+/* Scrollbars in the sidebars */
+.xd-scroll { scrollbar-width: thin; scrollbar-color: rgba(126, 114, 168, 0.35) transparent; }

@@ -1,0 +1,233 @@
+export const metadata = {
+  title: 'Streaming',
+  description: 'How streamed replies and workflow runs are delivered over Server-Sent Events, with a robust parser and cancellation advice.',
+}
+
+# Streaming
+
+Chat replies and workflow runs can be streamed so your users see text as it is generated and progress as it happens. Streams use Server-Sent Events (SSE) over an ordinary HTTP response. This page describes the stream formats of the recommended API and the classic API, and shows how to parse them reliably.
+
+## SSE basics
+
+Ask for a stream with `"stream": true` (recommended API) or `"response_mode": "streaming"` (classic API). The response has `Content-Type: text/event-stream` and stays open until the reply or run is finished.
+
+- Each event is one line that starts with `data: `, followed by JSON, followed by a blank line.
+- Lines that start with `:` are comments. The recommended API sends `: ping` as a keep-alive.
+- Network packets don't line up with lines. A single `data:` line can arrive split across two reads, so buffer until you see a newline.
+- Once the stream has started, the HTTP status is already `200`. Errors from then on arrive **inside** the stream.
+
+The streams are sent in response to a `POST` with an `Authorization` header, so the browser's built-in `EventSource` (GET only, no custom headers) can't be used. Read the response body with `fetch` instead, as shown [below](#parse-a-stream-in-javascript), or use the SDK.
+
+## Chat completion stream
+
+`POST /v1/chat/completions` with `"stream": true` sends OpenAI-style `chat.completion.chunk` objects:
+
+```text title="Stream"
+data: {"id":"chatcmpl-5f0b…","object":"chat.completion.chunk","created":1759190400,"model":"9d2c…","thread_id":"c3a1…","run_id":"e8b7…","choices":[{"index":0,"delta":{"role":"assistant","content":"Sure"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-5f0b…","object":"chat.completion.chunk","created":1759190400,"model":"9d2c…","thread_id":"c3a1…","run_id":"e8b7…","choices":[{"index":0,"delta":{"content":", here it is"},"finish_reason":null}]}
+
+: ping
+
+data: {"id":"chatcmpl-5f0b…","object":"chat.completion.chunk","created":1759190400,"model":"9d2c…","thread_id":"c3a1…","run_id":"e8b7…","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":412,"completion_tokens":18,"total_tokens":430}}
+
+data: [DONE]
+```
+
+| Line | Meaning |
+|---|---|
+| Content chunk | `choices[0].delta.content` is the next piece of text. Append it. The first one also has `delta.role`. |
+| `: ping` | Keep-alive, sent roughly every 10 seconds while the agent thinks or runs tools. Ignore it. |
+| Final chunk | `finish_reason: "stop"`, plus `usage` and, when knowledge was used, `citations`. |
+| Step chunk | Only with `"include_steps": true`: `choices` is empty and `step` describes a finished step. See [Step chunks](/docs/api/chat-completions#step-chunks). |
+| Error chunk | `{"error": {"message", "type": "server_error", "param": null, "code"}}`. The stream ends right after it. |
+| `data: [DONE]` | End of stream. Always the last line. It is not JSON. |
+
+Every chunk carries `thread_id` and `run_id`. Capture them from the **first** chunk: you need `run_id` to [cancel](/docs/api/runs#cancel-a-run) while the reply is still generating, and `thread_id` to continue the conversation. The message id is the chunk `id` without its `chatcmpl-` prefix.
+
+An error chunk mid-stream looks like this:
+
+```text title="Stream"
+data: {"error":{"message":"…","type":"server_error","param":null,"code":"completion_request_error"}}
+
+data: [DONE]
+```
+
+The text received before the error is incomplete. Show the error and let the user retry.
+
+## Workflow run stream
+
+`POST /v1/runs` with `"stream": true` sends one JSON object per event, identified by its `object` field:
+
+| `object` | Sent when | Fields |
+|---|---|---|
+| `run.started` | The run was accepted | `id` (the run id), `created_at` |
+| `step.started` | A block starts | `id`, `title`, `type`, `index`, `created_at` |
+| `step.completed` | A block finishes | The `step.started` fields plus `status`, `outputs`, `error`, `elapsed_seconds` |
+| `run.completed` | The run finishes | The full run: `status`, `variables`, `outputs`, `error`, `steps`, `tokens`, `elapsed_seconds`, `created_at`, `finished_at` |
+
+Pings, error chunks and `data: [DONE]` work exactly as for chat. Steps inside **For Each** and **Repeat Until** blocks are reported each time they run; the container blocks themselves, iteration progress, branch boundaries and retries are not sent. See [Workflow runs](/docs/api/runs#streaming-a-run).
+
+## Parse a stream in JavaScript
+
+The SDK's `XpectrumChat.stream()` and `XpectrumWorkflow.stream()` do all of this for you. If you call the API directly — for example from a server proxy or a runtime without the SDK — this parser handles split lines, keep-alives, error chunks and cancellation:
+
+```ts title="stream-chat.ts"
+type Chunk = {
+  id?: string
+  thread_id?: string
+  run_id?: string
+  choices?: { delta?: { content?: string }; finish_reason?: string | null }[]
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number }
+  citations?: unknown[]
+  error?: { message: string; type?: string; code?: string | null }
+}
+
+export async function streamChat(
+  body: Record<string, unknown>,
+  opts: { apiKey: string; signal?: AbortSignal; onText: (delta: string) => void; onRunId?: (id: string) => void },
+) {
+  const res = await fetch('https://cloud.xpectrum.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${opts.apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, stream: true }),
+    signal: opts.signal,
+  })
+
+  // Errors before the stream starts are ordinary JSON responses (either envelope)
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message ?? err.message ?? `HTTP ${res.status}`)
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let text = ''
+  let threadId: string | undefined
+  let runId: string | undefined
+  let final: Chunk | undefined
+
+  const handle = (line: string) => {
+    if (!line || line.startsWith(':')) return false          // blank line or ": ping"
+    if (!line.startsWith('data:')) return false
+    const data = line.slice(5).trim()
+    if (data === '[DONE]') return true                        // end of stream
+    const chunk: Chunk = JSON.parse(data)
+    if (chunk.error) throw new Error(chunk.error.message)     // mid-stream failure
+    if (chunk.thread_id) threadId = chunk.thread_id
+    if (chunk.run_id && !runId) {
+      runId = chunk.run_id
+      opts.onRunId?.(runId)                                   // enable your Stop button now
+    }
+    const choice = chunk.choices?.[0]
+    const delta = choice?.delta?.content
+    if (delta) {
+      text += delta
+      opts.onText(delta)
+    }
+    if (choice?.finish_reason) final = chunk
+    return false
+  }
+
+  try {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() ?? ''                              // keep the partial last line
+      for (const line of lines) if (handle(line.trim())) return { text, threadId, runId, final }
+    }
+    if (buffer.trim()) handle(buffer.trim())
+  } finally {
+    reader.releaseLock()
+  }
+  return { text, threadId, runId, final }
+}
+```
+
+Use it with an `AbortController` and the cancel endpoint:
+
+```ts title="stop-button.ts"
+const controller = new AbortController()
+let runId: string | undefined
+
+const done = streamChat(
+  { messages: [{ role: 'user', content: 'Write a long answer' }], user: 'user-123' },
+  { apiKey, signal: controller.signal, onText: render, onRunId: (id) => (runId = id) },
+)
+
+async function stop() {
+  controller.abort() // stop reading
+  if (runId) {
+    // stop generating (and spending tokens) on the server
+    await fetch(`https://cloud.xpectrum.dev/v1/runs/${runId}/cancel`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: 'user-123' }),
+    })
+  }
+}
+```
+
+## Cancellation and reconnection
+
+- **Aborting is not cancelling.** Closing the connection only stops you reading. The agent keeps generating and keeps using tokens until you call [`POST /runs/{run_id}/cancel`](/docs/api/runs#cancel-a-run) with the same `user`.
+- **Streams can't be resumed.** There is no event id to reconnect from. If a stream drops before `[DONE]`, treat the reply as failed: cancel it with the `run_id` you captured, show an error, and let the user retry. If history is enabled, you can reload the thread with [`GET /threads/{thread_id}/messages`](/docs/api/threads#list-messages-in-a-thread) to see what was saved before deciding to resend.
+- **Retry only before the stream starts.** A `429`, `502` or `503` response (before any `data:` line) is safe to retry with exponential backoff. Once text has arrived, resending the message asks the question again in the same thread.
+- **Proxies must not buffer.** If you relay the stream through your own server or a reverse proxy, turn off response buffering and compression for this route and allow the connection to stay idle for at least 300 seconds. Otherwise tokens arrive in bursts, or the stream is cut off during long tool calls.
+- **Timeouts.** Set your HTTP client's read timeout above the keep-alive interval (pings arrive about every 10 seconds) rather than a short total timeout.
+
+## Classic API events
+
+The [classic API](/docs/api/classic) (`/chat-messages`, `/completion-messages`, `/workflows/run`) streams named events instead. Each line is `data: {json}` where the JSON has an `event` field; keep-alives are sent as `event: ping` lines about every 10 seconds. There is no `[DONE]` line — the stream ends after `message_end`, `workflow_finished` or `error`.
+
+### Message events
+
+| Event | Sent by | Fields |
+|---|---|---|
+| `message` | AI Chatbot, Agent Flow, Text Generator | `task_id`, `message_id`, `conversation_id`, `answer` (the next text piece), `created_at` |
+| `agent_message` | Autonomous Agent | Same as `message` |
+| `agent_thought` | Autonomous Agent | `id`, `task_id`, `message_id`, `position`, `thought`, `observation` (tool result), `tool` (names separated by `;`), `tool_input` (JSON string), `message_files`, `conversation_id`, `created_at` |
+| `message_file` | Apps that produce files | `id`, `type` (`image`), `belongs_to` (`assistant`), `url`, `conversation_id` |
+| `message_end` | All message apps | `task_id`, `message_id`, `conversation_id`, `metadata` with `usage` and `retriever_resources`. The reply is complete. |
+| `message_replace` | Apps with content moderation | `answer` — replace everything shown so far with this text. |
+| `tts_message` | Apps with text-to-speech auto-play | `task_id`, `message_id`, `audio` (a base64 MP3 chunk), `created_at` |
+| `tts_message_end` | Same | `audio` is empty; the audio is complete. |
+
+### Workflow events
+
+Sent by Workflow and Agent Flow apps.
+
+| Event | Fields |
+|---|---|
+| `workflow_started` | `task_id`, `workflow_run_id`, `data` with `id`, `workflow_id`, `sequence_number`, `created_at` |
+| `node_started` | `data` with `id`, `node_id`, `node_type`, `title`, `index`, `predecessor_node_id`, `inputs`, `created_at` |
+| `text_chunk` | `data` with `text` and `from_variable_selector` — streamed output text (Workflow apps) |
+| `node_finished` | The `node_started` fields plus `process_data`, `outputs`, `status`, `error`, `elapsed_time`, `execution_metadata` (`total_tokens`, `total_price`, `currency`) |
+| `workflow_finished` | `data` with `id`, `workflow_id`, `status`, `outputs`, `error`, `elapsed_time`, `total_tokens`, `total_steps`, `created_at`, `finished_at` |
+
+Graph apps can also send `node_retry`, `iteration_started`, `iteration_next`, `iteration_completed`, `loop_started`, `loop_next`, `loop_completed`, `parallel_branch_started`, `parallel_branch_finished`, `text_replace` and `agent_log`. Ignore events you don't use.
+
+### Error and ping events
+
+| Event | Fields |
+|---|---|
+| `error` | `task_id`, `message_id`, `status`, `code`, `message`. Ends the stream. |
+| `ping` | Keep-alive, about every 10 seconds. |
+
+Classic stream error codes are `invalid_param`, `provider_not_initialize`, `provider_quota_exceeded`, `model_currently_not_support`, `completion_request_error` (all status `400`) and `internal_server_error` (`500`). See [Errors](/docs/api/errors).
+
+<Callout>
+  Moving from classic to recommended: `message`/`agent_message` → content chunks, `message_end` → the final chunk, `task_id` → `run_id`, `conversation_id` → `thread_id`, `retriever_resources` → `citations`. `agent_thought`, `message_file` and TTS events have no equivalent in the recommended stream.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>Every request field and error.</Card>
+  <Card title='Workflow runs' href='/docs/api/runs'>Stream workflow steps.</Card>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk'>Streaming without writing a parser.</Card>
+  <Card title='Errors' href='/docs/api/errors'>Retry guidance and every error code.</Card>
+</Cards>

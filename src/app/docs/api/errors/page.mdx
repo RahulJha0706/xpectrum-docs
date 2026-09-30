@@ -1,0 +1,235 @@
+export const metadata = {
+  title: 'Errors',
+  description: 'Error formats, every API error code with its HTTP status and fix, and when to retry.',
+}
+
+# Errors
+
+The API uses standard HTTP status codes: `2xx` for success, `4xx` when the request needs to change, and `5xx` or `429` for problems that are usually worth retrying. This page explains the two error formats, lists every error code by category, and tells you which ones to retry.
+
+## Error formats
+
+### Recommended API
+
+Errors produced by the recommended endpoints (`/chat/completions`, `/runs`, `/messages/…/suggestions`, `/knowledge/…/search`) use the OpenAI-style envelope:
+
+```json title="400 Bad Request"
+{
+  "error": {
+    "message": "'thread_id' must be a valid UUID.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": null
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `message` | Human-readable explanation. Safe to log; show it to developers, not end users. |
+| `type` | `invalid_request_error` (fix the request), `rate_limit_exceeded`, `insufficient_quota` or `server_error`. |
+| `param` | The offending field when known (for example `query`), otherwise `null`. |
+| `code` | A stable machine-readable code such as `thread_not_found`, or `null`. Branch on this, not on `message`. |
+
+### Classic envelope
+
+The [classic API](/docs/api/classic), the `/datasets` endpoints, and some checks that run before any endpoint — authentication, the access toggles, `user` and parameter validation, and thread lookups — use this shape, even on recommended-API routes:
+
+```json title="401 Unauthorized"
+{ "code": "unauthorized", "message": "Access token is invalid", "status": 401 }
+```
+
+Parameter validation errors also name the field:
+
+```json title="400 Bad Request"
+{ "code": "invalid_param", "message": "…", "params": "variables" }
+```
+
+### Errors inside a stream
+
+Once a stream has started, errors are sent as a chunk and the HTTP status stays `200`. The recommended API sends `data: {"error": {...}}` followed by `data: [DONE]`; the classic API sends an `error` event with `code`, `status` and `message`. See [Streaming](/docs/api/streaming).
+
+### Handle both
+
+Your client should read either shape. The SDK does this and raises an `XpectrumApiError` with `code`, `status` and `message`:
+
+```ts title="errors.ts"
+async function toError(res: Response) {
+  const body = await res.json().catch(() => ({}))
+  const e = body.error && typeof body.error === 'object' ? body.error : body
+  return { status: res.status, code: e.code ?? e.type ?? 'unknown_error', message: e.message ?? res.statusText }
+}
+```
+
+## Authentication and access
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 401 | `unauthorized` | `Authorization header must be provided and start with 'Bearer'` | Send `Authorization: Bearer <key>`. |
+| 401 | `unauthorized` | `Authorization scheme must be 'Bearer'` | Use the `Bearer` scheme. |
+| 401 | `unauthorized` | `Access token is invalid` | Wrong or deleted key, or an app key on a knowledge route (or the reverse). |
+| 401 | `unauthorized` | `Tenant does not exist.` | The key's workspace is gone or inactive. |
+| 401 | `unauthorized` | `Tenant owner account does not exist.` | The workspace has no owner. Contact support. |
+| 403 | `forbidden` | `The app no longer exists.` | The app was deleted. |
+| 403 | `forbidden` | `The app's status is abnormal.` | Contact support if it persists. |
+| 403 | `forbidden` | `The app's API service has been disabled.` | Re-enable API access for the app. |
+| 403 | `forbidden` | `The workspace's status is archived.` | Restore the workspace. |
+| 403 | `forbidden` | `This client workspace has no admin yet. Accept the admin invitation before calling the API.` | The invited admin must accept first. See [Client workspaces](/docs/workspaces/clients). |
+| 403 | `forbidden` | `History access is disabled for this app. Enable it in the app settings and publish.` | Turn on **Conversation history over API**, or stop calling `/threads`. |
+| 403 | `forbidden` | `Voice is disabled for this app. Enable it in the app settings and publish.` | Turn on **Voice calls** and publish. |
+| 403 | `forbidden` | Permission message | The key's role can't access this knowledge base. |
+| 400 | `max_keys_exceeded` | `Cannot create more than 10 API keys for this resource type.` | Delete an unused key first. |
+
+## Request validation
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 400 | `invalid_param` | `Arg user must be provided.` | Send `user` (required on `/runs`, `/runs/{run_id}/cancel` and several classic routes). |
+| 400 | `invalid_param` | Field message, with `params` | A required field is missing or has the wrong type. |
+| 400 | `bad_request` | `Invalid JSON payload received or JSON payload is empty.` | Send valid JSON with `Content-Type: application/json`. |
+| 400 | `invalid_request_error` | `Invalid JSON body.` | The body must be a JSON object. |
+| 400 | `invalid_request_error` | `'messages' must be a non-empty array containing at least one user message.` | Include a `{"role": "user"}` message. |
+| 400 | `invalid_request_error` | `'thread_id' must be a valid UUID.` | Send the `thread_id` exactly as returned. |
+| 400 | `invalid_request_error` | `'variables' must be an object.` / `'attachments' must be an array.` / `'channel_metadata' must be an object.` | Fix the field's type. |
+| 400 | `invalid_request_error` | Attachment messages, for example `Each attachment needs a 'url' or a 'file_id'.` | See [chat completion errors](/docs/api/chat-completions#errors). |
+| 400 | `invalid_request_error` | `Missing required variable 'X'.` / `Variable 'X' must be a number.` | Send every required variable with the right type. |
+| 400 | `invalid_request_error` | `Invalid timezone 'X'. Must be a valid IANA timezone (e.g. 'America/New_York', 'Asia/Kolkata', 'Europe/London').` | Use an IANA name, not an abbreviation like `EST`. |
+| 400 | `invalid_request_error` | `Agent apps only support streaming. Omit "stream": false.` | Stream replies from Autonomous Agent apps. |
+| 400 | `invalid_request_error` | `Invalid request.` | Some other input is invalid. Compare the body with the endpoint's reference. |
+| 400 | `invalid_request_error` | `Query is required and cannot exceed 250 characters` | Keep knowledge queries to 1–250 characters. |
+
+## Not found and wrong endpoint
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 404 | `model_not_found` | `This API key belongs to an app that does not support chat completions (only chatbot, agent, flow and analytics apps do).` | Workflow keys call `/runs`; Text Generator keys use the classic API. See [which endpoint to call](/docs/api#which-endpoint-to-call). |
+| 404 | `model_not_found` | `This API key belongs to an app that does not support runs (only workflow apps do).` | Call `/chat/completions` for conversational apps. |
+| 400 | `not_chat_app` | `Please check if your app mode matches the right API route.` | A conversation route was called with a non-conversational app key. |
+| 400 | `not_workflow_app` | `Please check if your app mode matches the right API route.` | A classic workflow route was called with a non-workflow key. |
+| 404 | `thread_not_found` / `not_found` | `Thread does not exist.` | Unknown `thread_id`, or it belongs to a different `user`. |
+| 404 | `not_found` | `Cursor thread does not exist.` / `Cursor message does not exist.` | Use `last_id` / `first_id` from the previous page. |
+| 404 | `message_not_found` | `Message does not exist.` | Strip `chatcmpl-` from the id and pass the same `user`. |
+| 404 | `not_found` | `Knowledge base does not exist.` / `Dataset not found.` / `Document Not Exists.` / `Segment not found.` | Check the ids. |
+| 404 | `not_found` | `Conversation Not Exists.` | Classic API: unknown `conversation_id` or a different `user`. |
+
+## App configuration
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 400 | `invalid_request_error` | `This app has no published version yet.` | Publish the app. |
+| 400 | `invalid_request_error` | `The thread has ended. Start a new one by omitting 'thread_id'.` | Start a new thread. |
+| 400 | `app_unavailable` | `App unavailable, please check your app configurations.` | Classic API: the app's configuration is broken or unpublished. |
+| 500 | `server_error` | `App is unavailable.` | The app's configuration is broken. Open it, fix any errors, and republish. |
+| 403 | `suggestions_disabled` | `Follow-up suggestions are disabled for this agent. Enable them in the agent settings.` | Enable follow-ups or skip suggestions. |
+| 400 | `bad_request` | `Suggested Questions Is Disabled.` | Classic equivalent of the above. |
+| 404 | `model_not_found` | `Analytics apps are not enabled for this workspace.` | Analytics apps aren't available on this workspace. |
+
+## Model provider
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 500 | `provider_not_initialized` | Provider message | The app's model provider has no valid credentials. Add them in [Model providers](/docs/integrations/models). |
+| 400 | `provider_not_initialize` | `No valid model provider credentials found. Please go to Settings -> Model Provider to complete your provider credentials.` | Classic equivalent of the above. |
+| 400 | `model_not_supported` | `Model is currently not supported.` | Pick another model for the app. |
+| 400 | `model_currently_not_support` | Provider message | Classic equivalent of the above. |
+| 500 | `server_error` | `Model invocation failed.` or provider message | The model call failed. Retry with backoff. |
+| 400 | `completion_request_error` | Provider message or `Completion request failed.` | Classic equivalent of the above. |
+
+## Rate limits and quota
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 429 | `rate_limit_exceeded` | Provider or plan message | Too many requests to the model provider, or your plan's daily request limit. Retry with backoff. |
+| 429 | `rate_limit_error` | Provider or plan message | Classic equivalent of the above. |
+| 429 | `insufficient_quota` | `Model provider quota exceeded.` | The provider account's quota is used up. Top it up or switch provider. Retrying won't help. |
+| 400 | `provider_quota_exceeded` | `Your quota for Xpectrum Hosted … has been exhausted. Please go to Settings -> Model Provider to complete your own provider credentials.` | Classic: add your own provider credentials. |
+| 402 | `insufficient_credit` | `You're out of credits. Add credits to keep running.` | Returned when adding or updating knowledge documents without enough credits. Add credits. See [Billing & credits](/docs/workspaces/billing). The body also includes `balance` and `required`. |
+| 403 | `forbidden` | `The number of documents has reached the limit of your subscription.` / `The capacity of the vector space has reached the limit of your subscription.` | Knowledge: remove content or upgrade. |
+
+No rate-limit headers are sent on these responses. [Event trigger endpoints](/docs/api/triggers-mcp#event-trigger-endpoints) are the exception: their `429` includes `Retry-After`.
+
+## Files and audio
+
+These come from the classic file, audio and knowledge upload endpoints.
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 400 | `no_file_uploaded` | `Please upload your file.` | Send the file in a `file` form field. |
+| 400 | `too_many_files` | `Only one file is allowed.` | One file per request. |
+| 400 | `filename_not_exists_error` | `The specified filename does not exist.` | Give the file part a filename. |
+| 400 | `invalid_param` | `Filename contains invalid characters` | Remove `/ \ : * ? " < > \|` from the name. |
+| 413 | `file_too_large` | `File size exceeded.` | Images up to 10 MB, audio 50 MB, video 100 MB, other files 50 MB. |
+| 415 | `unsupported_file_type` | `File type not allowed.` | Use a supported type. |
+| 400 | `no_audio_uploaded` | `Please upload your audio.` | Send the audio in a `file` field. |
+| 413 | `audio_too_large` | `Audio size exceeded. …` | Speech-to-text accepts up to 30 MB. |
+| 415 | `unsupported_audio_type` | `Audio type not allowed.` | Use mp3, m4a, wav, webm or amr. |
+| 400 | `provider_not_support_speech_to_text` | `Provider not support speech to text.` | Choose a speech-to-text capable provider. |
+
+## Knowledge
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 400 | `knowledge_not_ready` | `The knowledge base is still indexing. Please try again shortly.` | Retry after indexing completes. |
+| 400 | `dataset_not_initialized` | `The dataset is still being initialized or indexing. Please wait a moment.` | Same, on `/datasets/{dataset_id}/retrieve`. |
+| 400 | `high_quality_dataset_only` | `Current operation only supports 'high-quality' datasets.` | Use a `high_quality` knowledge base. |
+| 400 | `document_indexing` | `Cannot delete document during indexing.` | Wait for indexing to finish. |
+| 400 | `document_already_finished` | `The document has been processed. …` | Nothing to do. |
+| 400 | `invalid_metadata` | `The metadata content is incorrect. Please check and verify.` | Fix the metadata values. |
+| 400 | `invalid_action` | `Invalid action.` | Use a supported action. |
+| 403 | `archived_document_immutable` | `The archived document is not editable.` | Unarchive the document first. |
+| 409 | `dataset_name_duplicate` | `The dataset name already exists. Please modify your dataset name.` | Choose another name. |
+| 409 | `dataset_in_use` | `The dataset is being used by some apps. Please remove the dataset from the apps before deleting it.` | Detach it from apps first. |
+
+## Workflows
+
+A workflow that fails still returns `200` from `/runs`, with `status: "failed"` and the reason in `error`. Common reasons:
+
+| `error` | Fix |
+|---|---|
+| `Max steps 500 reached.` | A loop is running too long. Add an exit condition or reduce iterations. |
+| `Max execution time 1200s reached.` | The run took over 20 minutes. Split the work or make slow steps asynchronous. |
+| `Max workflow call depth 5 reached.` | Workflows are calling each other too deeply. |
+
+Webhook trigger and MCP errors are listed on [Webhook triggers & MCP](/docs/api/triggers-mcp).
+
+## Voice
+
+| Status | Message | Fix |
+|---|---|---|
+| 403 | `Voice is disabled for this app. Enable it in the app settings and publish.` | Turn on **Voice calls**. |
+| 400 | `room_name is required.` | Send the `room_name` from the token response. |
+| 403 | `Room does not belong to this app.` | End the call with the same app key that started it. |
+| 502 | `Voice server is unreachable.` | Retry with backoff. |
+| 503 | `Voice is not configured for this deployment.` | Voice isn't available here. Contact support. |
+| 503 | A message from the voice service | The voice service is busy or temporarily unavailable. Retry after a few seconds with backoff. |
+
+## Server errors
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 500 | `server_error` | `Internal server error.` | Unexpected failure. Retry; contact support with the time and endpoint if it persists. |
+| 500 | `internal_server_error` | `Internal Server Error, please contact support.` inside a stream, or a generic internal-error message | Classic equivalent. |
+
+## Retries
+
+The API has no idempotency keys, so decide per error whether a retry is safe.
+
+| Retry? | Errors |
+|---|---|
+| **Yes, with backoff** | `429 rate_limit_exceeded` / `rate_limit_error`, `500 server_error` from a model call, `502`, `503`, network errors before any response, `knowledge_not_ready` |
+| **No — fix the request** | All `400`, `401`, `403`, `404`, `409`, `413` and `415` errors |
+| **No — fix the account** | `429 insufficient_quota`, `provider_quota_exceeded`, `402 insufficient_credit`, `provider_not_initialized` |
+
+- Use exponential backoff with jitter — for example 1 s, 2 s, 4 s, 8 s, plus a random fraction — and give up after a few attempts.
+- Honor `Retry-After` when it is present.
+- Retry a streamed request only if it failed **before** the first `data:` line. After that, the message has been accepted; resending asks it again. See [Streaming](/docs/api/streaming#cancellation-and-reconnection).
+- A timed-out blocking request may still have completed on the server. If history is enabled, check the thread before resending.
+
+## Next steps
+
+<Cards>
+  <Card title='Troubleshooting' href='/docs/troubleshooting'>Symptoms and fixes across the product.</Card>
+  <Card title='Limits & quotas' href='/docs/troubleshooting/limits'>Every limit in one place.</Card>
+  <Card title='Authentication' href='/docs/api/authentication'>Keys, headers and access toggles.</Card>
+  <Card title='Streaming' href='/docs/api/streaming'>Errors that arrive mid-stream.</Card>
+</Cards>

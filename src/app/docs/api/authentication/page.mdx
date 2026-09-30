@@ -1,0 +1,151 @@
+export const metadata = {
+  title: 'Authentication',
+  description: 'Authenticate API requests with app and knowledge API keys, control API access per app, and keep keys off the browser.',
+}
+
+# Authentication
+
+Every API request is authenticated with a secret key sent in the `Authorization` header. There are two kinds of key — one per app, and one for knowledge bases — and each only works on its own endpoints.
+
+## Key types
+
+| Key | Scope | Works on | Where you create it |
+|---|---|---|---|
+| **App API key** | One app. The key alone selects the agent or workflow. | `/chat/completions`, `/models`, `/threads`, `/messages`, `/runs`, `/voice/…`, and every [classic](/docs/api/classic) app route | The app's **API & Access** panel |
+| **Knowledge API key** | The whole workspace. It acts with the workspace owner's access, so it can reach every knowledge base in the workspace. | `/knowledge/{knowledge_id}/search` and `/datasets/…` | Ask your workspace admin or Xpectrum support |
+
+Using a key on the wrong kind of endpoint returns `401 Access token is invalid`. You can create up to 10 keys per app; creating an eleventh fails with `Cannot create more than 10 API keys for this resource type.`
+
+## Create an app API key
+
+<Steps>
+<Step title='Publish the app'>
+
+The **API & Access** panel appears once the app has been published. See [Publishing & versions](/docs/deploy/publishing).
+
+</Step>
+<Step title='Open API & Access'>
+
+Hover over or click the app's name in the editor header to open **API & Access**. It lists the app's keys, masked, with their **CREATED** and **LAST USED** dates.
+
+</Step>
+<Step title='Create and copy the key'>
+
+Click **Create new Secret key** (editors and above). The new key appears in full at the top of the panel; copy it, then click **OK**. The list shows keys masked to their first and last characters, and each row's copy button copies the full key. Store the key in your server's secret manager or environment.
+
+</Step>
+</Steps>
+
+To revoke a key, click its delete icon and confirm **Delete this secret key?** (workspace admins and owners). Requests using it fail with `401` immediately. **LAST USED** is refreshed at most once a minute.
+
+<Callout>
+  The panel's **Endpoint** row shows your API base URL followed by the app's [classic](/docs/api/classic) endpoint path. For Xpectrum Cloud the base URL is `https://cloud.xpectrum.dev/v1`.
+</Callout>
+
+## Create a knowledge API key
+
+Knowledge API keys can't currently be created from the console. Ask your workspace admin or Xpectrum support to issue one. Knowledge keys are workspace-scoped and act with the workspace owner's access (in a client workspace, its admin's), so a key can search and change every knowledge base in the workspace. Treat it like an admin credential and keep it on a server. See the [Knowledge API](/docs/api/knowledge).
+
+## Send the key
+
+Put the key in the `Authorization` header with the `Bearer` scheme:
+
+```http
+POST /v1/chat/completions HTTP/1.1
+Host: cloud.xpectrum.dev
+Authorization: Bearer xpectrum_xxxxxxxxxxxx
+Content-Type: application/json
+```
+
+The scheme is case-insensitive. Separate it from the key with a space.
+
+The two [voice endpoints](/docs/api/voice) also accept the key in an `x-api-key` header, which is what the SDK's `XpectrumVoice` sends. If both headers are present, `Authorization` wins.
+
+```http
+POST /v1/voice/tokens/generate HTTP/1.1
+Host: cloud.xpectrum.dev
+x-api-key: xpectrum_xxxxxxxxxxxx
+```
+
+## Control what an app key can do
+
+Two toggles in the app's publish panel, under **External API**, limit what a key for a conversational app can reach. Both are on by default, and a change takes effect when you publish (allow up to about a minute for it to apply everywhere).
+
+| Toggle | Gates | When it is off |
+|---|---|---|
+| **Voice calls** — Allow starting voice calls with the API key | `POST /v1/voice/tokens/generate` | `403 Voice is disabled for this app. Enable it in the app settings and publish.` Ending a call that is already live still works. |
+| **Conversation history over API** — Allow listing conversations and transcripts with the API key | `GET /v1/threads` and `GET /v1/threads/{thread_id}/messages` | `403 History access is disabled for this app. Enable it in the app settings and publish.` |
+
+Sending messages is never affected: `/chat/completions` keeps working with history off, and a `thread_id` still continues its conversation.
+
+<Callout type='warning' title='Browser keys and history'>
+  Anyone with this app's API key can read conversation history. If a key ships to a browser — in a widget or a single-page app — turn **Conversation history over API** off for that app. The chat widget never loads history, so it keeps working.
+</Callout>
+
+The toggles cover the recommended API's endpoints only; the [classic conversation routes](/docs/api/classic/conversations) are not covered. A key that must never read history belongs on your server.
+
+## Keep keys on your server
+
+A key sent from the browser can be read by any visitor in DevTools. For anything beyond a public, read-only chat widget, call Xpectrum from your own backend and have the browser talk to you. Your server decides who the user is and sets `user` itself.
+
+```ts title="app/api/chat/route.ts"
+// Next.js route handler: the browser posts { message, threadId } here.
+import { auth } from '@/lib/auth' // your own session helper
+
+export async function POST(req: Request) {
+  const session = await auth()
+  if (!session) return new Response('Unauthorized', { status: 401 })
+
+  const { message, threadId } = await req.json()
+
+  const upstream = await fetch('https://cloud.xpectrum.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.XPECTRUM_API_KEY}`, // never NEXT_PUBLIC_
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages: [{ role: 'user', content: message }],
+      thread_id: threadId || undefined,
+      user: session.user.id, // identity comes from your session, not the client
+      stream: true,
+    }),
+  })
+
+  // Pass the event stream straight through to the browser
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'text/event-stream' },
+  })
+}
+```
+
+Store the key in a server-only environment variable. In Next.js, never prefix it with `NEXT_PUBLIC_`, which inlines it into the client bundle.
+
+## Authentication errors
+
+Every request runs these checks in order. They use the classic error envelope — `{"code": "…", "message": "…", "status": …}` — even on recommended-API routes.
+
+| Status | Code | Message | Fix |
+|---|---|---|---|
+| 401 | `unauthorized` | `Authorization header must be provided and start with 'Bearer'` | Add the header; make sure there is a space after `Bearer`. |
+| 401 | `unauthorized` | `Authorization scheme must be 'Bearer'` | Use `Bearer`, not `Basic` or `Token`. |
+| 401 | `unauthorized` | `Access token is invalid` | The key is wrong, deleted, or of the other type (app key on a knowledge route or the reverse). |
+| 403 | `forbidden` | `The app no longer exists.` | The app was deleted. Create a key for an existing app. |
+| 403 | `forbidden` | `The app's status is abnormal.` | The app is not in a normal state. Contact support if it persists. |
+| 403 | `forbidden` | `The app's API service has been disabled.` | API access is switched off for this app. Re-enable API access for the app. |
+| 403 | `forbidden` | `The workspace's status is archived.` | The workspace was archived. Restore it or use another workspace. |
+| 401 | `unauthorized` | `Tenant does not exist.` | The key's workspace no longer exists or is not active. |
+| 401 | `unauthorized` | `Tenant owner account does not exist.` | The workspace has no owner. Contact support. |
+| 403 | `forbidden` | `This client workspace has no admin yet. Accept the admin invitation before calling the API.` | For a [client workspace](/docs/workspaces/clients), the invited admin must accept before keys work. |
+| 403 | `forbidden` | `Voice is disabled for this app. Enable it in the app settings and publish.` | Turn on **Voice calls** and publish. |
+| 403 | `forbidden` | `History access is disabled for this app. Enable it in the app settings and publish.` | Turn on **Conversation history over API** and publish — or keep history off and don't call `/threads`. |
+
+## Next steps
+
+<Cards>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>Send your first message.</Card>
+  <Card title='API keys & access' href='/docs/deploy/api-keys'>Manage keys and access from the dashboard.</Card>
+  <Card title='Errors' href='/docs/api/errors'>Every error code and what to do about it.</Card>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk'>Use the server proxy pattern with the SDK.</Card>
+</Cards>

@@ -1,0 +1,139 @@
+export const metadata = {
+  title: 'Publishing & versions',
+  description: 'Make your draft live with Publish Changes, control API access, understand what publishing updates, and restore earlier versions.',
+}
+
+# Publishing & versions
+
+Every app has a draft and a live version. You edit the draft; channels, widgets and the API use the live version. **Publish Changes** copies the draft to live, so you can change an agent safely and release when you're ready.
+
+## Draft vs live
+
+| | Draft | Live (published) |
+|---|---|---|
+| What it is | What you see in the editor. Saved automatically as you work (**Auto-Saved**). | The version callers, texters, widgets and API clients get. |
+| Who uses it | You, in **Preview**, **Run** and single-step tests. | Phone numbers, SMS, WhatsApp, email, widgets and API keys. |
+| How it changes | Every edit. | Only when you publish or restore and publish. |
+
+A new app has no live version until its first publish. Until then it has no API endpoint and can't answer on channels.
+
+<Callout>
+  Voice settings on **Channels › Voice** are separate from the app's draft and versions. They have their own **Publish Changes** button that saves them. See [What publishing updates](#what-publishing-updates).
+</Callout>
+
+## Publish your changes
+
+<Steps>
+<Step title='Clear the checklist'>
+
+Agent Flow and Workflow apps won't publish until the **Checklist** is clear ("Make sure all issues are resolved before publishing"). On Autonomous Agents and AI Chatbots, fix any node marked **Needs setup**. See [Testing](/docs/deploy/testing#the-checklist).
+
+</Step>
+<Step title='Click Publish Changes'>
+
+Click **Publish Changes** in the editor header, or press <Kbd>Ctrl</Kbd> <Kbd>Shift</Kbd> <Kbd>P</Kbd> (<Kbd>⌘</Kbd> <Kbd>Shift</Kbd> <Kbd>P</Kbd> on Mac).
+
+- **Workflows** publish straight away.
+- **Conversational apps** (Agent Flow, Autonomous Agent, AI Chatbot, Multi-prompt Agent) open a small panel with the **External API** toggles first. Check them, then click the publish button in the panel.
+
+</Step>
+<Step title='Confirm'>
+
+You see **Changes published** — "The live version now matches this draft." The **API & Access** panel opens with the app's endpoint and keys.
+
+</Step>
+</Steps>
+
+If you are comparing models with **Debug as Multiple Models**, the publish menu asks which model's configuration to publish.
+
+## External API toggles
+
+Conversational apps have two toggles under **External API** in the publish panel. Both are on by default and take effect when you publish. Allow up to about a minute for a change to apply everywhere.
+
+| Toggle | Description | When it's off |
+|---|---|---|
+| **Voice calls** | Allow starting voice calls with the API key. | Browser voice calls through the API, SDK and voice widget are refused with `403 Voice is disabled for this app. Enable it in the app settings and publish.` |
+| **Conversation history over API** | Allow listing conversations and transcripts with the API key. | `GET /v1/threads` and `GET /v1/threads/{thread_id}/messages` return `403`. Sending messages still works. |
+
+While history is on, the panel warns: "Anyone with this app's API key can read conversation history — keep the key on your server, not in a widget."
+
+<Callout type='warning'>
+  If this app's key is used in a website widget or any browser code, turn **Conversation history over API** off. The widgets never load history, so they keep working. See [Keeping keys safe](/docs/channels/web#keeping-keys-safe).
+</Callout>
+
+## What publishing updates
+
+| Area | What happens when you publish |
+|---|---|
+| Channels | Phone numbers, SMS, WhatsApp and email mapped to this app use the new version. |
+| API and widgets | Every key for the app gets the new version. Keys don't change. |
+| External API toggles | Saved with the publish. |
+| Workflow tools | Publishing a **Workflow** registers it as a workflow tool, or updates the tool, so agents can call it. Its parameters come from the Trigger variables. Agent Flows are not registered as tools. |
+| MCP | A workflow with MCP enabled serves the newly published version. Enable MCP from **API & Access**. See [MCP](/docs/integrations/mcp). |
+| Versions | A new entry appears in **Version History** (canvas apps). |
+| Voice settings | Not changed. Save them with **Publish Changes** on **Channels › Voice**. |
+
+<Callout type='warning' title='Trigger-started workflows'>
+  A workflow that starts from a Webhook Trigger or other trigger has no user inputs, so it can't be a tool. Publishing it with such a trigger removes it from the tool list, and any app or agent already using it as a tool stops working.
+</Callout>
+
+## Versions and restore
+
+Agent Flow, Workflow and Multi-prompt Agent apps keep a history of published versions in the **Version History** tab of the editor's bottom dock. While you edit, the draft is marked "Editing draft — publish to create a version".
+
+| Column | Shows |
+|---|---|
+| **Version** | The version's title, or **Untitled Version**. |
+| **Published by** | Who published it. |
+| **When** | When it was published. |
+| **Actions** | Name, restore or delete the version. |
+
+Filter with **All**, **Only yours** or **Only show named versions**.
+
+### Name a version
+
+Choose **Name this version** and add a **Title** and **Release Notes** ("Describe what changed"). Named versions are much easier to find when you need to roll back, so name every release that goes to customers, for example `v3 – new booking tool`.
+
+### Restore a version
+
+1. In **Version History**, choose **Restore** on the version you want. Confirm the warning: "After version restoration, the current draft will be overwritten."
+2. The version becomes your current draft. Test it.
+3. Click **Publish Changes** to make it live.
+
+<Callout type='warning'>
+  Restoring replaces your draft, including any unpublished edits. Publish or note down work in progress first. Restoring alone doesn't change the live version: you still have to publish.
+</Callout>
+
+Deleting a version can't be undone ("Deletion is irreversible, please confirm.").
+
+## API & Access
+
+Once an app is published, hover over its name in the editor header to open **API & Access**:
+
+| Section | What it shows |
+|---|---|
+| **Endpoint** | The API base URL and the route for this app type. For Xpectrum Cloud the base is `https://cloud.xpectrum.dev/v1`. |
+| **Secret Key** | The app's keys, masked, with **CREATED** and **LAST USED** dates. Copy or delete a key here, or click **Create new Secret key**. |
+| **MCP server** (workflows only) | **Enable MCP** to expose the workflow to MCP clients such as Cursor. See [MCP](/docs/integrations/mcp). |
+| **View integration docs** | A link to the API reference. |
+
+The endpoint shown is the [classic API](/docs/api/classic) route. For new integrations, use the recommended API on the same base URL: [`/chat/completions`](/docs/api/chat-completions) for conversational apps and [`/runs`](/docs/api/runs) for workflows. Keys work with both. See [API keys](/docs/deploy/api-keys) for managing keys.
+
+## Troubleshooting
+
+- **Publish Changes is disabled** → The **Checklist** has open issues, or a node shows **Needs setup**. Fix them.
+- **The phone agent still behaves the old way** → Publish the app. If you changed the voice, greeting or call length, also click **Publish Changes** on **Channels › Voice**.
+- **API & Access doesn't appear** → The app has never been published. Publish it once.
+- **Voice widget or SDK gets `403 Voice is disabled for this app`** → Turn **Voice calls** on in the publish panel and publish.
+- **`/v1/threads` returns `403 History access is disabled for this app`** → **Conversation history over API** is off. Turn it on and publish, or stop calling history endpoints.
+- **A toggle change doesn't seem to apply** → Wait about a minute after publishing.
+- **An agent's workflow tool disappeared** → The workflow was published with a trigger as its start. Switch back to a Trigger (Start) block with inputs and publish.
+- **Restored the wrong version** → Restore the right one, or restore your latest version, then publish.
+
+## Next steps
+
+<Cards>
+  <Card title='API keys' href='/docs/deploy/api-keys'>Create, rotate and delete secret keys.</Card>
+  <Card title='Testing' href='/docs/deploy/testing'>Test the draft before you publish.</Card>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>Call the published agent from code.</Card>
+</Cards>

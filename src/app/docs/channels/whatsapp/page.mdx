@@ -1,0 +1,128 @@
+export const metadata = {
+  title: 'WhatsApp',
+  description: 'Connect a WhatsApp Business account through Meta, register and verify a number, and route its messages to an agent.',
+}
+
+# WhatsApp
+
+Connect your WhatsApp Business account and an agent answers every message sent to your WhatsApp number. You connect through Meta's own sign-up window, verify the number, set a PIN, and assign an agent.
+
+## Before you begin
+
+- A Meta (Facebook) login that can manage your business in Meta Business Manager, or can create one during sign-up.
+- A phone number for WhatsApp that can receive a verification code by SMS or voice call. A number already active in the WhatsApp or WhatsApp Business app usually has to be removed from that app first.
+- A published conversational agent to answer messages.
+- A browser that allows pop-ups and doesn't block Facebook scripts. Meta's sign-up runs in a pop-up window.
+
+## Key terms
+
+| Term | Meaning |
+|---|---|
+| **WABA** | WhatsApp Business Account — the Meta account that owns your WhatsApp numbers. Each has a **WABA ID**. |
+| **Phone Number ID** | Meta's ID for one WhatsApp number. |
+| **Verified Name** | The business display name Meta shows to people you message. |
+| **Quality Rating** | Meta's rating of your number based on how people react to your messages, shown as a colored dot. |
+
+## Connect an account
+
+<Steps>
+<Step title='Open WhatsApp'>
+
+Go to **Channels › WhatsApp**. Click **Connect Account** in the overview, or **Connect** on the empty page.
+
+</Step>
+<Step title='Complete Meta sign-up'>
+
+A Meta pop-up opens and the button shows **Waiting for Meta…**. In the pop-up, log in, choose or create your business, choose or create a WhatsApp Business account, and add the phone number.
+
+When Meta finishes, you see "WhatsApp number connected". If you close the pop-up early, you see "WhatsApp signup was cancelled".
+
+</Step>
+<Step title='Verify the number'>
+
+If Meta hasn't verified the number yet, click **Verify Number** on its row. In **Verify Phone Number**, choose **Text message (SMS)** or **Voice call**, receive the code, and enter it under **Verification Code**. You see "Phone number verified".
+
+</Step>
+<Step title='Set up two-step verification'>
+
+In **Complete WhatsApp Setup** (**Set up Two-Step Verification**), enter a 6-digit **PIN** to register the number for messaging:
+
+- For a **new** number, create a new PIN.
+- If the number **already has** a PIN, enter the existing one ("This number already has a PIN. Enter the existing PIN to continue.").
+
+You see "Number registered for Cloud API", and the number's **Registration** becomes **Registered**.
+
+</Step>
+<Step title='Assign an agent'>
+
+Choose **Assign / Change Agent** on the number's row, then **Assign agent** and pick the agent. Messages to the number now go to that agent.
+
+</Step>
+</Steps>
+
+<Callout type='warning' title='Keep your PIN'>
+  Store the 6-digit PIN somewhere safe. You need it to register the number again, and Meta may ask for it if the number is moved.
+</Callout>
+
+## The WhatsApp page
+
+The page has three tabs.
+
+### Overview
+
+Counts of connected **Business Accounts**, **Phone Numbers** and **Verified Numbers**, plus actions:
+
+- **Connect Account** — add another WhatsApp Business account.
+- **Refresh Metadata** — "Fetch latest from Meta." Pulls the latest names, statuses and quality ratings. The card shows when it last synced.
+- **Setup Guide** — a step-by-step guide to integrating WhatsApp.
+
+### Business Accounts
+
+**WhatsApp Business Accounts (WABAs)** lists each account with **Business Name**, **WABA ID**, **Phone Numbers** and **Status** (**Connected**, **Disconnected** or **Removed**). Row actions: **Copy WABA ID** and **View in Meta**. **Add Business Account** runs the Meta sign-up again.
+
+If a row says "This WhatsApp Business Account is no longer accessible.", the account was removed or its access was revoked in Meta. Reconnect it with **Add Business Account**.
+
+### Phone Numbers
+
+Lists each number with **WABA**, **Verified Name**, **Registration**, **Quality Rating**, **Assigned Agent** and **Actions**. Filter with **All numbers**, **Registered**, **Setup pending** or **Removed**. **Add Number** runs the Meta sign-up to add a number.
+
+Row actions: **Verify Number**, **Complete Setup**, **Assign / Change Agent**, **Copy Phone Number**, **Copy Phone Number ID** and **View in Meta**.
+
+## Registration statuses
+
+| Status | Meaning | What to do |
+|---|---|---|
+| **Registered** | Ready to send and receive messages. | Assign an agent if you haven't. |
+| **Verification Pending** | The number hasn't been verified with a code. | **Verify Number**. |
+| **Registration Pending** | Verified, but the PIN step isn't done. | **Complete Setup**. |
+| **Registration Failed** | Registering with the PIN failed. | **Complete Setup** again. Check you entered the existing PIN if the number had one. |
+
+## Routing
+
+Each WhatsApp number answers with one agent. Assign any conversational agent: Autonomous Agent, Agent Flow, Multi-prompt Agent or AI Chatbot. To stop the agent answering, open **Assign / Change Agent** and choose **Unassign agent**.
+
+The same agent can also answer your phone line, SMS, email and website. Use `channel.name` to adjust its style per channel. See [Channels](/docs/channels#knowing-which-channel-a-message-came-from).
+
+<Callout type='tip'>
+  WhatsApp shows Markdown-like formatting differently from web chat. Ask the agent for short plain-text replies with at most one link, and test real messages from your phone before going live.
+</Callout>
+
+## Troubleshooting
+
+- **"Failed to load the Facebook SDK (blocked by the network or an ad blocker?)"** → Turn off ad or tracker blockers for the Xpectrum site, or try another network, and reload.
+- **"Facebook SDK not loaded yet — wait a moment and try again"** → Wait a few seconds after the page loads, then click **Connect Account** again.
+- **Nothing happens when you click Connect** → Allow pop-ups for the Xpectrum site.
+- **"WhatsApp signup was cancelled"** → The pop-up was closed before finishing. Start again.
+- **"Could not send the verification code"** → Check the number can receive SMS or calls, and try the other method.
+- **"Verification failed"** → Codes expire. Request a new code and enter it promptly.
+- **"Registration failed"** → If the number had two-step verification before, enter that PIN, not a new one.
+- **Messages get no reply** → Check the number is **Registered**, has an **Assigned Agent**, and the agent is published.
+- **Names or statuses look out of date** → Click **Refresh Metadata**.
+
+## Next steps
+
+<Cards>
+  <Card title='Support agent guide' href='/docs/guides/support-agent'>Build an agent that answers from your documents.</Card>
+  <Card title='SMS' href='/docs/channels/sms'>Answer text messages too.</Card>
+  <Card title='Channels overview' href='/docs/channels'>How channels, agents and conversations fit together.</Card>
+</Cards>

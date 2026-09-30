@@ -1,0 +1,194 @@
+export const metadata = {
+  title: 'Template & variables',
+  description: 'Reference for the Template, Variable Aggregator, Variable Assigner and List Operator blocks: settings, operations, outputs, Jinja2 examples and errors.',
+}
+
+# Template & variables
+
+Four blocks reshape data without calling a model: **Template** builds text from variables with Jinja2, **Variable Aggregator** merges one value from several branches, **Variable Assigner** writes to conversation and loop variables, and **List Operator** filters, sorts and slices lists.
+
+## When to use it
+
+| Job | Block |
+|---|---|
+| Build a message, email, prompt section or Markdown table from several variables | **Template** |
+| Two or more branches each produce a value and one downstream step should use whichever ran | **Variable Aggregator** |
+| Remember something across turns of a conversation, or update a loop variable | **Variable Assigner** |
+| Keep only some items of a list, sort it, or take the first N | **List Operator** |
+| Anything more complex, such as parsing JSON or math | [Custom Function](/docs/blocks/custom-function) |
+
+None of these four are available in client workspaces. Use a Custom Function there.
+
+## Template
+
+The **Template** block "Convert[s] data to string using Jinja template syntax". It runs in the same sandbox as Custom Function and doesn't call a model.
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Input Variables** | Names for the variables the template uses. Each maps to a variable from an earlier block. | `arg1` |
+| **Code** | The Jinja2 template ("Only supports Jinja2"). Type `/` or `{` to insert a variable. | `{{ arg1 }}` |
+
+### Outputs
+
+| Variable | Type | Description |
+|---|---|---|
+| `output` | String | The rendered text ("Transformed content"). |
+
+### Examples
+
+Format search results as numbered sources, with `chunks` mapped to a Knowledge Search `result`:
+
+```text title="Template"
+{% for c in chunks %}
+[{{ loop.index }}] {{ c.title }} (score {{ c.metadata.score | round(2) }})
+{{ c.content | truncate(300) }}
+
+{% endfor %}
+```
+
+Build an email with defaults and conditionals, with `name`, `plan` and `items` mapped to earlier outputs:
+
+```text title="Template"
+Hi {{ name | default('there') }},
+
+{% if plan == 'enterprise' %}Your account manager will follow up within one business day.
+{% else %}Here's a summary of your request:{% endif %}
+
+{% for item in items -%}
+- {{ item.sku }} × {{ item.qty }}
+{% endfor %}
+```
+
+Render a list of objects as a Markdown table:
+
+```text title="Template"
+| Name | Email | Score |
+|---|---|---|
+{% for lead in leads -%}
+| {{ lead.name }} | {{ lead.email }} | {{ lead.score }} |
+{% endfor %}
+```
+
+Useful filters: `default`, `upper`, `lower`, `title`, `trim`, `truncate(n)`, `join(', ')`, `length`, `replace('a', 'b')`, `round(2)` and `tojson`.
+
+### Errors and limits
+
+- "Output length exceeds 500000 characters" → the rendered text is too long. Trim the input or render fewer items.
+- A Jinja syntax error (for example an unclosed `{% if %}`) fails the block with the template error in the run log. Test with **Run this step**.
+- A variable that isn't mapped in **Input Variables** renders as empty text. It doesn't raise an error.
+- A mapped variable that has no value at run time (for example, from a branch that didn't run) renders as `None`. Use `{% if name %}` or `default()` to handle it.
+
+## Variable Aggregator
+
+The **Variable Aggregator** "Aggregate[s] multi-branch variables into a single variable for unified configuration of downstream nodes." After a [Condition](/docs/blocks/condition) or [Intent Classifier](/docs/blocks/intent-classifier), each branch might produce its own answer. The aggregator gives the next steps one variable to read, whichever branch ran.
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Assign variables** | The variables to merge, one from each branch. They must all be the same type: the first variable you add sets the type (shown next to the list), and the picker then only offers variables of that type. | None |
+| **Aggregation Group** | "Enabling this feature allows the variable aggregator to aggregate multiple sets of variables." Each group (**Add Group**) merges its own set. | Off |
+
+### Outputs
+
+| Variable | Type | Description |
+|---|---|---|
+| `output` | The variables' type | The value of the first listed variable that exists at run time (in list order), which is the one from the branch that ran. |
+| `GroupName.output` | The group's type | With groups on, one per group. |
+
+Example: an Intent Classifier routes to three AI Model blocks (billing, technical, general). A Variable Aggregator lists the three `text` outputs. One **Answer** block shows the aggregator's `output`, instead of three Answer blocks.
+
+## Variable Assigner
+
+The **Variable Assigner** writes values to writable variables: [conversation variables](/docs/build/variables#conversation-variables) in an Agent Flow, and **Loop Variables** inside a [Repeat Until](/docs/blocks/loops#repeat-until). "Assigned variables must be writable variables, such as conversation variables."
+
+Conversation variables persist across turns of the same conversation. Use them to remember a customer id, a cart, or how many times the user has been asked for something. Workflows don't have conversation variables, so there the block only updates loop variables.
+
+### Settings
+
+Each row sets one variable. Add a row with the **+** button next to **Variables**.
+
+| Setting | Description |
+|---|---|
+| **Assigned Variable** | The conversation or loop variable to write. |
+| **Operation** | What to do. See below. |
+| Value | A variable from an earlier block, or a typed constant, depending on the operation. |
+
+### Operations
+
+| Operation | Works on | Value | Effect |
+|---|---|---|---|
+| **Overwrite** | Any type | A variable of the same type | Replaces the value. |
+| **Set** | String, number, object | A constant | Replaces the value with the typed constant. |
+| **Clear** | Any type | None | Empties it: `""`, `0`, `{}` or `[]`. |
+| **Append** | Array[String], Array[Number], Array[Object] | A variable of the item type | Adds one item to the end. |
+| **Extend** | Arrays | A variable of the same array type | Adds all of its items to the end. |
+| **Remove First** | Arrays | None | Drops the first item. Does nothing if the array is empty. |
+| **Remove Last** | Arrays | None | Drops the last item. Does nothing if the array is empty. |
+| **+=**, **-=**, **\*=**, **/=** | Number | A constant | Adds, subtracts, multiplies or divides. Dividing by 0 is rejected. |
+
+### Example
+
+A cart in an Agent Flow, with conversation variables `cart` (array[object]) and `items_added` (number):
+
+| Assigned Variable | Operation | Value |
+|---|---|---|
+| `cart` | **Append** | Parameter Extractor `item` |
+| `items_added` | **+=** | `1` |
+
+### Errors
+
+- "Operation … is not supported for type …" → the operation doesn't match the variable's type, for example **Append** on a string.
+- "Invalid input value …" → the value has the wrong type, or you're dividing by 0.
+- "No available assigned variables" when picking **Assigned Variable** → there's no conversation or loop variable to write. Create one first.
+- "There are no variables available for assignment with the selected operation." when picking the value → no earlier variable has the type the operation needs (the same type for **Overwrite** and **Extend**, the item type for **Append**).
+
+## List Operator
+
+The **List Operator** "Used to filter or sort array content." It works on lists of strings, numbers or files. For lists of objects, use a Custom Function.
+
+### Settings
+
+The steps run in this order, each only when turned on:
+
+| Setting | Description |
+|---|---|
+| **Input Variable** | An Array[String], Array[Number] or Array[File] variable. |
+| **Filter Condition** | Keep items that match. For files, choose the attribute to compare (name, type, extension, size, mime_type, transfer_method, url). |
+| **Extract the N item** | Keep only the item at position N, counting from 1 (default 1). If the list is shorter than N, the result is a single empty item. |
+| **Order by** | Sort **ASC** or **DESC**. For files, choose the attribute to sort by. |
+| **Top N** | Keep the first N items, from 1 to 20 (default 10). |
+
+Filter operators:
+
+| Item type | Operators |
+|---|---|
+| String | contains, not contains, start with, end with, is, is not, is empty, is not empty |
+| Number | =, ≠, >, &lt;, ≥, ≤ |
+| File | Depends on the attribute, as in [Condition](/docs/blocks/condition#operators-by-variable-type) |
+
+### Outputs
+
+| Variable | Type | Description |
+|---|---|---|
+| `result` | Same as the input | The filtered list ("Filter result"). |
+| `first_record` | Item type | The first item, or empty if the list is empty. |
+| `last_record` | Item type | The last item, or empty if the list is empty. |
+
+Example: from a **File List** upload, keep only PDFs (Filter Condition: `extension` **contains** `pdf`), sort by `size` **DESC**, and take **Top N** 3. Send `result` to a [For Each](/docs/blocks/loops) with a Doc Extractor inside.
+
+### Errors
+
+- "Variable … is not an ArrayFileSegment, ArrayNumberSegment or ArrayStringSegment" → the input isn't a list of strings, numbers or files. Lists of objects aren't supported.
+- "Invalid serial index: must be >= 1, got …" → **Extract the N item** must be 1 or more.
+- An empty input list succeeds with an empty `result`.
+
+## Next steps
+
+<Cards>
+  <Card title='Custom Function' href='/docs/blocks/custom-function'>For logic these blocks can't express.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Conversation variables, constants and system variables.</Card>
+  <Card title='For Each & Repeat Until' href='/docs/blocks/loops'>Use loop variables with the Variable Assigner.</Card>
+</Cards>

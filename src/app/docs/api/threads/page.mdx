@@ -1,0 +1,271 @@
+export const metadata = {
+  title: 'Threads',
+  description: 'List an end user’s past conversations and load a conversation’s transcript through the API.',
+}
+
+# Threads
+
+A thread is one conversation between an end user and a conversational app. Threads are created automatically by [chat completions](/docs/api/chat-completions) — these endpoints let you list a user's threads and load a thread's messages, for example to build a conversation sidebar or show an earlier transcript.
+
+<Callout type='warning' title='Needs the history toggle'>
+  Both endpoints require **Conversation history over API** to be on for the app (it is on by default). When it is off they return `403 History access is disabled for this app. Enable it in the app settings and publish.` Keep this toggle off for any key that is used in a browser. See [Authentication](/docs/api/authentication#control-what-an-app-key-can-do).
+</Callout>
+
+## How threads are scoped
+
+Threads belong to one app and one `user`. Both endpoints only ever return threads and messages for the `user` you pass, so:
+
+- Pass the same `user` value you sent to `/chat/completions`. A different value sees a different (possibly empty) list.
+- If you omit `user`, you get the threads of the shared anonymous user — the ones created by chat calls that also omitted `user`.
+- Decide `user` on your server from your own session. Never accept it from the browser as-is. See [the user identifier](/docs/api#the-user-identifier).
+
+## List threads
+
+<Endpoint method='GET' path='/v1/threads' />
+
+Returns a user's threads, most recently updated first. Titles are generated on the server from the conversation, so they are ready to show in a list.
+
+**Supported app types:** <Tag tone='green'>AI Chatbot</Tag> <Tag tone='green'>Autonomous Agent</Tag> <Tag tone='green'>Agent Flow</Tag> <Tag tone='amber'>Multi-prompt Agent (Beta)</Tag>
+
+<Params title='Query parameters'>
+  <Param name='user' type='string'>
+    The end user whose threads to list. Use the same value you send to chat completions.
+  </Param>
+  <Param name='limit' type='integer' def='20'>
+    Threads per page, 1–100.
+  </Param>
+  <Param name='after' type='string (UUID)'>
+    Cursor. Pass the previous page's `last_id` to get the next (older) page.
+  </Param>
+</Params>
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='object' type='string'>Always `list`.</Param>
+  <Param name='data' type='array'>The threads on this page.</Param>
+  <Param name='data[].id' type='string'>The thread id — the `thread_id` to continue it or load its messages.</Param>
+  <Param name='data[].object' type='string'>Always `thread`.</Param>
+  <Param name='data[].title' type='string'>A generated title for the conversation.</Param>
+  <Param name='data[].created_at' type='integer'>Unix timestamp when the thread was created.</Param>
+  <Param name='data[].updated_at' type='integer'>Unix timestamp of the latest activity.</Param>
+  <Param name='has_more' type='boolean'>`true` if older threads exist.</Param>
+  <Param name='limit' type='integer'>The page size used.</Param>
+  <Param name='first_id' type='string | null'>Id of the first thread on this page.</Param>
+  <Param name='last_id' type='string | null'>Id of the last thread on this page. Pass it as `after` for the next page.</Param>
+</Params>
+
+```json title="200 OK"
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+      "object": "thread",
+      "title": "Blue jacket availability",
+      "created_at": 1759190400,
+      "updated_at": 1759190755
+    }
+  ],
+  "has_more": false,
+  "limit": 20,
+  "first_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+  "last_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44"
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl "https://cloud.xpectrum.dev/v1/threads?user=user-123&limit=20" \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx"
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="threads.ts"
+import { XpectrumChat } from 'xpectrum'
+
+const chat = new XpectrumChat({ baseUrl: 'https://cloud.xpectrum.dev/v1', apiKey, user: 'user-123' })
+
+let page = await chat.listThreads({ limit: 20 })
+const all = [...page.data]
+while (page.hasMore) {
+  page = await chat.listThreads({ limit: 20, after: page.lastId })
+  all.push(...page.data)
+}
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="threads.py"
+import requests
+
+url = "https://cloud.xpectrum.dev/v1/threads"
+headers = {"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"}
+params = {"user": "user-123", "limit": 20}
+
+threads = []
+while True:
+    page = requests.get(url, headers=headers, params=params, timeout=30).json()
+    threads += page["data"]
+    if not page["has_more"]:
+        break
+    params["after"] = page["last_id"]
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Code | Message | When |
+|---|---|---|---|
+| 400 | `invalid_param` | Validation message | `after` is not a UUID, or `limit` is outside 1–100. |
+| 400 | `not_chat_app` | `Please check if your app mode matches the right API route.` | The key belongs to a Workflow or Text Generator app. |
+| 403 | `forbidden` | `History access is disabled for this app. Enable it in the app settings and publish.` | **Conversation history over API** is off. |
+| 404 | `not_found` | `Cursor thread does not exist.` | The `after` id is unknown, or belongs to another `user`. |
+
+These errors use the classic `{"code", "message", "status"}` envelope. See also [authentication errors](/docs/api/authentication#authentication-errors).
+
+## List messages in a thread
+
+<Endpoint method='GET' path='/v1/threads/{thread_id}/messages' />
+
+Returns a thread's transcript, oldest message first. Each stored exchange is returned as two messages — the user's message and the assistant's reply — so a page can hold up to twice `limit` messages. Without a cursor you get the most recent exchanges; use `before` to walk further back.
+
+**Supported app types:** <Tag tone='green'>AI Chatbot</Tag> <Tag tone='green'>Autonomous Agent</Tag> <Tag tone='green'>Agent Flow</Tag> <Tag tone='amber'>Multi-prompt Agent (Beta)</Tag>
+
+<Params title='Path parameters'>
+  <Param name='thread_id' type='string (UUID)' required>
+    The thread to read.
+  </Param>
+</Params>
+
+<Params title='Query parameters'>
+  <Param name='user' type='string'>
+    The end user the thread belongs to.
+  </Param>
+  <Param name='limit' type='integer' def='20'>
+    Exchanges per page, 1–100.
+  </Param>
+  <Param name='before' type='string (UUID)'>
+    Cursor. Pass the previous page's `first_id` to get the exchanges before it.
+  </Param>
+</Params>
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='object' type='string'>Always `list`.</Param>
+  <Param name='data[].id' type='string'>Message id. User messages end in `-user`; assistant message ids are the `message_id` used by [suggestions](/docs/api/agent-info#get-follow-up-suggestions).</Param>
+  <Param name='data[].object' type='string'>Always `message`.</Param>
+  <Param name='data[].thread_id' type='string'>The thread.</Param>
+  <Param name='data[].role' type='string'>`user` or `assistant`.</Param>
+  <Param name='data[].content' type='string'>The message text.</Param>
+  <Param name='data[].created_at' type='integer'>Unix timestamp.</Param>
+  <Param name='data[].citations' type='array'>Assistant messages only, when knowledge was used. Same shape as [chat completion citations](/docs/api/chat-completions#citations).</Param>
+  <Param name='data[].error' type='string'>Assistant messages only, when the reply failed. Explains an empty `content`.</Param>
+  <Param name='has_more' type='boolean'>`true` if older exchanges exist.</Param>
+  <Param name='limit' type='integer'>The page size used.</Param>
+  <Param name='first_id' type='string | null'>Cursor for the oldest exchange on this page. Pass it as `before` to load older messages.</Param>
+  <Param name='last_id' type='string | null'>Cursor for the newest exchange on this page.</Param>
+</Params>
+
+<Callout>
+  Cursors address stored exchanges, not individual messages. Always pass `first_id` from the response — never an id taken from `data`, and never one ending in `-user`.
+</Callout>
+
+```json title="200 OK"
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10-user",
+      "object": "message",
+      "thread_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+      "role": "user",
+      "content": "What are your opening hours?",
+      "created_at": 1759190400
+    },
+    {
+      "id": "5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10",
+      "object": "message",
+      "thread_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+      "role": "assistant",
+      "content": "We're open 9am to 6pm, Monday to Saturday.",
+      "created_at": 1759190400
+    }
+  ],
+  "has_more": false,
+  "limit": 20,
+  "first_id": "5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10",
+  "last_id": "5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10"
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl "https://cloud.xpectrum.dev/v1/threads/c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44/messages?user=user-123&limit=20" \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx"
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="transcript.ts"
+const page = await chat.getMessages('c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44', { limit: 20 })
+for (const m of page.data) console.log(m.role, m.content)
+
+// Older messages
+if (page.hasMore) {
+  const older = await chat.getMessages(threadId, { before: page.firstId })
+}
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="transcript.py"
+import requests
+
+thread_id = "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44"
+resp = requests.get(
+    f"https://cloud.xpectrum.dev/v1/threads/{thread_id}/messages",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"user": "user-123", "limit": 20},
+    timeout=30,
+)
+resp.raise_for_status()
+for m in resp.json()["data"]:
+    print(f'{m["role"]}: {m["content"]}')
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Code | Message | When |
+|---|---|---|---|
+| 400 | `invalid_param` | Validation message | `before` is not a UUID, or `limit` is outside 1–100. |
+| 400 | `not_chat_app` | `Please check if your app mode matches the right API route.` | The key belongs to a Workflow or Text Generator app. |
+| 403 | `forbidden` | `History access is disabled for this app. Enable it in the app settings and publish.` | **Conversation history over API** is off. |
+| 404 | `not_found` | `Thread does not exist.` | Unknown `thread_id`, or the thread belongs to another `user`. |
+| 404 | `not_found` | `Cursor message does not exist.` | The `before` id is unknown. Use `first_id` from a previous response. |
+
+## Next steps
+
+<Cards>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>Continue a thread with `thread_id`.</Card>
+  <Card title='Authentication' href='/docs/api/authentication'>The history toggle and keeping keys server-side.</Card>
+</Cards>

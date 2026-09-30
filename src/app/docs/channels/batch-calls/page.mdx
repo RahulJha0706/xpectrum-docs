@@ -1,0 +1,162 @@
+export const metadata = {
+  title: 'Batch calls',
+  description: 'Upload a CSV of phone numbers and have an agent call each one on a schedule.',
+}
+
+# Batch calls
+
+A batch call has an agent call every number on a list. You upload a CSV, choose the agent and the number to call from, pick a schedule, and Xpectrum places the calls. Use it for appointment reminders, lead follow-ups, surveys and other outbound campaigns.
+
+## Before you begin
+
+- A phone number with the **Outbound** capability (bought with **Direction** set to **Outbound** or **Both**). See [Phone numbers](/docs/channels/phone-numbers).
+- An **Autonomous Agent**, published, with voice settings saved on **Channels › Voice**, and assigned to that outbound number. The batch agent picker only lists Autonomous Agents.
+- Enough credit for the calls. See [Billing](/docs/workspaces/billing).
+
+## CSV format
+
+The file needs a header row and at least one data row.
+
+| Column | Required | Notes |
+|---|---|---|
+| `phone_number` | Yes | The number to call. `phone` and `number` are accepted as the header too. |
+| `name` | No | Shown in the upload preview so you can check the list. `contact_name` and `contact` are accepted too. |
+
+```text title="batch-call-template.csv"
+phone_number,name
++14155551234,John Smith
++14155559876,Jane Doe
++442079460958,Priya Shah
+```
+
+Click **Download Template** in the upload step to get this file.
+
+How numbers are cleaned up:
+
+- Spaces, dashes, dots and brackets are removed.
+- A 10-digit number without a country code gets `+1` in front (US and Canada).
+- Any other number without `+` gets a `+` in front, so include the country code.
+- Duplicates are removed, and you're told how many.
+- A number is valid when it is `+` followed by 10–15 digits. Invalid rows show "Invalid format — must be E.164 (+1234567890)" and are skipped.
+
+<Callout type='warning' title='30 numbers per batch'>
+  A batch takes up to 30 numbers. If the file has more, you see "Only the first 30 numbers will be used" and the rest are dropped. Split longer lists into several batches.
+</Callout>
+
+<Callout>
+  Only the phone number reaches the call. The `name` column is shown in the upload preview only, and any other columns are dropped, so you can't pass per-contact variables. Write the opening so it works for anyone who picks up.
+</Callout>
+
+## Create a batch
+
+<Steps>
+<Step title='Open Batch Calls'>
+
+Go to **Channels › Phone Number** and choose **Batch Calls** (or open **Batch Calls** under Phone Number in the sidebar). The page is titled **Batch Outbound Calls**. Click **New Batch**.
+
+</Step>
+<Step title='Upload'>
+
+Drag your CSV into **Upload CSV** or click **browse**. The preview lists each row with its **Phone**, **Name** and **Status** (**Valid** or the error), plus a count of valid and invalid rows. Delete any row you don't want to call. Click **Next**.
+
+</Step>
+<Step title='Configure'>
+
+| Field | What to choose |
+|---|---|
+| **Agent** | The Autonomous Agent for the batch. Pick the agent assigned to the **Caller Number** (see the warning below). |
+| **Caller Number** | The outbound-capable number the calls come from. If none is listed you see "No outbound-capable phone numbers found. Set up a number with outbound first." |
+| **Batch Name** | A name for the list, for example `Sales Campaign Feb 2026`. Defaults to `Batch Call - <date>`. |
+| **Schedule** | When the calls go out. See [Scheduling modes](#scheduling-modes). |
+| **Timezone** | The time zone for the schedule. Defaults to your browser's. |
+| **Retry settings** | **Max Attempts (1–10)** and **Retry Gap (minutes, 1–180)**. See [Retries](#retries). |
+
+**Specific Time** requires a date and time before you can continue.
+
+<Callout type='warning' title='Keep the agent and the caller number matched'>
+  The agent that speaks on each call appears to be the one assigned to the **Caller Number** on **Channels › Phone Number**, not the batch's **Agent** field. Make sure they are the same agent before you create the batch.
+</Callout>
+
+</Step>
+<Step title='Review and create'>
+
+Click **Review**. The **Summary** shows the batch name, agent, caller number, **Total Calls** and schedule. Click **Create Batch (N calls)**. You see **Batch Created!** when every call is scheduled, or **Batch Partially Created** when some calls couldn't be scheduled.
+
+</Step>
+</Steps>
+
+## Scheduling modes
+
+| Mode | When calls go out |
+|---|---|
+| **All at Once** | Every call about 2 minutes from now, at the same time. |
+| **Sequential** (default) | The first call about 2 minutes from now, then one call per minute. |
+| **Specific Time** | The first call at the date and time you pick, then one call per minute. |
+| **Staggered** | The first call about 2 minutes from now, then one call every **Interval between calls (minutes)** (1–60, default 2). |
+
+For example, 20 numbers on **Staggered** with a 3-minute interval take about an hour to go out.
+
+<Callout type='tip'>
+  Prefer **Sequential** or **Staggered** over **All at Once**. Spacing calls out lets you check the first few calls in [Voice sessions](/docs/monitor/voice-sessions) and use **Cancel All Scheduled** if something is wrong.
+</Callout>
+
+## Retries
+
+Retry settings apply to each call in the batch:
+
+| Setting | Range | Default |
+|---|---|---|
+| **Max Attempts (1–10)** | Total attempts per number. | `2` |
+| **Retry Gap (minutes, 1–180)** | Minutes between attempts. | `120` |
+
+A call counts as failed when it isn't answered, is rejected, or can't be placed. Failed numbers are redialed after the **Retry Gap** until **Max Attempts** is reached; then the number is dropped and **Last Error** shows how many attempts were made. With the defaults, a number that doesn't pick up is called once more two hours later.
+
+<Callout>
+  Voicemail counts as answered, because calls don't detect answering machines. A number that reaches voicemail isn't redialed.
+</Callout>
+
+## Track a batch
+
+Each batch appears on **Batch Outbound Calls** with its caller number, age, number of calls and a progress bar. Expand it to see each call.
+
+| Status | Meaning |
+|---|---|
+| **Scheduled** | Waiting for its time. |
+| **Completed** | The call connected. |
+| **Failed** | Placing the call failed. See **Last Error**. |
+| **Cancelled** | You cancelled it before it ran. |
+
+Each call row shows its **Scheduled Time**, **Success / Failures** and **Last Error**. On a scheduled call, **Test** places it now ("Test this call now") and the cancel icon cancels just that call.
+
+Batch actions:
+
+- **Cancel All Scheduled** — cancel every call that hasn't run yet ("Cancel all remaining scheduled calls in this batch?").
+- **Delete Batch** — shown once nothing is scheduled. Deletion can't be undone.
+
+**Completed** means the call connected, which includes voicemail, not that someone talked to the agent. For the real outcome of each call (for example `TALKED`, `NO ANSWER`, `VOICEMAIL`), open [Voice sessions](/docs/monitor/voice-sessions).
+
+## Tips
+
+- **Test with a small list first.** Run a batch of two or three numbers you own, listen to the calls, then run the real list.
+- **Write the opening for outbound.** People didn't call you, so the **Initial Message** should say who is calling and why in one sentence: `Hi, this is Ava from Bright Dental, calling about your appointment tomorrow. Is now a good time?`
+- **Plan for machines.** Voicemail isn't detected. Keep the opening short and make it make sense as a voicemail too.
+- **Check calling hours and consent.** Schedule in the callee's time zone and only call people who agreed to be contacted.
+- **Keep calls short.** Set **Call Duration** on the Voice screen to match the task so a confused call doesn't run on.
+
+## Troubleshooting
+
+- **"CSV must have a "phone_number" column"** → Name the column `phone_number`, `phone` or `number`.
+- **"CSV must have a header row and at least one data row"** → Add the header line, and check the file isn't empty.
+- **All rows are invalid** → Add the country code. Numbers must be `+` followed by 10–15 digits.
+- **The agent you want isn't in the list** → Batches use Autonomous Agents only. Check the agent is that type and is published.
+- **No caller numbers are listed** → Buy a number with **Outbound** or **Both**. Inbound-only numbers can't place calls.
+- **Calls show Completed but nobody spoke** → The callee didn't answer or a machine picked up. Check the outcome in [Voice sessions](/docs/monitor/voice-sessions).
+- **Calls fail with a credit error** → Add credit, then create a new batch for the remaining numbers.
+
+## Next steps
+
+<Cards>
+  <Card title='Outbound campaign guide' href='/docs/guides/outbound-campaign'>Plan, script and run an outbound campaign.</Card>
+  <Card title='Voice' href='/docs/channels/voice'>Tune the greeting, nudges and call length.</Card>
+  <Card title='Voice sessions' href='/docs/monitor/voice-sessions'>Recordings, transcripts and outcomes.</Card>
+</Cards>

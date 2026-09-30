@@ -1,0 +1,134 @@
+export const metadata = {
+  title: 'Set up an agency',
+  description: 'Run Xpectrum as an agency: create a private workspace per client, get your builders in, brand the apps, and monitor each client’s activity and spend.',
+}
+
+# Set up an agency
+
+By the end of this guide you have a private workspace for your first client, your team building inside it, the client's apps carrying your brand, and one place to watch every client's activity, traces and credit.
+
+## Before you begin
+
+- An agency account with **Settings › Client Workspaces** available. It may not be enabled on every workspace; contact support if you don't see it.
+- The **Owner** role in your agency workspace. **Client Workspaces** is shown only to Owners.
+- For each client: the company name and the email address of the person who will be the workspace admin.
+- An upgraded plan if you want to replace the **Powered by Xpectrum AI** badge.
+
+## How agencies are organized
+
+| Workspace | Who's in it | What happens there |
+|---|---|---|
+| **Your agency workspace** | Your team | Internal agents, templates you prototype, and the **Client Workspaces** console. |
+| **One client workspace per client** | The client's admin, plus anyone they invite (including your builders) | The client's apps, knowledge, phone numbers, channels and conversations. Private to that workspace. |
+
+Keeping each client in its own workspace means their data never mixes with other clients', each has its own API keys and logs, and you can suspend one client without touching the others.
+
+## Set up your first client
+
+<Steps>
+<Step title='Create the client workspace'>
+
+In your agency workspace, go to **Settings › Client Workspaces** and click **Create Client Workspace**.
+
+| Field | Example |
+|---|---|
+| **Workspace Name** | `Riverside Physio` |
+| **About the organization** | `Three-site physio clinic. Voice receptionist + web chat. Contract to Dec 2026.` (up to 255 characters) |
+| **Designated admin email** | `ops@riverside-physio.example` |
+
+Click **Create Client Workspace**. The row appears as **Pending**, with a pill showing its provisioning mode.
+
+</Step>
+<Step title='Decide who is admin'>
+
+A client workspace has exactly one admin and no owners. Choose deliberately:
+
+| Option | When to use it |
+|---|---|
+| **The client is admin** (their email above) | The client owns the relationship with their data and invites your builders. Best for long-term, client-owned deployments. |
+| **Your team member is admin** | You fully manage the workspace for the client. You can hand it over later with **Hand off admin access**. |
+
+If you need to change it before the invitation is accepted, use **Change Admin** on the row. If the invitation expires, the row shows **Expired**; use **Re-invite**.
+
+</Step>
+<Step title='Get your builders in'>
+
+When the admin clicks **Accept & continue**, the workspace becomes **Active**. The admin then goes to **Settings › Members**, clicks **Add**, and invites your builders with the **Editor** role (can build, edit and publish) or client staff as **Normal** (use only) or **Knowledge Admin** (knowledge bases only).
+
+Your builders then pick the client from the workspace switcher (**Current Workspace**) in the sidebar footer. The **Client Workspaces** console itself doesn't switch you into a client; you need to be a member.
+
+</Step>
+<Step title='Build the client’s agents'>
+
+Inside the client workspace, build as usual; for example follow [Build an AI receptionist](/docs/guides/ai-receptionist). Keep in mind:
+
+- Client workspaces offer a focused set of tools: there is no Multi-prompt Agent, no **Create from Template**, and the canvas offers core blocks (Trigger, AI Model, Intent Classifier, Knowledge Search, Condition, For Each, Repeat Until, Custom Function, Doc Extractor, HTTP Request, Answer and Output).
+- To reuse an agent you built in your agency workspace, open it there, use **Export configuration file** from the app's card menu, then **Import configuration file** in the client workspace. Knowledge bases, API keys and channels belong to each workspace, so create them in the client workspace and reattach the knowledge to the imported app.
+- Phone numbers, WhatsApp and email addresses are connected inside the client workspace, so each client's channels stay separate.
+- API keys belong to the client workspace. Calls made with them run as the workspace's admin, so the admin must have accepted the invitation first.
+
+</Step>
+<Step title='Brand the client’s apps'>
+
+In the client workspace (as its admin), go to **Settings › Customization**. Upload your logo with **Change Powered by Brand Image**, or turn on **Remove Powered by Xpectrum AI**, and click **Apply**. On websites, style the chat and voice widgets in code with your client's colors and logo. See [Branding](/docs/workspaces/branding).
+
+</Step>
+<Step title='Set up billing'>
+
+**Agency-managed** workspaces (provisioned by an agency) are **not billed on credit**, so you invoice your client directly under your own terms. The client doesn't see a credit balance or **Usage history**.
+
+**Self-serve** client workspaces, by contrast, pay for their own usage with credits. For those, the **Client credit** console at the top of **Client Workspaces** shows balances, spend, revenue and who is running low. See [Billing & credits](/docs/workspaces/billing).
+
+</Step>
+</Steps>
+
+## Monitor every client
+
+From **Settings › Client Workspaces**, the clients table gives a per-client summary: status, admin, apps, executions, phone numbers, members and, for self-serve clients, balance and credit health (**Healthy**, **Running low**, **Blocked**). Sort by **Executions** or **Credit spent** to see who is busiest.
+
+Open a client with **View details & logs**:
+
+| Tab | Use it to |
+|---|---|
+| **Overview** | Check status, members count and the pending invitation. |
+| **Members** | See who has access and with which role. |
+| **Logs** | Review the **Timeline**, **Audit Logs**, **Activity Logs**, **Access Logs** and sign-in events for the client. |
+| **Traces** | Watch **Workflow runs**, **Success rate** and **Avg latency**, and open individual **Workflow traces**. |
+| **Usage** | See **Access events**, **Unique users**, **Error rate**, and the client's credit detail. |
+
+For conversation-level detail (transcripts, voice sessions, per-app logs), work inside the client workspace as a member: see [Logs](/docs/monitor/logs) and [Voice sessions](/docs/monitor/voice-sessions).
+
+## Manage the lifecycle
+
+| Situation | Action |
+|---|---|
+| Client pauses the contract or stops paying | **Suspend**. Status becomes **Inactive**. Reverse it with **Reactivate**. Both take effect immediately. |
+| The client's contact person changes | **Change Admin** before acceptance, or have the current admin **Hand off admin access** to another member. |
+| The client needs a second admin | The admin requests it from **Settings › Members** (**Request another admin**). |
+| The contract ends for good | **Delete**, then type the workspace name to confirm. This permanently deletes all its data. |
+| You need a contact list for all clients | **Download emails** exports every member email as a CSV. |
+
+## Test it
+
+1. Create a test client workspace with your own second email as admin.
+2. Accept the invitation from that inbox. The row turns **Active**.
+3. In the test workspace, build and publish a small chatbot, and chat with it a few times.
+4. Back in your agency workspace, open the client's **Logs** and **Usage** tabs and check the activity appears.
+5. **Suspend** the workspace, confirm the row shows **Inactive**, then **Reactivate** it. Delete it when you're done.
+
+## Troubleshooting
+
+- **No Client Workspaces in Settings** → only Owners of an agency workspace see it, and it may not be enabled for your account. Check your role, or contact support.
+- **The client's API calls fail with "This client workspace has no admin yet"** → the admin hasn't accepted the invitation.
+- **You can't see the client's apps** → you aren't a member of the client workspace. Ask its admin to invite you.
+- **The Admin role isn't offered when inviting** → client workspaces allow one admin. Use **Editor** for builders.
+- **Import fails with Version Incompatibility** → review the warning and **Confirm**, then check the imported app's blocks; some blocks may not be available in client workspaces.
+
+## Next steps
+
+<Cards>
+  <Card title='Client workspaces' href='/docs/workspaces/clients'>Full reference for statuses, actions and the credit console.</Card>
+  <Card title='Branding' href='/docs/workspaces/branding'>Replace the Powered by badge.</Card>
+  <Card title='Governance & audit' href='/docs/monitor/governance'>Audit, activity and sign-in logs in each workspace.</Card>
+  <Card title='Workspaces & roles' href='/docs/getting-started/workspaces'>Roles and permissions in detail.</Card>
+</Cards>

@@ -1,0 +1,161 @@
+export const metadata = {
+  title: 'Limits',
+  description: 'Every public Xpectrum limit in one place: API requests, files, workflows, knowledge, voice, batch calls, channels, triggers, MCP and workspaces.',
+}
+
+# Limits
+
+This page lists the limits you can run into while building and running agents, grouped by area. Each table gives the limit, its value and what happens when you reach it. Values are for Xpectrum Cloud. Where a setting has a range, the default is noted.
+
+<Callout>
+  If you hit a limit that blocks a real use case, contact support through **Support** in the sidebar footer.
+</Callout>
+
+## API requests
+
+| Limit | Value | Notes |
+|---|---|---|
+| Request body size | 50 MB | Upload large files with `POST /files/upload` and reference them by id instead of inlining them. |
+| API keys per app | 10 | The eleventh returns `400 max_keys_exceeded`. Also 10 per knowledge base. |
+| Page size (`limit`) on list endpoints | 1–100, default 20 | `/threads`, `/threads/{id}/messages`, `/conversations`, `/messages`, `/workflows/logs` |
+| Knowledge search `limit` | 1–100, default 10 | `POST /knowledge/{id}/search` |
+| Knowledge query length | 250 characters | `400 Query is required and cannot exceed 250 characters` |
+| Rate limiting | May apply | Over the limit: `429 rate_limit_exceeded` (classic API: `rate_limit_error`), with no `Retry-After` header. Retry with exponential backoff. |
+| Rate-limit headers | None on the app API | Pace requests yourself and handle 429s. |
+| Stream keep-alive | A ping about every 10 s | Recommended API: `: ping` comment lines. Classic API: `event: ping`. Ignore them. |
+| Idle stream timeout | About 300 s with no traffic | Pings keep healthy streams open. |
+| Blocking requests | Long ones can be interrupted | Use streaming for long answers or runs. |
+| Autonomous Agent response mode | Streaming only | Blocking returns `400`. |
+| SDK request timeout | 30 s | Non-streaming SDK calls. Streams aren't affected. |
+| Toggle changes (Voice calls, Conversation history) | Up to about 1 minute to apply | After you publish. |
+
+## Files
+
+| Limit | Value | Notes |
+|---|---|---|
+| Image | 10 MB | JPG, JPEG, PNG, WEBP, GIF, SVG |
+| Audio | 50 MB | MP3, M4A, WAV, AMR, MPGA |
+| Video | 100 MB | MP4, MOV, MPEG, WEBM |
+| Other files | 50 MB | Documents and everything else |
+| Files per upload request | 1 | More returns `400 too_many_files` ("Only one file is allowed.") |
+| File name length | 200 characters | Longer names are truncated. These characters aren't allowed: `/ \ : * ? " < > \|` |
+| Speech-to-text upload | 30 MB | Classic `POST /audio-to-text` |
+| Files in one workflow file-list input | 10 | |
+| Chat app attachments | Images only | AI Chatbot and Autonomous Agent need a vision model. Agent Flow accepts documents, images, audio and video. |
+| Uploaded file access links | Expire after 5 minutes | Request a fresh link rather than storing it. |
+
+## Workflows and blocks
+
+| Limit | Value | Notes |
+|---|---|---|
+| Steps per run | 500 | `Max steps 500 reached.` Each **For Each** and **Repeat Until** gets its own 500-step allowance across its passes. |
+| Run time | 1,200 s (20 min) | `Max execution time 1200s reached.` Also the maximum time a streamed response can run. |
+| Workflow-in-workflow depth | 5 | `Max workflow call depth 5 reached.` |
+| Nested parallel branches | 3 levels | |
+| **For Each** **Maximum parallelism** | 1–10 | With **Parallel Mode** on |
+| Block **Retry** max retries | 1–10, default 3 | On AI Model, Tool, HTTP Request and Custom Function blocks |
+| Block **Retry** interval | 100–5,000 ms, default 1,000 | |
+| Constant or conversation variable size | 10 MB | |
+| Variable name length | 30 characters | |
+| **HTTP Request** **Connection Timeout** | Up to 300 s | |
+| **HTTP Request** **Read Timeout** / **Write Timeout** | Up to 600 s each | |
+| **HTTP Request** response size | 1 MB text, 10 MB binary | |
+| **Custom Function** string output | 500,000 characters | |
+| **Custom Function** array output | 20,000 items | Strings, numbers or objects |
+| **Custom Function** object nesting | 5 levels | `Depth limit 5 reached, object too deep.` |
+| **Webhook Trigger** request body | 10 MB | Larger bodies return `413`. |
+| **Listen for test request** | Stops after 2 minutes | Click it again to keep listening. |
+| Event trigger requests | May be rate limited | Over the limit: `429 Too many trigger requests`, with a `Retry-After` header (seconds). Wait that long, then redeliver with backoff. |
+
+## Agents
+
+| Limit | Value | Notes |
+|---|---|---|
+| **Maximum Iterations** (Autonomous Agent) | 1–99, default 10 | Tool-calling rounds per answer |
+| **Debug as Multiple Models** | Up to 4 models | Not available on every workspace |
+| **Follow-up** suggestions | 3 questions | |
+
+## Knowledge
+
+| Limit | Value | Notes |
+|---|---|---|
+| File size | 50 MB per file | The upload screen shows the limit and the accepted file types. |
+| Files per upload batch | 5 | Larger selections upload in batches of 5. |
+| **Maximum chunk length** | 50–4,000 tokens | Default 4,000. Outside the range: `Custom segment length should be between 50 and 4000.` |
+| **Chunk overlap** | Default 50 tokens | Must be smaller than the chunk length. 10–25% of the chunk length is a good range. |
+| **Economical** keywords | 10 per chunk | |
+| Keyword length | 20 characters | Per keyword, when editing chunks |
+| Sitemap discovery | Up to 1,500 URLs | |
+| Crawl **Max Pages** | Up to 5,000, default 1,500 | When discovering pages |
+| Crawl **Max Depth** | 1–10, default 3 | |
+| **Sync Schedule** (website, YouTube) | **Manual** by default | Or sync automatically every set number of hours (default 24). |
+| YouTube **Video Date Filter** | Default: all videos | The last-N-months option defaults to 6 months (1–240). |
+| **Retrieval Test** query | 200 characters | The API allows 250. |
+| Retrieval API results | Up to the retrieval **Top K** | `POST /datasets/{id}/retrieve`. Uses the knowledge base's retrieval settings unless you pass `retrieval_model`. |
+| Knowledge base name | 1–40 characters | Must be unique in the workspace. |
+| Knowledge base description | 4,000 characters | |
+| Tag name | 1–50 characters | |
+| Metadata field name | Lowercase letters, numbers, underscores | Must start with a lowercase letter. |
+
+## Voice and phone
+
+| Limit | Value | Notes |
+|---|---|---|
+| **Call Duration** | 3,600 s for new agents | 300 s if the field is cleared. The call ends with `max_duration` when it's reached. |
+| **Nudge Interval (seconds)** | 10 for new agents | If left empty, 5 s |
+| **Max Nudges** | 4 for new agents | If left empty or 0, 4. Then the call ends with `max_nudges`. |
+| Nudge pause while on hold | 30 s | |
+| **Initial Message Delay (seconds)** | Default 0 | |
+| Outbound greeting wait | Up to 60 s | If the carrier never reports the answer, the agent greets anyway. |
+| **Tool Acknowledgement** **Global Delay (ms)** | 0–5,000 | |
+| OpenAI **Speed** | 0.25–4 | |
+| ElevenLabs **Speed** / **Stability** / **Similarity Boost** | 0.8–1.2 / 0–1 / 0–1 | |
+| Cartesia **Speed** | 0.6–2.0 | Sonic 3 models only |
+| Phone number format | E.164, `+` followed by 10–15 digits | For example `+14155551234` |
+| Number **Direction** | Fixed at purchase | Inbound, Outbound or Both |
+| Answering-machine detection | Not available | Calls to voicemail are treated as answered. |
+
+## Batch calls
+
+| Limit | Value | Notes |
+|---|---|---|
+| Numbers per batch | 30 | Rows past 30 are dropped. Duplicates are removed. |
+| **Max Attempts (1–10)** | 1–10, default 2 | Per number |
+| **Retry Gap (minutes, 1–180)** | 1–180, default 120 | |
+| **Sequential** schedule | 1 minute apart | Starts about 2 minutes after you create the batch. |
+| **Staggered** schedule | 1–60 minutes apart | |
+
+## Messaging channels
+
+| Limit | Value | Notes |
+|---|---|---|
+| Email **Conversation expiry** | Default 3 days | How long the agent remembers an email thread after the last reply. Options: **Default (3 days)**, 1 hour, 1 day, 7 days, 30 days, **Never expire**. |
+| WhatsApp **Two-Step Verification** PIN | 6 digits | |
+
+## Triggers and MCP
+
+| Limit | Value | Notes |
+|---|---|---|
+| MCP tool calls | May be rate limited per MCP URL | Over the limit: JSON-RPC error `-32000` "Rate limit exceeded; try again in a minute." (HTTP 429, no `Retry-After` header). Retry with backoff. |
+| MCP tool name | Up to 64 characters | Starts with a letter, then letters, digits, `_` or `-`. Unique in the workspace. |
+| MCP descriptions | Required | A **Tool description** and a description for every input |
+| Apps that can be MCP tools | Published Workflows | Not chat apps |
+
+## Workspaces, roles and billing
+
+| Limit | Value | Notes |
+|---|---|---|
+| Owners per workspace | 3 | Client workspaces have no owners. |
+| Admins per client workspace | 1 | Use **Request another admin** to ask for more. |
+| **About the organization** | 255 characters | When creating a client workspace |
+| **Add credit** amount | $5–$500 per top-up | Presets $10, $25, $50 |
+| MFA codes | 6 digits | |
+| **Spent this period** | Last 7, 30 or 90 days | |
+
+## Next steps
+
+<Cards>
+  <Card title='Troubleshooting' href='/docs/troubleshooting'>How to debug, and the most common errors.</Card>
+  <Card title='API errors' href='/docs/api/errors'>Every status code and error code.</Card>
+  <Card title='FAQ' href='/docs/troubleshooting/faq'>Quick answers to common questions.</Card>
+</Cards>

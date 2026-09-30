@@ -1,0 +1,155 @@
+export const metadata = {
+  title: 'Agent Flow',
+  description: 'Build conversational agents as a flow of blocks: classify intent, branch, call tools and knowledge, and answer — then test, version and publish.',
+}
+
+# Agent Flow
+
+An Agent Flow is a conversational app you build as a flow of blocks on a canvas. Each user message runs through the flow: you decide how it's classified, which branch handles it, which tools and knowledge are used and what the agent says. Use it when you want predictable, auditable behavior across multi-step conversations.
+
+## How it works
+
+Every time the user sends a message, the flow runs once from the **Trigger** to an **Answer** block. Blocks pass data along their connections as variables — for example an **Intent Classifier** outputs `class_name` and opens one branch per class. **Conversation variables** carry state from one turn to the next, so the flow can remember what the user already told it.
+
+## The canvas
+
+The editor header shows the app name, **Preview**, **Logs** and **Publish Changes**. Once the app is published, hover the name to open **API & Access**.
+
+### Add a step
+
+Click **+** on a block to open **Add a step**. Search with **Search steps and tools** or filter with the chips **All**, **AI**, **Logic**, **Transform** and **Tools**. Steps are grouped as:
+
+| Group | Blocks |
+|---|---|
+| Triggers | **Trigger** |
+| AI | **AI Model**, **Agent**, **Intent Classifier**, **Parameter Extractor** |
+| Knowledge | **Knowledge Search**, **Doc Extractor** |
+| Logic | **Condition**, **For Each**, **Repeat Until**, **Exit Loop** |
+| Transform | **Custom Function**, **Template**, **Variable Aggregator**, **Variable Assigner**, **List Operator** |
+| Tools | **HTTP Request**, plugins and published workflows |
+| Output | **Answer** |
+
+With the **Tools** chip selected, tools are shown by scope — **Plugins**, **Workflows** and **Not installed** — and the preview of each shows what it **Needs** and what it **Hands on**. See the [Blocks reference](/docs/blocks) for every block.
+
+<Callout>
+  Client workspaces have a reduced block set: Trigger, Answer, AI Model, Knowledge Search, Intent Classifier, Condition, Custom Function, Doc Extractor, HTTP Request, For Each and Repeat Until.
+</Callout>
+
+## A typical flow
+
+A support agent that handles orders, returns and general questions:
+
+```text
+Trigger
+  └─ Intent Classifier  (classes: order_status, returns, other)
+       ├─ order_status → Parameter Extractor (order_number)
+       │                   → HTTP Request (GET /orders/{order_number})
+       │                   → AI Model (summarise the order) → Answer
+       ├─ returns      → Knowledge Search (returns policy)
+       │                   → AI Model (answer from policy)  → Answer
+       └─ other        → AI Model (general help)            → Answer
+```
+
+<Steps>
+<Step title='Classify the intent'>
+
+Add an **Intent Classifier** after the **Trigger**. Set its **Input Variables** to the user's message (`thread.user_query`) and add one class per intent with **Add Class**, for example `order_status`, `returns` and `other`. Each class gets its own outgoing branch.
+
+</Step>
+<Step title='Build each branch'>
+
+On the `order_status` branch, add a **Parameter Extractor** that extracts `order_number`, then an **HTTP Request** that looks the order up. On the `returns` branch, add a **Knowledge Search** against your policy knowledge base. Reference earlier outputs by typing `/` in any field.
+
+</Step>
+<Step title='Write the reply'>
+
+End each branch with an **AI Model** that writes the reply from the data it received, then an **Answer** block that streams the text back to the user. An Agent Flow must have at least one **Answer** block.
+
+</Step>
+</Steps>
+
+## Preview
+
+Click **Preview** to chat with the draft flow. After each reply you can inspect which blocks ran, their inputs and outputs, and how long they took. If the flow has conversation variables, the **Conversation Variables** icon in the Preview panel shows their current values.
+
+To test one block without running the whole flow, use **Run this step** on the block. See [Testing](/docs/deploy/testing).
+
+## Dock tabs
+
+| Tab | What it's for |
+|---|---|
+| **Configurations** | Settings for the selected block. |
+| **Agent Settings** | Conversation features such as **Conversation Opener**, **Follow-up** and **Citations and Attributions**, when they apply. |
+| **Constants** | App-wide fixed values and secrets. See [below](#constants). |
+| **Run History** | Past Preview runs in the editor, with each step's inputs, outputs and errors. Conversations from the API and channels are in **Logs**. |
+| **Version History** | Published versions. See [Versions](#versions). |
+
+## Conversation variables and constants
+
+### Conversation variables
+
+**Conversation Variables** store information the flow needs to remember across turns — the customer's name, a chosen appointment slot, a list of items in a cart. They are read-write.
+
+Each conversation variable has a **Name**, **Type**, **Default Value** and **Description**. Write to them with a **Variable Assigner** block (operations include **Overwrite**, **Set**, **Clear**, **Append** and arithmetic such as `+=`), and read them anywhere with `/`. In **Preview**, the **Conversation Variables** icon shows their current values.
+
+<Callout type='warning'>
+  The current editor has no control for adding new conversation variables. Apps that already have them — for example, apps imported from a configuration file — keep them and can use them as described here.
+</Callout>
+
+Example: after the **Parameter Extractor** finds `order_number`, a **Variable Assigner** stores it in a conversation variable `last_order`. On the next turn — "and when will it arrive?" — the flow reads `last_order` instead of asking again.
+
+### Constants
+
+**Constants** are fixed values available to every block — base URLs, account ids, API keys. Click **Add Constant** and set a **Type**, **Name** and **Value**. Use the secret type for credentials so the value is masked. See [Variables](/docs/build/variables#constants).
+
+## Checklist
+
+Before you can publish, the flow's checklist must be clean: **Make sure all issues are resolved before publishing**. Common issues:
+
+- **A start node is required — add a Trigger or a Webhook Trigger**
+- **This step is not connected to anything**
+- **The Answer block must be added**
+- A block is missing required settings (for example an **AI Model** with no model).
+
+## Versions
+
+The draft banner **Editing draft — publish to create a version** reminds you that your changes aren't live. Each publish creates a version in **Version History** with **Version**, **Published by**, **When** and **Actions**.
+
+- **Name this version** — give it a **Title** and **Release Notes**.
+- **Restore** — copy a version back into the draft. **After version restoration, the current draft will be overwritten.** Publish again to make it live.
+
+## Publish
+
+Click **Publish Changes**. Choose the **External API** options — **Voice calls** and **Conversation history over API**, both on by default — and click **Publish Changes** at the bottom of the panel. **API & Access** then opens so you can create a key and call the flow with [Chat Completions](/docs/api/chat-completions). Agent Flows support both streaming and blocking responses. See [Publishing & versions](/docs/deploy/publishing).
+
+## Agent Flow vs Autonomous Agent
+
+| | Agent Flow | Autonomous Agent |
+|---|---|---|
+| Who decides the steps | You, by drawing the flow | The model, at run time |
+| Predictability | High — the same intent follows the same path | Varies with the conversation |
+| Setup effort | More: design branches and blocks | Less: instructions, knowledge, tools |
+| Branching and logic | **Intent Classifier**, **Condition**, loops, code | Implicit in the model's reasoning |
+| State across turns | Conversation variables | Conversation history |
+| Best for | Regulated or scripted processes, known intents, integrations with strict order | Open-ended assistance with many tools |
+
+Many teams start with an Autonomous Agent to learn what users ask, then move stable, high-volume intents into an Agent Flow.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **Publish Changes** is blocked | Open the checklist and fix each listed issue. |
+| The wrong branch runs | Make class names and descriptions distinct, add an **Instruction** to the **Intent Classifier**, and test ambiguous messages in Preview. |
+| A variable is empty in a later block | Check the block that produces it ran on that branch; use **Variable Aggregator** to merge outputs from different branches. |
+| The flow forgets details between turns | Store them in a conversation variable with **Variable Assigner**. |
+| An HTTP or tool block fails the whole run | Set **Error Handling** to **Default Value** or **Fail Branch**, and add **Retry**. See [Workflows](/docs/build/workflows#error-handling-and-retry). |
+
+## Next steps
+
+<Cards>
+  <Card title='Intent Classifier' href='/docs/blocks/intent-classifier'>Route messages by intent.</Card>
+  <Card title='Variables' href='/docs/build/variables'>References, constants and conversation variables.</Card>
+  <Card title='Blocks reference' href='/docs/blocks'>Every block and its settings.</Card>
+  <Card title='Build a support agent' href='/docs/guides/support-agent'>An end-to-end example.</Card>
+</Cards>

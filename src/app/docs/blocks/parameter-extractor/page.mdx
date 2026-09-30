@@ -1,0 +1,110 @@
+export const metadata = {
+  title: 'Parameter Extractor',
+  description: 'Reference for the Parameter Extractor block: parameters, types, reasoning mode, outputs including __is_success and __reason, and errors.',
+}
+
+# Parameter Extractor
+
+The **Parameter Extractor** block uses a model to pull typed fields out of free text: a date and party size from "table for 4 next Friday at 7", or an order number and email from a support message. Each field becomes its own output variable, ready for a tool, an [HTTP Request](/docs/blocks/http-request) or a [Condition](/docs/blocks/condition).
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| You need a fixed set of typed fields, and you want to check whether extraction worked | **Parameter Extractor** |
+| You need a nested JSON object, or a reply plus fields in one call | [AI Model](/docs/blocks/ai-model) with structured output |
+| The value is always in the same place, such as a webhook field | Reference the variable directly. No model needed. |
+
+The Parameter Extractor isn't available in client workspaces. Use an **AI Model** with structured output there.
+
+## Settings
+
+The settings are grouped into **Model & vision**, **Extract Parameters** and **After it runs** (output variables and next step).
+
+| Setting | Description | Default |
+|---|---|---|
+| Model | The model that extracts. | None: required |
+| Vision | Sends files from a variable you choose to the model along with the text. Shown only for models that support vision. | Off |
+| **Reasoning Mode** | **Function/Tool Calling** uses the model's native function calling. **Prompt** asks for JSON in the prompt. Shown only when the chosen model supports function calling; other models always use **Prompt**. | **Prompt** |
+| **Input Variable** | The text to read: a string or number variable. | Required |
+| **Extract Parameters** (**Add Extract Parameter**) | The fields to extract. See below. | None: at least one required |
+| **Import from tools** | Copies the parameters a tool expects the model to fill in as extract parameters, so the output lines up with the tool. | — |
+| **Instruction** | "Input additional instructions to help the parameter extractor understand how to extract parameters." | Empty |
+| **Memory** | Agent Flow only. Lets the model use earlier turns, for example a date the user gave two messages ago. | — |
+
+Each extract parameter has:
+
+| Field | Description |
+|---|---|
+| **Name** | The output variable name. Letters, numbers and underscores, up to 30 characters, not starting with a number. `__is_success` and `__reason` are reserved. |
+| **Type** | `string`, `number`, `array[string]`, `array[number]` or `array[object]`. |
+| **Description** | What the field means and how to format it. This is the most important input to the model. |
+| **Required** | "Required is only used as a reference for model inference, and not for mandatory validation of parameter output." |
+
+## Inputs and outputs
+
+**Reads:** the input variable, plus conversation history when memory is on.
+
+**Produces:**
+
+| Variable | Type | Description |
+|---|---|---|
+| One per parameter | As defined | The extracted value. |
+| `__is_success` | Number | "On success the value is 1, on failure the value is 0." |
+| `__reason` | String | Why extraction failed ("Error Reason"). Null on success. |
+
+## Example
+
+A booking assistant in an Agent Flow, with **Input Variable** set to `thread.user_query`:
+
+| Name | Type | Description |
+|---|---|---|
+| `date` | string | Booking date in YYYY-MM-DD. Resolve words like "tomorrow" relative to today. |
+| `time` | string | Time in 24-hour HH:MM. |
+| `party_size` | number | Number of guests. |
+| `special_requests` | array[string] | Allergies, seating or occasion notes. Empty if none. |
+
+```text title="Instruction"
+Today's date is given in the conversation. If the user gives a weekday,
+use the next occurrence of that weekday.
+```
+
+For "Can we get a table for 4 next Friday at 7pm? One of us is vegan", sent on Wednesday, September 30, 2026, the outputs are:
+
+```json
+{
+  "date": "2026-10-02",
+  "time": "19:00",
+  "party_size": 4,
+  "special_requests": ["vegan"],
+  "__is_success": 1,
+  "__reason": null
+}
+```
+
+Follow it with a [Condition](/docs/blocks/condition) on `__is_success` = 1 and on `date` **is not empty**. On the other branch, ask the user for the missing detail.
+
+<Callout type='tip'>
+  Missing values are the usual failure, not wrong ones. Always check the fields you depend on before calling an API with them. **Required** doesn't enforce anything.
+</Callout>
+
+## Errors and limits
+
+The block reports extraction problems through `__is_success` and `__reason` instead of failing the run. The block succeeds, and fields it couldn't read get an empty value: `""` for strings, `0` for numbers and `[]` for arrays. Because a missing number comes back as `0`, check `__is_success` rather than the number itself.
+
+| `__reason` | Cause | Fix |
+|---|---|---|
+| "Invalid number of parameters" | The model returned a different set of fields. | Tighten descriptions. Try **Function/Tool Calling** if it's offered. |
+| "Parameter X is required" | A required field wasn't returned. | Ask the user for it, or improve the description. |
+| "Invalid `number` value for parameter X" (or `string`, `array` variants) | The value had the wrong type. | Describe the format explicitly ("digits only"). |
+| "Failed to extract result from function call or text response, using empty result." | The model's reply contained no usable JSON. | Switch **Reasoning Mode** (if the model supports function calling), or use a stronger model. |
+
+If the model call itself fails (a provider error, or no credits), the block fails and so does the run. This block has no **Error Handling** setting. Configuration problems appear in the **Checklist**, for example "Input Variable is required" or "Extract Parameter Description is required". Each run is one model call.
+
+## Next steps
+
+<Cards>
+  <Card title='Condition' href='/docs/blocks/condition'>Check __is_success and required fields.</Card>
+  <Card title='HTTP Request' href='/docs/blocks/http-request'>Send the extracted fields to an API.</Card>
+  <Card title='AI Model' href='/docs/blocks/ai-model'>Structured output for nested JSON.</Card>
+</Cards>

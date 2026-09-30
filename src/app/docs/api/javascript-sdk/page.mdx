@@ -1,0 +1,363 @@
+export const metadata = {
+  title: 'JavaScript SDK',
+  description: 'Reference for the xpectrum npm package: chat, workflows, knowledge search, voice calls, errors and anonymous users.',
+}
+
+# JavaScript SDK
+
+The `xpectrum` package is the official client for the Xpectrum API. It works in Node.js 18+ and in any modern browser, streams replies token by token, handles anonymous visitors, and includes a real-time voice client and ready-made widgets.
+
+## Install
+
+```bash title="Terminal"
+npm i xpectrum
+```
+
+The package has one dependency, `livekit-client`, which the voice client uses; it is installed automatically. Chat, workflow and knowledge clients need nothing else. If you would rather not use the SDK, the chat endpoint is OpenAI-compatible — see [Chat completions](/docs/api/chat-completions).
+
+## Imports
+
+| Import path | Exports |
+|---|---|
+| `xpectrum` | Everything: `XpectrumChat`, `XpectrumWorkflow`, `XpectrumKnowledge`, `XpectrumVoice`, `XpectrumApiError`, the widgets, `renderMarkdown` and all types |
+| `xpectrum/chat` | `XpectrumChat` |
+| `xpectrum/voice` | `XpectrumVoice` |
+| `xpectrum/widgets` | `ChatWidget` |
+
+Import from a sub-path to keep browser bundles small — for example, a text-only chat page doesn't need `xpectrum/voice`. The sub-paths don't currently ship TypeScript declarations, so in TypeScript import from `xpectrum`, as the examples on this page do. Import types, `XpectrumWorkflow`, `XpectrumKnowledge`, `VoiceWidget` and `OmnichannelWidget` from `xpectrum`.
+
+`renderMarkdown(text)` turns an assistant reply's Markdown into safe HTML, for when you build your own chat UI.
+
+## XpectrumChat
+
+Talks to conversational apps (AI Chatbot, Autonomous Agent, Agent Flow, Multi-prompt Agent) through `/chat/completions`, `/threads`, `/models` and `/messages/{message_id}/suggestions`.
+
+```ts title="chat.ts"
+import { XpectrumChat } from 'xpectrum'
+
+const chat = new XpectrumChat({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: process.env.XPECTRUM_API_KEY!,
+  user: 'user-123',
+})
+
+// Promise style: resolves with the complete reply
+const reply = await chat.send('Where is my order A-1042?')
+console.log(reply.content, reply.threadId)
+
+// Token by token, continuing the same thread
+await chat.stream('Can I change the delivery address?', {
+  threadId: reply.threadId,
+  onToken: (delta, full) => render(full),
+  onDone: (result) => console.log('tokens used:', result.usage?.total_tokens),
+  onError: (err) => showError(err.message),
+})
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `baseUrl` | string | — | **Required.** The API base URL including `/v1`: `https://cloud.xpectrum.dev/v1`. |
+| `apiKey` | string | — | **Required.** The app's API key. |
+| `user` | string | Anonymous id | Who the conversation belongs to. Set it from your own authenticated session. When omitted, the SDK generates and stores an [anonymous id](#anonymous-users). |
+| `anonymousTtlDays` | number | `30` | How long an unused anonymous id lives. Each use resets the clock. Ignored when `user` is set. |
+| `variables` | object | — | Default app variables sent with every request. Per-call `variables` are merged over them. |
+| `model` | string | `xpectrum` | Sent as `model`. Informational only — the key selects the agent. |
+
+### Methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `send(prompt, options?)` | `Promise<ChatResult>` | Sends a message and resolves with the full reply. Streams under the hood, so it works for every conversational app type. Pass `blocking: true` for a single non-streaming request (rejected by Autonomous Agent apps). |
+| `stream(prompt, options?)` | `Promise<ChatResult>` | Streams the reply to `onToken`, then calls `onDone` and resolves with the result. |
+| `listThreads({ limit?, after?, signal? })` | `Promise<Page<Thread>>` | The user's threads, most recently updated first. Pass `lastId` as `after` for the next page. |
+| `getMessages(threadId, { limit?, before?, signal? })` | `Promise<Page<ThreadMessage>>` | A thread's transcript, oldest first. Pass `firstId` as `before` for older messages. |
+| `cancel(runId)` | `Promise<void>` | Stops a reply on the server. |
+| `getSuggestions(messageId, { signal? })` | `Promise<string[]>` | Follow-up questions for a reply. Resolves with `[]` if the agent has them turned off. |
+| `getAgent({ signal? })` | `Promise<AgentInfo>` | The agent's `id`, `name`, `description`, `mode`, `title`, `greeting` and `starterQuestions`. Throws `agent_not_found` if none is returned. |
+| `listModels()` | `Promise<ModelInfo[]>` | The raw `/models` list. |
+| `getUser()` | `string` | The `user` every request is sent with — configured or anonymous. |
+| `resetUser()` | `void` | Forgets the anonymous id so the next request starts a fresh history. Does nothing when `user` was configured. |
+| `destroy()` | `void` | Aborts every stream this client started. |
+
+`listThreads` and `getMessages` need **Conversation history over API** to be on for the app — see [Threads](/docs/api/threads).
+
+### Prompt and per-call options
+
+`prompt` is either a string (sent as one user message) or an array of OpenAI-style messages, for example to send an image:
+
+```ts
+await chat.send([
+  {
+    role: 'user',
+    content: [
+      { type: 'text', text: 'What is wrong with this part?' },
+      { type: 'image_url', image_url: { url: 'https://example.com/part.jpg' } },
+    ],
+  },
+])
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `threadId` | string | Continue an existing thread. History stays on the server — don't resend it. |
+| `variables` | object | App variables for this call, merged over the configured defaults. |
+| `attachments` | `Attachment[]` | Files: `{ type: 'image' \| 'document' \| 'audio' \| 'video', url }` or `{ type, file_id }`. |
+| `channel`, `channelMetadata` | string, object | Where the message came from. See [chat completions](/docs/api/chat-completions#request-body). |
+| `timezone` | string | The user's IANA timezone, for example `Asia/Kolkata`. |
+| `model` | string | Overrides the configured `model` for this call. |
+| `signal` | `AbortSignal` | Abort the request. An aborted stream resolves with whatever arrived, without an error. |
+| `getAbortController` | `(controller) => void` | Receives the controller the SDK created for this call. |
+| `onToken(delta, full)` | function | `stream()` only. `delta` is the new text, `full` everything so far. |
+| `onDone(result)` | function | `stream()` only. Called once with the final `ChatResult`. |
+| `onError(error)` | function | `stream()` only. If you pass it, errors go here and the promise resolves; if you don't, the promise rejects. |
+| `blocking` | boolean | `send()` only. One non-streaming request. |
+
+### ChatResult
+
+| Field | Description |
+|---|---|
+| `content` | The full reply text. |
+| `threadId` | Pass to the next call to continue the conversation. |
+| `messageId` | The reply's message id, for `getSuggestions()`. |
+| `runId` | For `cancel()`. |
+| `usage` | `{ prompt_tokens, completion_tokens, total_tokens }`. |
+| `citations` | Knowledge sources, when retrieval was used. See [Citations](/docs/api/chat-completions#citations). |
+| `finishReason` | `stop` when the reply completed. |
+| `model` | The agent's id. |
+
+<Callout>
+  Aborting a stream only stops the SDK reading it; the agent keeps generating until you call `cancel(runId)`. `stream()` exposes `runId` on the finished result, so to stop a reply mid-stream on the server, capture `run_id` from the first chunk with your own parser — see [Streaming](/docs/api/streaming#parse-a-stream-in-javascript).
+</Callout>
+
+## XpectrumWorkflow
+
+Runs Workflow apps through `/runs`.
+
+```ts title="workflow.ts"
+import { XpectrumWorkflow } from 'xpectrum'
+
+const wf = new XpectrumWorkflow({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: process.env.XPECTRUM_WORKFLOW_KEY!,
+  user: 'nightly-import',
+})
+
+const run = await wf.stream({
+  variables: { source_url: 'https://example.com/feed.xml' },
+  onStart: ({ id }) => console.log('run', id),
+  onStepStart: (step) => console.log('→', step.title),
+  onStepComplete: (step) => console.log('✓', step.title, step.status),
+  onDone: (run) => console.log(run.outputs),
+})
+```
+
+| Option | Description |
+|---|---|
+| `baseUrl`, `apiKey` | **Required.** Use a Workflow app's key. |
+| `user` | Who runs are attributed to. Defaults to an anonymous id. |
+| `anonymousTtlDays` | Lifetime of the anonymous id. Default `30`. |
+
+| Method | Description |
+|---|---|
+| `run({ variables, attachments?, signal? })` | Runs the workflow and resolves with the finished `Run`. Gives up after 30 seconds — use `stream()` for longer runs. |
+| `stream({ variables, attachments?, signal?, onStart, onStepStart, onStepComplete, onDone, onError })` | Streams progress and resolves with the finished `Run`. Error handling is the same as `XpectrumChat.stream()`. |
+| `cancel(runId)` | Sends a cancel request for the run. See [Cancel a run](/docs/api/runs#cancel-a-run). |
+| `getUser()`, `destroy()` | As for `XpectrumChat`. |
+
+A `Run` has `id`, `status` (`running`, `succeeded`, `failed`, `stopped` or `partial-succeeded`), `variables` (currently always `null`), `outputs`, `error`, `steps`, `tokens`, `elapsedSeconds`, `createdAt` and `finishedAt`. A `Step` has `id`, `title`, `type`, `index`, `createdAt`, and on completion `status`, `outputs`, `error` and `elapsedSeconds`. A failed run resolves normally — check `status`.
+
+## XpectrumKnowledge
+
+Searches a knowledge base with a **knowledge API key**. Use it on a server.
+
+```ts title="knowledge.ts"
+import { XpectrumKnowledge } from 'xpectrum'
+
+const kb = new XpectrumKnowledge({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: process.env.KNOWLEDGE_API_KEY!,
+})
+
+const { query, data } = await kb.search('0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f', 'return window', { limit: 5 })
+// data: [{ score, content, document_id, chunk_id, position }]
+```
+
+`search(knowledgeId, query, { limit?, signal? })` — `limit` is sent to the API but doesn't currently change the result; the number of matches follows the knowledge base's **Top K** setting. To manage documents, call the [Knowledge API](/docs/api/knowledge) directly.
+
+## XpectrumVoice
+
+Starts real-time voice calls with the agent behind the API key. Browser only.
+
+```ts title="voice.ts"
+import { XpectrumVoice } from 'xpectrum'
+
+const voice = new XpectrumVoice({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: 'xpectrum_xxxxxxxxxxxx',
+})
+
+voice.on('connectionStateChanged', ({ state }) => setStatus(state))
+voice.on('transcription', (seg) => upsertLine(seg))
+voice.on('agentSpeaking', ({ isSpeaking }) => pulse(isSpeaking))
+
+startButton.addEventListener('click', async () => {
+  try {
+    await voice.connect()          // asks for the microphone on first use
+  } catch (err) {
+    showError((err as Error).message)
+  }
+})
+endButton.addEventListener('click', () => voice.disconnect())
+```
+
+Requirements: an HTTPS page (or `localhost`), a user gesture to start the call, and microphone permission. See [Voice sessions](/docs/api/voice#browser-requirements).
+
+### Methods
+
+| Method | Description |
+|---|---|
+| `connect(callbacks?)` | Gets a session token, joins the room, and turns on the microphone. Rejects if it fails, and emits `error`. Throws `Already connected or connecting. Call disconnect() first.` if a call is active. |
+| `disconnect()` | Leaves the room and ends the call on the server. |
+| `setMicEnabled(enabled)` | Mutes or unmutes the microphone. Throws `Not connected to a voice room` when there is no call. |
+| `isMicEnabled()` | Whether the microphone is on. |
+| `getConnectionState()` | `disconnected`, `connecting`, `connected`, `reconnecting` or `failed`. |
+| `getRoomName()` | The current room, or `null`. |
+| `isConnected()` | `true` while connected. |
+| `on(event, handler)` | Subscribes to an event. Returns a function that unsubscribes. |
+| `off(event, handler)` | Unsubscribes. |
+| `destroy()` | Disconnects and removes all listeners. |
+
+`connect()` also accepts callbacks as an alternative to `on()`: `onConnected`, `onDisconnected`, `onTranscription`, `onAgentSpeaking`, `onAgentAudio`, `onConnectionStateChanged`, `onReconnecting`, `onReconnected` and `onError`.
+
+### Events
+
+| Event | Payload | When |
+|---|---|---|
+| `connected` | `{ roomName }` | The call is live. |
+| `disconnected` | `{ reason }` | The call ended: `user_initiated`, `agent_disconnected`, `room_closed` or another reason. |
+| `transcription` | `{ id, text, isFinal, speaker }` | Live transcript. `speaker` is `user` or `agent`. Interim updates reuse the same `id` — replace the line in place until `isFinal` is `true`. |
+| `agentSpeaking` | `{ isSpeaking }` | The agent started or stopped talking. |
+| `agentAudio` | `{ stream }` | The agent's audio as a `MediaStream`, for visualizers. |
+| `connectionStateChanged` | `{ state }` | Any state change. |
+| `reconnecting` / `reconnected` | `{}` | The network dropped and recovered. |
+| `microphoneChanged` | `{ enabled }` | After `setMicEnabled()`. |
+| `error` | `{ message, code? }` | Something failed. |
+
+## Widgets
+
+`ChatWidget`, `VoiceWidget` and `OmnichannelWidget` add a floating chat or voice button to any page with a few lines of code, or with a single `<script>` tag and no build step. They render in a Shadow DOM so your site's CSS doesn't leak in. For voice, install the npm package: the `<script>` tag embed currently works for chat only. The chat widget never loads history, so it keeps working with **Conversation history over API** off. See [Website & widgets](/docs/channels/web) for every option.
+
+## Error handling
+
+Failed requests throw `XpectrumApiError`, whichever [error format](/docs/api/errors#error-formats) the API used.
+
+| Property | Description |
+|---|---|
+| `name` | `XpectrumApiError` |
+| `code` | The API's error code, for example `thread_not_found`, `model_not_found` or `unauthorized`. `stream_error` for a failed stream without a code. |
+| `status` | The HTTP status. `0` for an error that arrived inside a stream. |
+| `message` | The API's message. |
+
+```ts title="errors.ts"
+import { XpectrumApiError } from 'xpectrum'
+
+try {
+  await chat.send('Hello', { threadId })
+} catch (err) {
+  if (err instanceof XpectrumApiError) {
+    if (err.code === 'thread_not_found') {
+      return chat.send('Hello') // start a new thread
+    }
+    if (err.status === 429 || err.status >= 500) {
+      // retry with backoff
+    }
+  }
+  throw err
+}
+```
+
+Non-streaming requests time out after 30 seconds. Mid-stream errors with no message are reported as `Generation failed.` (chat) or `Run failed.` (workflows).
+
+## Anonymous users
+
+When you don't set `user`, the SDK gives each browser a random id so visitors keep their own history without logging in:
+
+- The id looks like `anon_` followed by a UUID and is stored in `localStorage` under `xpectrum:anon:<baseUrl>`, so two apps on one page never share it.
+- It expires after `anonymousTtlDays` (30 by default) without use; every request extends it.
+- Where `localStorage` is unavailable (Node, some private windows) it lives in memory for the life of the process or page.
+- `resetUser()` discards it — use it for "clear my chat" or on logout.
+
+<Callout type='warning'>
+  Never use an IP address as `user`. Everyone behind the same office network or mobile carrier would share one history, and it changes when the network does. For logged-in users, set `user` on your server from your own session — never from a value the browser sends — because the API key is the only thing Xpectrum verifies.
+</Callout>
+
+## Server proxy pattern
+
+For anything beyond a public widget, keep the API key on your server and let the browser talk to your own route. The SDK works the same in Node:
+
+```ts title="app/api/chat/route.ts"
+import { XpectrumChat } from 'xpectrum'
+import { auth } from '@/lib/auth' // your session helper
+
+export async function POST(req: Request) {
+  const session = await auth()
+  if (!session) return new Response('Unauthorized', { status: 401 })
+
+  const { message, threadId } = await req.json()
+  const chat = new XpectrumChat({
+    baseUrl: 'https://cloud.xpectrum.dev/v1',
+    apiKey: process.env.XPECTRUM_API_KEY!, // server-only, never NEXT_PUBLIC_
+    user: session.user.id,                 // identity from your session
+  })
+
+  const encoder = new TextEncoder()
+  const body = new ReadableStream({
+    async start(controller) {
+      const result = await chat.stream(message, {
+        threadId,
+        signal: req.signal, // stop reading if the browser goes away
+        onToken: (delta) => controller.enqueue(encoder.encode(delta)),
+        onError: (err) => controller.enqueue(encoder.encode(`\n[error] ${err.message}`)),
+      })
+      // Hand the thread id back so the browser can continue the conversation
+      controller.enqueue(encoder.encode(`\n[thread] ${result.threadId ?? ''}`))
+      controller.close()
+    },
+  })
+
+  return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+}
+```
+
+The same approach works for voice: proxy the two voice routes and point `XpectrumVoice` at your server. See [Keep the key off the page](/docs/api/voice#keep-the-key-off-the-page).
+
+## Migrating from @xpectrum/sdk
+
+`@xpectrum/sdk` is the previous package and keeps working. If you move to `xpectrum`:
+
+| Before (`@xpectrum/sdk`) | Now (`xpectrum`) |
+|---|---|
+| `chat.sendMessage(q, { onMessage })` | `chat.stream(q, { onToken })` |
+| — | `chat.send(q)` for a plain promise |
+| `onMessage(text, id, convId)` | `onToken(delta, full)`; ids are on the result |
+| `onMessageEnd(meta)` | `onDone(result)` |
+| `chat.getAppParams()` | `chat.getAgent()` — title, greeting and starter questions |
+| `chat.stopResponse(taskId)` | `chat.cancel(runId)` |
+| `chat.getConversations()` | `chat.listThreads()` |
+| `chat.getMessages(convId)` | `chat.getMessages(threadId)` — one message per side of each turn |
+| `chat.getSuggestedQuestions(msgId)` | `chat.getSuggestions(messageId)` |
+| `onThought`, `onFile`, `onTTSChunk` | Not available |
+| Feedback, speech-to-text | Not available — use the [classic API](/docs/api/classic/app) |
+
+Field names change the same way as the API: `conversation_id` → `thread_id`, `inputs` → `variables`, `files` → `attachments`, `task_id` → `run_id`, `retriever_resources` → `citations`. If you were pointing at `cloud.xpectrum.co`, change `baseUrl` to `https://cloud.xpectrum.dev/v1`.
+
+## Next steps
+
+<Cards>
+  <Card title='Website & widgets' href='/docs/channels/web'>Embed chat and voice with no code.</Card>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>The endpoint behind `XpectrumChat`.</Card>
+  <Card title='Voice sessions' href='/docs/api/voice'>How voice calls connect.</Card>
+  <Card title='Errors' href='/docs/api/errors'>Every error code the SDK can surface.</Card>
+</Cards>

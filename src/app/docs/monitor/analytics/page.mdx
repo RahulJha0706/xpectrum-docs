@@ -1,0 +1,127 @@
+export const metadata = {
+  title: 'Analytics',
+  description: 'Usage charts for conversations, users, messages, tokens and workflow runs, token cost per app, and the Analytics app that grades finished conversations.',
+}
+
+# Analytics
+
+**Monitoring & Analytics › Metrics** charts how your apps are used: conversations, active users, messages, tokens and workflow runs, for the whole workspace or one app. For cost, **Billings › Tokens** breaks model usage down per app. To go further and grade each conversation (was the customer satisfied, was it resolved, what was it about), create an **Analytics** app.
+
+| Question | Where to look |
+|---|---|
+| How many conversations did we have last week? | **Metrics** |
+| Which app uses the most tokens? | **Billings › Tokens** |
+| Are workflows failing or slow? | **Overview** and **Execution** ([Governance & audit](/docs/monitor/governance)) |
+| How many calls did we take, and how many connected? | **Sessions** ([Voice sessions](/docs/monitor/voice-sessions)) |
+| What share of customers got their problem resolved, and on which topics? | An **Analytics** app |
+
+## Metrics
+
+Open **Monitoring & Analytics › Metrics** (Owners and Admins). The usage charts (the **Operational Metrics** tab, when your workspace has more than one tab here) have two controls:
+
+- **App filter**: **All apps** (the default, the whole workspace) or one Autonomous Agent, Agent Flow, AI Chatbot or Workflow.
+- **Period**: **Custom date**, **Today**, **Last 7 Days** (default), **Last 4 weeks**, **Last 3 months**, **Last 12 months**, **Month to date**, **Quarter to date**, **Year to date** or **All time**.
+
+Click the refresh button to reload.
+
+### Chart definitions
+
+Charts are grouped under **Conversational Apps** and **Automation Apps**. Each point is one day. Conversations and runs started from the editor are counted along with real traffic.
+
+| Chart | Section | Definition |
+|---|---|---|
+| **Total Conversations** | Conversational Apps | Conversations with at least one message that day, across conversational apps. A conversation that continues over several days counts on each of them. |
+| **Active Users** | Conversational Apps | Distinct end users who sent at least one message that day, counted per app. A user active on several days is counted once per day. |
+| **Total Messages** | Conversational Apps | Messages exchanged that day. A user's message and the reply to it count as one. |
+| **Avg. Session Interactions** | Conversational Apps | Messages per conversation that day; a rough measure of how much work each conversation took. |
+| **Token Usage** | Both | Tokens consumed by these apps, with the approximate cost alongside. |
+| **Workflow Runs** | Automation Apps | How many times your workflows ran, per day. |
+
+<Callout>
+  Cost figures are estimates calculated from model token usage. On self-serve workspaces, what you are actually charged is in **Billings › Usage history**. See [Billing & credits](/docs/workspaces/billing).
+</Callout>
+
+### Reading the charts
+
+- **Conversations up, messages flat**: people start conversations but leave early. Check the greeting and first reply in [Logs](/docs/monitor/logs).
+- **Avg. Session Interactions rising**: conversations take more turns to finish. That can mean the agent asks too many questions or misses the answer the first time.
+- **Token Usage rising faster than conversations**: prompts or knowledge context are getting longer. Review **Top K** in retrieval settings and long system prompts.
+
+## Tokens
+
+**Billings › Tokens** (Owners and Admins) shows **Total Cost**, **Total Tokens** and **Billable Apps** for the selected period, then a **Token usage per app** chart for each app that uses a model. Use it to find which app drives model cost. Costs are estimates; channel, TTS and STT costs aren't included here.
+
+## Overview and Execution
+
+**Overview** and **Execution** in the same sidebar section show execution health rather than usage: success rate, latency percentiles, failing blocks and a searchable list of runs. They're documented in [Governance & audit](/docs/monitor/governance).
+
+## Analytics app
+
+<Callout type='warning' title='Limited availability'>
+  The **Analytics** app type and the **Your graphs** tab on the Metrics page that depends on it may not be enabled on every workspace. If you don't see **Analytics** under **Conversational Apps**, contact support.
+</Callout>
+
+An **Analytics** app reads the finished conversations of one or more chat apps, fills in fields you define for each conversation (for example "resolved", "topic", "refund requested"), stores one record per conversation, and lets you ask questions about the records in plain language.
+
+### Create it
+
+Go to **Conversational Apps › Analytics**, click **Create from Blank**, and choose the chat app in **Which chat app should it analyse?**. You can add more apps later. The editor has three tabs: **Analysis**, **Assistant** and **Graphs**. Graphs you build on the **Graphs** tab are shown under **Metrics › Your graphs**.
+
+### Trigger: when conversations are analysed
+
+| Setting | Options |
+|---|---|
+| **Run automatically** | On or off. When off, nothing is analysed on a schedule; click **Run** to analyse what's waiting once. |
+| **How often** | **Every 15 minutes**, **Every 30 minutes**, **Every hour**, **Every 2 hours**, **Every 6 hours**, **Every 12 hours**, **Once a day** |
+| **A conversation is finished after** N **minutes of silence** | How long a conversation must be idle before it's analysed. If the customer comes back later, it's analysed again and its record replaced. |
+| **Analysing** | Which chat apps' conversations to read. Use **Change** to add or remove apps. |
+
+### Analyzer: what's recorded
+
+Some fields are **Recorded automatically** for every conversation: thread ID, app, date, hour of day, day of week, message count and customer.
+
+Under **Analysed for each thread** you add the fields the model fills in, up to 20. A new app starts with Summary, Satisfied and Topic. Pick more from **Common fields** (Summary, Satisfied, Sentiment, Resolved, Topic, Question group, Question sub-group) or add your own:
+
+| Type | Records | Gives you |
+|---|---|---|
+| **Yes / No** | True or false | A rate, e.g. "refund requested: 12%" |
+| **Dropdown** | One of your options (at least 2) | Counts per option |
+| **Classification** | An option inside an option (up to 3 levels, e.g. area › question) | Drill-down charts |
+| **Percentage** | 0 to 100 | Averages and spread |
+| **Number** | A score in a range you set (**Lowest** / **Highest**) | Averages |
+| **Short label** | A few words, e.g. a product area | Top values |
+
+Each field has a **Name**, a **Stored as** key (generated from the name and never changed afterwards, so renaming a field doesn't break past records) and **What to record**, which is the prompt for that field. Be specific:
+
+```text title="What to record — refund_requested (Yes / No)"
+True when the customer asks for money back, including chargebacks.
+Exclude questions about the refund policy that don't ask for a refund.
+```
+
+Optional **Instructions** apply to the whole analysis, and **Model** picks the model (empty means the workspace default). Use **Debug & Preview** to run the analyzer on one real conversation and see the record it would store; nothing is saved.
+
+### Assistant: ask questions
+
+The **Assistant** answers questions about the stored records, such as `What is the satisfaction rate?` or `Is satisfaction better this week than last week?`. Set its **Instructions** and **Model**. It can only run a fixed set of queries (counts, top values, averages, rates, trends, period comparisons, breakdowns, distributions and thread lookups), always scoped to this app's data.
+
+### Publish, logs and versions
+
+Click **Publish** (**Publish changes** after the first publish) to make your settings live. If records already exist, you're asked whether to re-analyse past conversations with the new settings (**Only new threads**, **Last 24 hours**, **Last 7 days**, **Last 30 days** or **Everything**). Re-analysing costs one model call per conversation.
+
+**Logs** has three views: **Runs** (each analysis run with how many threads were graded, skipped or failed), **Records** (one row per conversation) and **Failed** (conversations whose analysis couldn't be read, retried automatically up to 3 times; use **Retry** or **Retry all**). **Versions** lists each publish; **Restore** brings a version back as a draft to publish again.
+
+## Troubleshooting
+
+- **Metrics charts are empty** → check the period and app filter. Only Autonomous Agents, Agent Flows, AI Chatbots and Workflows appear.
+- **Active Users looks too high** → each anonymous visitor counts as a user, and with **All apps** selected a user of two apps is counted in each. Send your own `user` ID from your server so returning users are recognized.
+- **The Analytics assistant says nothing has been analysed** → open the **Trigger** block and click **Run**, or wait for the next scheduled run. Conversations are only analysed after the silence period.
+- **Many threads in Failed** → the model's reply couldn't be read. Simplify field prompts, reduce the number of fields, or choose a stronger **Model**, then **Retry all**.
+
+## Next steps
+
+<Cards>
+  <Card title='Logs' href='/docs/monitor/logs'>Read individual conversations and runs.</Card>
+  <Card title='Governance & audit' href='/docs/monitor/governance'>Execution health and audit trails.</Card>
+  <Card title='Voice sessions' href='/docs/monitor/voice-sessions'>Call volume, outcomes and recordings.</Card>
+  <Card title='Billing & credits' href='/docs/workspaces/billing'>What you're charged and why.</Card>
+</Cards>

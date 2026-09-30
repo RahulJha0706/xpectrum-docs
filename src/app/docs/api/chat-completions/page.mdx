@@ -1,0 +1,378 @@
+export const metadata = {
+  title: 'Chat completions',
+  description: 'Send a message to a chatbot, agent or flow and get the reply streamed or in one response — OpenAI-compatible.',
+}
+
+# Chat completions
+
+`POST /v1/chat/completions` sends one user message to a conversational app and returns the reply, either streamed token by token or as a single JSON response. The request and response follow the OpenAI Chat Completions format, with a few Xpectrum fields added for threads, variables, attachments and citations.
+
+## Create a chat completion
+
+<Endpoint method='POST' path='/v1/chat/completions' />
+
+Sends the last user message in `messages` to the agent behind the API key. Conversation memory is kept on the server: pass the `thread_id` from a previous reply to continue that conversation, or omit it to start a new one. The API key alone decides which agent answers — `model` is accepted for compatibility and ignored.
+
+**Supported app types:** <Tag tone='green'>AI Chatbot</Tag> <Tag tone='green'>Autonomous Agent</Tag> <Tag tone='green'>Agent Flow</Tag> <Tag tone='amber'>Multi-prompt Agent (Beta)</Tag> <Tag>Analytics</Tag>
+
+Workflow keys use [`POST /runs`](/docs/api/runs) instead, and Text Generator apps use the classic [completion messages](/docs/api/classic/completion-messages) endpoint.
+
+### Request body
+
+<Params title='Request body'>
+  <Param name='messages' type='array' required>
+    The conversation turns, OpenAI-style. **Only the last message with `role: "user"` is read** — it becomes the question. Earlier turns and `system` messages are ignored because history comes from `thread_id` (Analytics apps are the exception; see [App-specific behavior](#app-specific-behavior)). Must contain at least one user message.
+  </Param>
+  <Param name='messages[].role' type='string' required>
+    `user`, `assistant` or `system`.
+  </Param>
+  <Param name='messages[].content' type='string | array' required>
+    A string, or an array of content parts. `text` parts are joined with newlines; `image_url` parts become image attachments.
+  </Param>
+  <Param name='messages[].content[].type' type='string'>
+    `text` or `image_url`. Other part types are ignored.
+  </Param>
+  <Param name='messages[].content[].text' type='string'>
+    The text of a `text` part.
+  </Param>
+  <Param name='messages[].content[].image_url.url' type='string'>
+    For an `image_url` part: a public `http(s)` URL, or a base64 data URI such as `data:image/png;base64,iVBOR…`. Data URIs are uploaded for you.
+  </Param>
+  <Param name='stream' type='boolean' def='false'>
+    `true` returns a Server-Sent Events stream of `chat.completion.chunk` objects. Autonomous Agent apps **only** support streaming.
+  </Param>
+  <Param name='thread_id' type='string (UUID)'>
+    Continue an existing conversation. Use the `thread_id` returned by an earlier reply. Omit it to start a new thread. The thread must belong to the same app and the same `user`.
+  </Param>
+  <Param name='user' type='string'>
+    Your identifier for the end user. Each unique value has its own threads and history. Strongly recommended — without it, all calls share one anonymous user. See [the user identifier](/docs/api#the-user-identifier).
+  </Param>
+  <Param name='variables' type='object' def='{}'>
+    Values for the app's input variables, keyed by variable name, for example `{"customer_name": "Ada"}`. Required variables must be present. For a file variable pass an attachment object; for a file-list variable pass an array of them.
+  </Param>
+  <Param name='attachments' type='array'>
+    Files sent with this message. Each item needs a `url` **or** a `file_id`, not both.
+  </Param>
+  <Param name='attachments[].type' type='string' def='document'>
+    `image`, `document`, `audio` or `video`.
+  </Param>
+  <Param name='attachments[].url' type='string'>
+    A public URL the platform can fetch.
+  </Param>
+  <Param name='attachments[].file_id' type='string'>
+    The `id` of a file uploaded with the classic [file upload](/docs/api/classic/files) endpoint.
+  </Param>
+  <Param name='include_steps' type='boolean' def='false'>
+    Streaming only, for Agent Flow and other graph-based apps. Adds a chunk each time a step finishes, so your UI can react to which step ran. Off by default because step chunks have an empty `choices` array, which some OpenAI clients don't expect.
+  </Param>
+  <Param name='channel' type='string' def='chat'>
+    Where the message came from. Recorded on the thread and used by channel-aware agents. Accepted values: `chat` (also `web`, `api`), `whatsapp` (`wa`), `sms` (`text`), `email` (`mail`), `voice` (`webrtc`), `phone` (`call`), `mobile` (`app`). Unknown values become `chat`.
+  </Param>
+  <Param name='channel_metadata' type='object'>
+    Free-form details about the channel (for example a phone number or message id), stored with the thread.
+  </Param>
+  <Param name='timezone' type='string'>
+    The user's IANA timezone, for example `America/New_York` or `Asia/Kolkata`. Lets the agent resolve "today" and "tomorrow" correctly.
+  </Param>
+  <Param name='model' type='string'>
+    Ignored. Accepted so OpenAI clients that always send it keep working.
+  </Param>
+</Params>
+
+### Response
+
+A blocking request (`stream` omitted or `false`) returns one `chat.completion` object.
+
+<Params title='Response fields'>
+  <Param name='id' type='string'>
+    `chatcmpl-` followed by the message id. Strip the prefix to get the `message_id` used by [suggestions](/docs/api/agent-info#get-follow-up-suggestions).
+  </Param>
+  <Param name='object' type='string'>
+    Always `chat.completion`.
+  </Param>
+  <Param name='created' type='integer'>
+    Unix timestamp in seconds.
+  </Param>
+  <Param name='model' type='string'>
+    The agent's id. The same id is returned by [`GET /models`](/docs/api/agent-info).
+  </Param>
+  <Param name='choices[0].message.content' type='string'>
+    The assistant's full reply.
+  </Param>
+  <Param name='choices[0].finish_reason' type='string'>
+    `stop` when the reply completed.
+  </Param>
+  <Param name='usage' type='object'>
+    `prompt_tokens`, `completion_tokens` and `total_tokens` for this reply.
+  </Param>
+  <Param name='thread_id' type='string'>
+    The conversation this reply belongs to. Send it with the next message to continue.
+  </Param>
+  <Param name='run_id' type='string'>
+    Identifies this generation. Pass it to [`POST /runs/{run_id}/cancel`](/docs/api/runs#cancel-a-run) to stop a reply in progress.
+  </Param>
+  <Param name='mode' type='string'>
+    The app type: `chatbot`, `agent`, `flow`, `multi-prompt-agent` or `analytics`.
+  </Param>
+  <Param name='citations' type='array'>
+    Present only when the answer used a knowledge base. See [Citations](#citations).
+  </Param>
+</Params>
+
+```json title="200 OK"
+{
+  "id": "chatcmpl-5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10",
+  "object": "chat.completion",
+  "created": 1759190400,
+  "model": "9d2c4e57-3b8a-4f2e-a1c6-0e7b5d3f8a21",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "We're open 9am to 6pm, Monday to Saturday." },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 412, "completion_tokens": 18, "total_tokens": 430 },
+  "thread_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+  "run_id": "e8b7f2a4-1c3d-4a5e-9b6f-7d8c9e0a1b2c",
+  "mode": "chatbot",
+  "citations": [
+    {
+      "object": "citation",
+      "knowledge_id": "0f5e2d8c-…",
+      "knowledge_name": "Store policies",
+      "document_id": "7a1b3c4d-…",
+      "document_name": "opening-hours.md",
+      "chunk_id": "b2c3d4e5-…",
+      "content": "Opening hours: Monday–Saturday 9:00–18:00…",
+      "score": 0.83,
+      "position": 1
+    }
+  ]
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/chat/completions \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -N \
+  -d '{
+    "messages": [{ "role": "user", "content": "Do you have the blue jacket in medium?" }],
+    "user": "user-123",
+    "thread_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+    "variables": { "customer_name": "Ada" },
+    "timezone": "Europe/London",
+    "stream": true
+  }'
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="chat.ts"
+import { XpectrumChat } from 'xpectrum'
+
+const chat = new XpectrumChat({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: process.env.XPECTRUM_API_KEY!,
+  user: 'user-123',
+})
+
+const result = await chat.stream('Do you have the blue jacket in medium?', {
+  threadId: 'c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44',
+  variables: { customer_name: 'Ada' },
+  timezone: 'Europe/London',
+  onToken: (delta, full) => process.stdout.write(delta),
+})
+
+console.log('\nthread:', result.threadId, 'citations:', result.citations?.length ?? 0)
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="chat.py"
+import json
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/chat/completions",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "messages": [{"role": "user", "content": "Do you have the blue jacket in medium?"}],
+        "user": "user-123",
+        "stream": True,
+    },
+    stream=True,
+    timeout=(10, 330),
+)
+resp.raise_for_status()
+
+thread_id = None
+for line in resp.iter_lines(decode_unicode=True):
+    if not line or line.startswith(":"):
+        continue  # blank separator or ": ping" keep-alive
+    data = line[len("data: "):]
+    if data == "[DONE]":
+        break
+    chunk = json.loads(data)
+    if "error" in chunk:
+        raise RuntimeError(chunk["error"]["message"])
+    thread_id = chunk.get("thread_id") or thread_id
+    for choice in chunk.get("choices", []):
+        print(choice["delta"].get("content", ""), end="", flush=True)
+```
+
+</Tab>
+</Tabs>
+
+<Callout type='tip'>
+  The endpoint is OpenAI-compatible, so the official `openai` packages work too: set the base URL to `https://cloud.xpectrum.dev/v1` and the API key to your app key. Pass Xpectrum fields such as `thread_id` and `user` through the client's extra-body option.
+</Callout>
+
+## Streaming format
+
+With `"stream": true` the response is `text/event-stream`. Each event is a `data:` line holding one JSON object, followed by a blank line.
+
+```text title="Stream"
+data: {"id":"chatcmpl-5f0b…","object":"chat.completion.chunk","created":1759190400,"model":"9d2c…","thread_id":"c3a1…","run_id":"e8b7…","choices":[{"index":0,"delta":{"role":"assistant","content":"We're"},"finish_reason":null}]}
+
+data: {"id":"chatcmpl-5f0b…","object":"chat.completion.chunk","created":1759190400,"model":"9d2c…","thread_id":"c3a1…","run_id":"e8b7…","choices":[{"index":0,"delta":{"content":" open 9am"},"finish_reason":null}]}
+
+: ping
+
+data: {"id":"chatcmpl-5f0b…","object":"chat.completion.chunk","created":1759190400,"model":"9d2c…","thread_id":"c3a1…","run_id":"e8b7…","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":412,"completion_tokens":18,"total_tokens":430},"citations":[…]}
+
+data: [DONE]
+```
+
+- **Content chunks** carry the next piece of text in `choices[0].delta.content`. The first one also has `delta.role: "assistant"`.
+- Every chunk carries `thread_id` and `run_id`, so you can offer a **Stop** button as soon as the first token arrives.
+- **`: ping`** lines are SSE comments sent while the agent is thinking or calling tools. Ignore them.
+- **The final chunk** has an empty `delta`, `finish_reason: "stop"`, `usage`, and `citations` when knowledge was used.
+- **`data: [DONE]`** always closes the stream. It is not JSON.
+- **Errors after the stream starts** arrive as `data: {"error": {"message": "…", "type": "server_error", "param": null, "code": "…"}}`, followed by `data: [DONE]`. The HTTP status is already `200` by then, so check every chunk for `error`.
+
+### Step chunks
+
+With `"include_steps": true`, graph-based apps also send a chunk each time a step (block) finishes. The start step is not reported.
+
+```json
+{
+  "id": "chatcmpl-5f0b…",
+  "object": "chat.completion.chunk",
+  "thread_id": "c3a1…",
+  "run_id": "e8b7…",
+  "choices": [],
+  "step": {
+    "object": "step",
+    "id": "offer_discount",
+    "title": "Offer discount",
+    "response": "I can take 10% off your first order.",
+    "ended": false
+  }
+}
+```
+
+<Params title='step fields'>
+  <Param name='step.id' type='string'>The step's id in the flow.</Param>
+  <Param name='step.title' type='string'>The step's title as written in the editor.</Param>
+  <Param name='step.response' type='string'>The step's reply text, or an empty string if it has none.</Param>
+  <Param name='step.ended' type='boolean'>`true` when the flow ended at this step — for example to close the chat window.</Param>
+</Params>
+
+See [Streaming](/docs/api/streaming) for a complete parser and cancellation advice.
+
+## Citations
+
+When the agent answers from a knowledge base, the blocking response and the final stream chunk include a `citations` array.
+
+<Params title='Citation fields'>
+  <Param name='object' type='string'>Always `citation`.</Param>
+  <Param name='knowledge_id' type='string'>The knowledge base the passage came from.</Param>
+  <Param name='knowledge_name' type='string'>Its display name.</Param>
+  <Param name='document_id' type='string'>The source document.</Param>
+  <Param name='document_name' type='string'>The document's name, for example a file name.</Param>
+  <Param name='chunk_id' type='string'>The retrieved chunk.</Param>
+  <Param name='content' type='string'>The chunk's text.</Param>
+  <Param name='score' type='number'>Relevance score from retrieval.</Param>
+  <Param name='position' type='integer'>Rank of this citation among the results.</Param>
+</Params>
+
+Citations appear only when the app's retrieval settings return sources. See [Retrieval settings](/docs/knowledge/retrieval).
+
+## Continue a conversation
+
+1. Send the first message without `thread_id`.
+2. Read `thread_id` from the response (or from any stream chunk).
+3. Send each follow-up with that `thread_id` and the **same** `user`, and only the new user message in `messages`.
+
+```json
+{
+  "messages": [{ "role": "user", "content": "And on Sundays?" }],
+  "thread_id": "c3a1e8f0-2b7d-4e9a-8c55-6f1d0b2a7e44",
+  "user": "user-123"
+}
+```
+
+A thread created for one `user` is not visible to another: sending it with a different `user` returns `404 Thread does not exist.` To list a user's past threads, see [Threads](/docs/api/threads).
+
+## App-specific behavior
+
+| App type | Behavior |
+|---|---|
+| Autonomous Agent | Streaming only. A blocking request returns `400` `Agent apps only support streaming. Omit "stream": false.` Tool calls happen server-side; you receive only the reply text. |
+| Agent Flow, Multi-prompt Agent | Stream or block. `include_steps` reports finished steps. |
+| AI Chatbot | Stream or block. |
+| Analytics | The whole answer arrives in one content chunk when streaming, with no `: ping` lines. A blocking response also carries `mode: "analytics"` and a `queries` array describing what was looked up; stream chunks don't. Earlier `user`/`assistant` turns with text content in `messages` are used as context. Returns `404 Analytics apps are not enabled for this workspace.` if the feature is off. |
+
+## Errors
+
+Errors use the OpenAI-style envelope `{"error": {"message", "type", "param", "code"}}`, except authentication and access errors, which use the [classic envelope](/docs/api/errors#error-formats).
+
+| Status | Type / code | Message | When |
+|---|---|---|---|
+| 400 | `invalid_request_error` | `Invalid JSON body.` | The body is not a JSON object. |
+| 400 | `invalid_request_error` | `'messages' must be a non-empty array containing at least one user message.` | `messages` is missing, empty, or has no `user` message. |
+| 400 | `invalid_request_error` | `'messages' must contain a user message.` | The last user message has no text. |
+| 400 | `invalid_request_error` | `'thread_id' must be a valid UUID.` | `thread_id` is not a UUID. |
+| 400 | `invalid_request_error` | `'variables' must be an object.` | `variables` is an array, string or number. |
+| 400 | `invalid_request_error` | `'attachments' must be an array.` | `attachments` is not an array. |
+| 400 | `invalid_request_error` | `Each attachment must be an object.` | An item in `attachments` is not an object. |
+| 400 | `invalid_request_error` | `Unsupported attachment type 'X'. Use one of: image, document, audio, video.` | Unknown `type`. |
+| 400 | `invalid_request_error` | `An attachment must have either 'url' or 'file_id', not both.` | Both were sent. |
+| 400 | `invalid_request_error` | `Each attachment needs a 'url' or a 'file_id'.` | Neither was sent. |
+| 400 | `invalid_request_error` | `'channel_metadata' must be an object.` | `channel_metadata` is not an object. |
+| 400 | `invalid_request_error` | `Invalid timezone 'X'. Must be a valid IANA timezone (e.g. 'America/New_York', 'Asia/Kolkata', 'Europe/London').` | Unknown timezone name. |
+| 400 | `invalid_request_error` | `Invalid base64 image in 'image_url': expected a data URI like 'data:image/png;base64,...'.` | Malformed data URI in an `image_url` part. |
+| 400 | `invalid_request_error` | `Missing required variable 'X'.` | A required input variable is missing from `variables`. |
+| 400 | `invalid_request_error` | `Variable 'X' must be a number.` / `must be an attachment.` / `must be a list of attachments.` | A variable has the wrong type. |
+| 400 | `invalid_request_error` | `Agent apps only support streaming. Omit "stream": false.` | Blocking request to an Autonomous Agent. |
+| 400 | `invalid_request_error` | `This app has no published version yet.` | Publish the app first. |
+| 400 | `invalid_request_error` | `The thread has ended. Start a new one by omitting 'thread_id'.` | The thread was closed. |
+| 400 | `invalid_request_error` / `model_not_supported` | `Model is currently not supported.` | The app's model can't be used. Change it in the app. |
+| 400 | `invalid_request_error` | `Invalid request.` | Any other invalid input. Check the body against this page. |
+| 404 | `invalid_request_error` / `model_not_found` | `This API key belongs to an app that does not support chat completions (only chatbot, agent, flow and analytics apps do).` | Workflow or Text Generator key. |
+| 404 | `invalid_request_error` / `thread_not_found` | `Thread does not exist.` | Unknown `thread_id`, or it belongs to another `user`. |
+| 429 | `rate_limit_exceeded` | Provider or plan message | Too many requests. Back off and retry. |
+| 429 | `insufficient_quota` | `Model provider quota exceeded.` | The model provider's quota is used up. |
+| 500 | `server_error` / `provider_not_initialized` | Provider message | The app's model provider has no valid credentials. See [Model providers](/docs/integrations/models). |
+| 500 | `server_error` | `App is unavailable.` | The app's configuration is broken. Open it, fix, and republish. |
+| 500 | `server_error` | `Model invocation failed.` or provider message | The model call failed. Retry. |
+| 500 | `server_error` | `Internal server error.` | Unexpected failure. Retry; contact support if it persists. |
+| 503 | `server_error` | `Analytics storage is unavailable.` | Analytics apps only. Retry later. |
+
+## Next steps
+
+<Cards>
+  <Card title='Streaming' href='/docs/api/streaming'>Parse chunks, handle errors and cancel.</Card>
+  <Card title='Threads' href='/docs/api/threads'>List conversations and load transcripts.</Card>
+  <Card title='Agent info & suggestions' href='/docs/api/agent-info'>Greeting, starter questions and follow-ups.</Card>
+  <Card title='Cancel a run' href='/docs/api/runs#cancel-a-run'>Stop a reply that is still generating.</Card>
+</Cards>

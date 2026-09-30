@@ -1,0 +1,144 @@
+export const metadata = {
+  title: 'FAQ',
+  description: 'Short answers to common questions about Xpectrum pricing, app types, API keys, voice, channels, integrations, MCP and agencies.',
+}
+
+# FAQ
+
+Short answers to the questions people ask most, with links to the full docs.
+
+## Getting started
+
+### Which app type should I use?
+
+| You want… | Use |
+|---|---|
+| A chat or voice agent that answers from instructions and knowledge, with no tools | **AI Chatbot** |
+| An agent that picks its own tools and steps to reach a goal | **Autonomous Agent** |
+| A conversation with explicit steps, branching on intent, and tools at fixed points | **Agent Flow** |
+| A scripted call or chat that follows a fixed path, such as intake or booking | **Multi-prompt Agent** (limited availability) |
+| An automation that runs on a trigger, a schedule or an API call, with no conversation | **Workflow** |
+
+See [App types](/docs/getting-started/app-types).
+
+### What's the difference between an Agent Flow and a Workflow?
+
+Both are built on the canvas with the same blocks. An **Agent Flow** is a conversation: it has turns, memory and an **Answer** block, and you test it with **Preview**. A **Workflow** runs once from start to finish on an input, returns outputs from its **Output** block, and you test it with **Run**. Only Workflows can be published as tools and MCP tools. See [Agent Flow](/docs/build/agent-flow) and [Workflows](/docs/build/workflows).
+
+### Why don't my changes show up over the API or on my phone number?
+
+Everything outside the editor uses the last published version. Click **Publish Changes** after editing. For voice settings, also click **Publish Changes** on the **Voice** page. See [Publishing](/docs/deploy/publishing).
+
+### Can I roll back to an earlier version?
+
+Yes, for canvas apps. Open the **Version History** tab, find the version and click **Restore**. Your current draft is overwritten; publish afterwards to make the restored version live.
+
+## Pricing and credits
+
+### How does pricing work?
+
+You pay for usage from a credit balance. There are three kinds of charge: executions, voice minutes and messages. "An execution is one chat reply, one email processed or one workflow run — loops and tool calls included, never charged per step." Third-party services such as models, speech and telephony are passed through at cost, with no markup. The current rates are shown under **How pricing works** in **Settings › Billing**. See [Billing & credits](/docs/workspaces/billing).
+
+### What happens when I run out of credits?
+
+The sidebar chip changes to **Out of credits**, new runs are refused (`402 insufficient_credit`, "You're out of credits. Add credits to keep running."), and new voice calls don't start. An Owner or Admin can **Add credit**, from $5 to $500 per top-up.
+
+### Can I use my own model or speech provider keys?
+
+Yes. In **Integrations › Models**, expand a provider and add your key. "Using your custom key. It overrides the platform default." Keys are stored encrypted per workspace and aren't shown again after you save. For voice, set **API Key** to **Custom Key** on the **Voice & Transcriber** tab. See [Models](/docs/integrations/models).
+
+## API and security
+
+### Is it safe to put my API key in the browser?
+
+Only for a public chat widget, and only with **Conversation history over API** turned off for that app. Anyone can read a key that's shipped to the browser. For anything else, call Xpectrum from your server and have the browser talk to your server. See [Authentication](/docs/api/authentication).
+
+### Should I use the recommended API or the classic API?
+
+Use the recommended, OpenAI-compatible API (`/chat/completions`, `/runs`, `/threads`) and the SDK for new work. The [classic API](/docs/api/classic) (`/chat-messages`, `/workflows/run`) stays available for existing integrations and for features only it has, such as file uploads and feedback. See [API overview](/docs/api).
+
+### How does the agent remember a conversation over the API?
+
+Pass the `thread_id` from the first response on every later request. History is stored on the server, and only the last user message you send is read, so never resend earlier turns. Use a stable `user` value as well, because threads are scoped to it. See [Threads](/docs/api/threads).
+
+### Can I stop a reply that's being generated?
+
+Yes. Call `POST /v1/runs/{run_id}/cancel` with the `run_id` from the stream. Closing the connection on your side doesn't stop generation or token use. See [Runs](/docs/api/runs).
+
+### Does Xpectrum send webhooks when a conversation or run finishes?
+
+There are no outbound event webhooks to subscribe to. To notify your system, add an **HTTP Request** block at the point in the flow where you want the notification, and post the data you need to your endpoint. See [HTTP Request](/docs/blocks/http-request).
+
+### How do I start a workflow from another system?
+
+There are four ways: call `POST /v1/runs` with the workflow's API key, add a **Webhook Trigger** and post to its URL, use a **Custom App Trigger** for events from a connected app, or create a scheduled task under **Automation Apps › Triggers** that calls the workflow's webhook URL at the times you set. See [Triggers](/docs/build/triggers).
+
+## Integrations and MCP
+
+### Can I use my workflows in Cursor or another MCP client?
+
+Yes. Publish the workflow, open **API & Access**, and click **Enable MCP**. Give it a **Tool name** and **Tool description**, then paste the URL into your MCP client. Treat the URL as a secret: "Anyone with this URL can run the workflow." Use **MCP groups** to expose several workflows behind one URL. See [MCP](/docs/integrations/mcp).
+
+### Can my agent call my own API?
+
+Yes. In an Autonomous Agent, add a custom tool from an OpenAPI schema with **+** in the **Tools** picker. In an Agent Flow or Workflow, use an **HTTP Request** block. You can also publish a Workflow: unless it starts from a trigger, it becomes available as a tool to your agents automatically. See [Custom tools](/docs/integrations/custom-tools).
+
+### Can I trace model calls in my own observability tool?
+
+Yes, with LangSmith, Langfuse, Opik or Weave. See [Tracing](/docs/integrations/tracing).
+
+## Voice and channels
+
+### Which languages can a voice agent speak?
+
+Set the language in two places: the transcriber **Language** on the **Voice & Transcriber** tab (what the agent hears), and a voice that speaks that language (what the agent says). Then tell the agent in its **Instructions** which language to reply in. The transcriber defaults to `en-US`. See [Voice](/docs/channels/voice).
+
+### Can I use a custom or cloned voice?
+
+With ElevenLabs or Cartesia, the voice list is loaded from the provider account behind the API key. Set **API Key** to **Custom Key** with a key from your own account, and choose your voice from the list. OpenAI offers its built-in voices only.
+
+### Can the agent transfer a call to a person?
+
+In a **Multi-prompt Agent**, set a **Going off-script** response to **Pass to a person**, which "Ends the call by transferring it." Multi-prompt Agents have limited availability. In other app types, have the agent collect the details and use a tool or **HTTP Request** to create a ticket or alert your team. See [Multi-prompt Agent](/docs/build/multi-prompt-agent).
+
+### Does the agent detect voicemail on outbound calls?
+
+No. There is no answering-machine detection, so the agent greets voicemail as if a person answered. Keep outbound greetings short. See [Voice & phone troubleshooting](/docs/troubleshooting/voice).
+
+### Where do I find call recordings and transcripts?
+
+In **Monitoring & Analytics › Sessions**. Open a call to see its **Recording**, **Transcript**, **AI Summary** and **Session Timeline**. Recording only happens when **Record Session** is on for the agent. See [Voice sessions](/docs/monitor/voice-sessions).
+
+### How do I put an agent on my website?
+
+Use the JavaScript SDK's chat or voice widget, or paste the no-code embed script. See [Web](/docs/channels/web) and the [JavaScript SDK](/docs/api/javascript-sdk).
+
+### Which channels are supported?
+
+Voice (in the browser and on phone numbers), outbound and batch calls, SMS, WhatsApp, email and the web. Telegram is coming soon. SMS can continue a caller's last voice or SMS conversation. See [Channels](/docs/channels).
+
+## Workspaces and agencies
+
+### Can I build agents for my clients?
+
+Yes. Create a client workspace for each client in **Settings › Client Workspaces**, and choose **Self-serve** (billed on credit) or **Agency-managed** (not billed on credit). You can view each client's logs, traces and usage from the workspace details. See [Client workspaces](/docs/workspaces/clients) and the [agency guide](/docs/guides/agency).
+
+### Can I remove the Powered by Xpectrum AI badge?
+
+Yes, on an upgraded plan. In **Settings › Customization**, turn on **Remove Powered by Xpectrum AI**, or replace it with your own brand image. See [Branding](/docs/workspaces/branding).
+
+### How many owners and admins can a workspace have?
+
+A workspace can have up to 3 **Owner**s. A client workspace has no owners and one **Admin**. Use **Request another admin** to ask for more. See [Workspaces](/docs/getting-started/workspaces).
+
+### Can I turn on two-factor authentication?
+
+Yes. Go to **Settings › Security** and click **Enable MFA**. You can use an authenticator app, SMS or email for the 6-digit codes.
+
+## Next steps
+
+<Cards>
+  <Card title='Troubleshooting' href='/docs/troubleshooting'>How to debug, and the most common errors.</Card>
+  <Card title='Limits' href='/docs/troubleshooting/limits'>Every public limit in one place.</Card>
+  <Card title='Quickstart' href='/docs/getting-started/quickstart'>Build and test your first agent.</Card>
+</Cards>

@@ -1,0 +1,163 @@
+export const metadata = {
+  title: 'Phone numbers',
+  description: 'Buy a phone number, route its inbound calls to an agent, and place outbound calls.',
+}
+
+# Phone numbers
+
+Give an agent a real phone number. You buy the number in Xpectrum, choose whether it takes calls, makes calls or both, and assign the agent that answers. Calls go through the agent's [voice settings](/docs/channels/voice).
+
+## Before you begin
+
+- A conversational agent that is published and has its voice settings saved on **Channels › Voice**.
+- The **Owner** or **Admin** role to buy, assign, rename or remove numbers. Other roles see **Contact support** instead of **Buy Number**.
+- A payment card on file. Number purchases and monthly rent are charged to your card, not to credits. If you have no card yet, you are sent to add one during the purchase.
+
+## The Phone Number page
+
+Open **Channels › Phone Number**. The **Overview** section shows counts — **Phone Numbers**, **Assigned to Agents**, **Outbound Enabled** — and quick actions: **Buy Number**, **Batch Calls** and **Refresh**.
+
+The **Phone Numbers** table lists every number in the workspace:
+
+| Column | Shows |
+|---|---|
+| **Phone Number** | The number and its display name. |
+| **Capabilities** | Badges for what the number can do (see below). |
+| **Status** | For example `active`. |
+| **Assigned Agent** | The agent that answers this number. |
+| **Actions** | **Call** (outbound-capable numbers), **Assign** / **Change**, and the row menu. |
+
+Filter with **All numbers**, **Assigned**, **Unassigned** or **Outbound enabled**, or search by number or agent.
+
+### Capability badges
+
+| Badge | Meaning |
+|---|---|
+| **Inbound** | This number can receive calls. |
+| **Dispatch** | A rule routes incoming calls on this number to an agent. |
+| **Outbound** | This number can place calls. |
+| **Krisp** | Krisp noise cancellation is on for this number. |
+
+A number that receives calls but shows no **Dispatch** badge has no agent to route to. Assign one.
+
+## Buy a number
+
+<Steps>
+<Step title='Open Buy Number'>
+
+Click **Buy Number**. The **Buy & Setup Phone Number** dialog opens: "Search, buy a Twilio number, and auto-configure SIP trunks".
+
+</Step>
+<Step title='Search available numbers'>
+
+Under **Search Available Numbers**, pick a **Country** (United States by default), then enter an **Area Code** (for example `415`) and/or a pattern in **Contains** (for example `555`). Click **Search**. Each result shows its location and **Voice** / **SMS** capability badges.
+
+Pick a number with the **SMS** badge if you also want to use it for [SMS](/docs/channels/sms).
+
+</Step>
+<Step title='Configure the setup'>
+
+Under **Configure Setup**:
+
+| Field | What to enter |
+|---|---|
+| **Direction** | **Inbound** (receives calls), **Outbound** (places calls) or **Both**. |
+| **Assign to Agent** | The agent that answers calls on this number. |
+| **Display Name** | A label for your team, such as `Sales Line` or `Support`. |
+
+</Step>
+<Step title='Buy and set up'>
+
+Click **Buy & Setup**. Xpectrum buys the number and configures calling for it. You see "Number … bought and configured!" when it's ready.
+
+If there's no card on file, you see "No payment method on file yet — redirecting to add one." Add the card, and you return to the dialog. If the number is still free you'll see "Card saved. … is still available — confirm to buy it." If someone else bought it in the meantime, search again.
+
+</Step>
+</Steps>
+
+<Callout type='warning' title='Direction is permanent'>
+  **Direction** is set at purchase and cannot be changed. If you might ever run [batch calls](/docs/channels/batch-calls) or outbound calls from this number, choose **Both**.
+</Callout>
+
+## Assign or change the agent
+
+Click **Assign** (or **Change**) on the row, or use **Assign Agent** / **Change Agent** in the row menu, and pick an agent. The next call to the number goes to that agent.
+
+One agent can answer several numbers. Its voice settings are shared across all of them.
+
+## Place an outbound call
+
+On a number with the **Outbound** badge, click **Call** ("Make outbound call"):
+
+1. **Caller ID (From Number)** is the number you clicked.
+2. Enter **Phone Number to Call** in E.164 format.
+3. Click **Call**. "Call initiated successfully!" means the call was placed.
+
+The agent assigned to the number handles the call. It waits for the callee to answer before speaking its initial message. The dialog has no fields for variables or per-call inputs, so the agent starts every outbound call the same way.
+
+If the call can't connect, you see one of these:
+
+| Message | Meaning |
+|---|---|
+| The number is currently busy. Please try again later. | The line was busy. |
+| No answer. The user may be unavailable. | Nobody picked up. |
+| This number appears to be unreachable or switched off. | The number couldn't be reached. |
+| The call could not be completed. Please try again. | Any other failure. |
+
+To call many people, use [Batch calls](/docs/channels/batch-calls). To place calls from code, see the [Voice API](/docs/api/voice).
+
+<Callout>
+  Voicemail and answering machines are not detected. If a machine answers an outbound call, the agent speaks to it as if it were a person.
+</Callout>
+
+## E.164 format
+
+Phone numbers must be in E.164 format: a `+`, the country code, then the number, with no spaces, dashes or brackets.
+
+| Written as | E.164 |
+|---|---|
+| (415) 555-1234, United States | `+14155551234` |
+| 020 7946 0958, United Kingdom | `+442079460958` |
+| 98765 43210, India | `+919876543210` |
+
+Drop the leading `0` of a national number when you add the country code.
+
+## Rename, copy or remove a number
+
+The row menu also has:
+
+- **Rename** — change the **Display Name**.
+- **Copy Phone Number** — copy the number to the clipboard.
+- **Remove & Delete** — release the number. "This phone number will be permanently removed. You may not be able to recover the same number. This action cannot be undone."
+
+<Callout type='danger'>
+  Once a number is released you may never get it back. Before removing a number that customers know, point it at another agent instead.
+</Callout>
+
+## Roles
+
+| Action | Who can do it |
+|---|---|
+| View numbers, copy a number, place an outbound call | Everyone with access to **Channels** |
+| Buy, assign, change agent, rename, remove | **Owner**, **Admin** |
+| Edit the voice the number uses | **Owner**, **Admin**, **Editor** (on **Channels › Voice**) |
+
+For roles other than Owner and Admin, the buy quick action reads **Contact support** — "Ask us to add a number to this workspace".
+
+## Troubleshooting
+
+- **Calls ring but no agent answers** → The number has no assigned agent (no **Dispatch** badge). Assign one. Check that the agent is published and its voice settings are saved.
+- **No Call button on a number** → The number was bought as **Inbound** only. Buy a number with **Outbound** or **Both**.
+- **Buy Number isn't shown** → You need the Owner or Admin role.
+- **Search returns no numbers** → Try another area code, clear **Contains**, or pick another country.
+- **The call connects but the agent is silent** → See [Voice troubleshooting](/docs/troubleshooting/voice). A common cause is running out of credit (`insufficient_credit`).
+- **The outbound call fails at once** → Check that the number is E.164, with `+` and country code.
+
+## Next steps
+
+<Cards>
+  <Card title='Batch calls' href='/docs/channels/batch-calls'>Call a list of numbers on a schedule.</Card>
+  <Card title='SMS' href='/docs/channels/sms'>Answer texts on the same number.</Card>
+  <Card title='Voice sessions' href='/docs/monitor/voice-sessions'>See every call, its outcome and transcript.</Card>
+  <Card title='Build an AI receptionist' href='/docs/guides/ai-receptionist'>An end-to-end phone agent.</Card>
+</Cards>

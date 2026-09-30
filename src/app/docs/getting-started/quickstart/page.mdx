@@ -1,0 +1,147 @@
+export const metadata = {
+  title: 'Quickstart',
+  description: 'Build, test, publish and call your first Autonomous Agent in about ten minutes.',
+}
+
+# Quickstart
+
+In this quickstart you build an Autonomous Agent from a blank app, test it in **Preview**, publish it, call it from the API with cURL, and put it on a channel. It takes about ten minutes.
+
+## Before you begin
+
+- An Xpectrum account and a workspace where your role is **Owner**, **Admin** or **Editor**. **Normal** members can use apps but not build them — see [Workspaces, members & roles](/docs/getting-started/workspaces).
+- A terminal with `curl` for the API step.
+- Optional: a PDF, a text file or a website URL describing your business, if you want the agent to answer from your own content.
+
+## Build your first agent
+
+<Steps>
+<Step title='Create the app'>
+
+In the sidebar, open **Conversational Apps › Autonomous Agent** and click **Create from Blank** (the first icon button in the toolbar).
+
+In the **Create Agent** dialog, enter an **App Name** (for example `Acme Support`) and, optionally, a **Description**. Click **Create** (or press <Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd>, <Kbd>⌘</Kbd> <Kbd>Enter</Kbd> on Mac).
+
+The app opens on its configuration canvas: a row of node cards — **Trigger**, **Instructions**, **Knowledge**, **Tools**, **Vision**, **AI Agent** and **Output** — with a settings dock at the bottom. Cards marked **Needs setup** still need attention.
+
+</Step>
+<Step title='Write the instructions'>
+
+Click the **Instructions** card. In the dock's **Configurations** tab, paste a system prompt into **Instructions**. Start with something like this and adapt it:
+
+```text title="Instructions"
+You are Ava, the support assistant for Acme Home, an online store that sells
+kitchen appliances.
+
+Your goal: answer customer questions about orders, shipping, returns and
+products quickly and accurately.
+
+Rules:
+- Answer only from the knowledge you have been given. If you don't know,
+  say so and offer to connect the customer with a person at support@acme.example.
+- Keep answers under 120 words. Use short paragraphs or a short list.
+- Never promise refunds or discounts. Explain the policy instead.
+- Ask one clarifying question when a request is ambiguous.
+```
+
+The card subtitle changes from **No instructions set** to a character count. For more on prompt structure, see [Writing instructions](/docs/build/instructions).
+
+</Step>
+<Step title='Pick a model'>
+
+Click the **AI Agent** card and choose a model in the model selector. Until you do, the card shows **No model selected** and **Needs setup**. Any model that is installed in your workspace appears in the list; see [Models](/docs/integrations/models) to add providers or your own keys.
+
+</Step>
+<Step title='Add knowledge (optional)'>
+
+If you have content to ground the agent in, create a knowledge base first under **Resources › Knowledge Base** (for example with **Upload Files** or **From Website**). Wait for it to finish indexing.
+
+Then click the **Knowledge** card and, under **Select reference Knowledge**, click your knowledge base to add it. The card subtitle changes to "1 dataset(s)". See [Knowledge](/docs/knowledge).
+
+</Step>
+<Step title='Test in Preview'>
+
+Click **Preview** in the header. The panel opens beside the canvas and shows **Nothing to test yet** until you send a message. Type a question in **Ask something to test the agent**, for example:
+
+```text
+What is your return policy for opened blenders?
+```
+
+Change the instructions or model and ask again until the answers look right. Preview always runs your current draft.
+
+<Callout type='tip'>
+  If you defined **Trigger** variables, fill them in first with the **User Input Field** icon in the Preview panel. Required variables block the test until they have values.
+</Callout>
+
+</Step>
+<Step title='Publish'>
+
+Click **Publish Changes** (or press <Kbd>Ctrl</Kbd> <Kbd>Shift</Kbd> <Kbd>P</Kbd>). The publish panel shows two **External API** toggles, both on by default:
+
+- **Voice calls** — allows starting voice calls with the API key.
+- **Conversation history over API** — allows listing conversations and transcripts with the API key.
+
+Click **Publish Changes** at the bottom of the panel. You see **Changes published – The live version now matches this draft.** and the **API & Access** panel opens.
+
+</Step>
+<Step title='Create an API key'>
+
+In **API & Access**, note the **Endpoint** and click **Create new Secret key**. Copy the key immediately — it is shown in full only once. Keep it on your server, never in browser code. See [API keys](/docs/deploy/api-keys).
+
+You can reopen **API & Access** later by hovering the app name in the editor header.
+
+</Step>
+<Step title='Make your first API call'>
+
+Send a message to your agent with the OpenAI-compatible [Chat Completions](/docs/api/chat-completions) endpoint. Autonomous Agents reply in streaming mode, so set `"stream": true`:
+
+```bash title="Terminal"
+curl -N https://cloud.xpectrum.dev/v1/chat/completions \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      { "role": "user", "content": "What is your return policy for opened blenders?" }
+    ],
+    "stream": true,
+    "user": "customer-123"
+  }'
+```
+
+The response is a stream of `chat.completion.chunk` events that ends with `data: [DONE]`. Each chunk carries a `thread_id`. To continue the same conversation, send that `thread_id` with the next message — history is kept on the server, so you only send the new user message.
+
+</Step>
+<Step title='Put it on a channel'>
+
+Your published agent is ready for any channel:
+
+- **Phone** — buy or pick a number in **Channels › Phone Number** and assign the agent. Tune the voice and greeting in **Channels › Voice**, and use **Call** there to talk to it in the browser first.
+- **Website** — drop the chat or voice widget from the JavaScript SDK into your site. See [Web](/docs/channels/web).
+- **SMS, WhatsApp, email** — connect them under **Channels**. See [Channels](/docs/channels).
+
+</Step>
+</Steps>
+
+## Test it
+
+- In the editor, **Preview** tests the draft; the API and channels always run the published version. After you change the agent, click **Publish Changes** again for callers to see the change.
+- Open **Logs** in the editor header to see each conversation, including API calls.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| A node card shows **Needs setup** | **Instructions** is empty or the **AI Agent** has no model. Fill them in. |
+| API returns `Agent apps only support streaming. Omit "stream": false.` | Autonomous Agents only stream. Send `"stream": true`. |
+| API returns `401 Access token is invalid` | Check the key and the `Authorization: Bearer …` header. Keys are per app. |
+| Answers ignore your documents | Check the knowledge base finished indexing, is added on the **Knowledge** card, and returns results in **Retrieval Testing**. See [Retrieval](/docs/knowledge/retrieval). |
+| Preview works but the API gives old answers | You haven't published the latest draft. Click **Publish Changes**. |
+
+## Next steps
+
+<Cards>
+  <Card title='Core concepts' href='/docs/getting-started/concepts'>How workspaces, apps, knowledge, channels and publishing fit together.</Card>
+  <Card title='Autonomous Agent reference' href='/docs/build/autonomous-agent'>Every node, setting and feature card.</Card>
+  <Card title='Build an AI receptionist' href='/docs/guides/ai-receptionist'>Answer phone calls and book appointments.</Card>
+  <Card title='Chat Completions API' href='/docs/api/chat-completions'>Threads, variables, attachments and streaming.</Card>
+</Cards>

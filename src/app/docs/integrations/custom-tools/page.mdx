@@ -1,0 +1,172 @@
+export const metadata = {
+  title: 'Custom tools',
+  description: 'Turn any HTTP API into a reusable tool with an OpenAPI schema: write the schema, set authorization, test each operation and use it in flows.',
+}
+
+# Custom tools
+
+A custom tool connects your flows to your own HTTP API. You describe the API with an OpenAPI schema once, including its authorization, and each operation becomes an action you can add to Agent Flows and Workflows as a tool step.
+
+<Callout type='warning' title='Where custom tools work'>
+  Custom tools are used as tool steps in Agent Flows and Workflows. They can't currently be added to an Autonomous Agent's **Tools** node or picked from an Agent block's tool list. To let a model decide when to call your API, wrap the call in a Workflow and use it as a [workflow tool](/docs/integrations/tools#workflows-as-tools).
+</Callout>
+
+## When to use a custom tool
+
+| Use… | When |
+|---|---|
+| A **custom tool** | Several flows call the same API, and you want its operations, parameters and credentials defined once. |
+| An [HTTP Request](/docs/blocks/http-request) block | A flow calls an API once, at a fixed step. |
+| A [workflow tool](/docs/integrations/tools#workflows-as-tools) | An agent should decide when to call your API, or the action takes several steps, such as call, transform, then call again. |
+
+## Create a custom tool
+
+<Steps>
+<Step title='Open Create Custom Tool'>
+
+In an Agent Flow or Workflow, add an [Agent](/docs/blocks/agent) block, choose its **Agentic Strategy**, and add a tool to its **Tools** list. In the tool picker, click **+** next to the **Plugin** and **Workflow** tabs to open **Create Custom Tool**. The Agent block isn't available on every workspace, for example client workspaces.
+
+</Step>
+<Step title='Name it and paste the schema'>
+
+Enter a **Name**. In **Schema**, paste your OpenAPI schema (JSON or YAML), or click **Import from URL** to fetch it. **Examples** loads a sample: **Weather(JSON)** or **Pet Store(YAML)**.
+
+</Step>
+<Step title='Check the operations'>
+
+**Available Tools** lists each operation it found, with its **Name**, **Description**, **Method** and **Path**. If the table is empty, the schema didn't parse. See [Troubleshooting](#troubleshooting).
+
+</Step>
+<Step title='Set authorization'>
+
+Choose an **Authorization method**. See [Authorization](#authorization).
+
+</Step>
+<Step title='Test and save'>
+
+Click **Test** on an operation, fill in **Parameters & Value**, and check the **Test Results**. Then click **Save**.
+
+</Step>
+<Step title='Use it in a flow'>
+
+Click **+** on a node to open **Add a step**, pick **Tools**, then the **Plugins** scope. Your custom tool is listed under **Connected**. Pick an action to add it as a step, and fill its parameters with fixed values or variables.
+
+</Step>
+</Steps>
+
+## Schema requirements
+
+Schemas can be OpenAPI 3 (recommended) or Swagger 2, in JSON or YAML. A Swagger 2 schema must still include a `servers` array, and every operation needs an `operationId`.
+
+| Part | Requirement |
+|---|---|
+| `servers` | Required. The first `url` is the base for every path. |
+| `paths` | At least one operation. |
+| `operationId` | The action's name. Use letters, digits, `_` and `-` only, for example `get_order_status`. If it's missing, a name is generated from the path and method. Set it yourself so it's readable. |
+| `description` / `summary` | The action's description. If both are set, `description` is used. Say what the action does and when to use it. |
+| Parameters | Path, query and header parameters, plus the properties of the request body schema, become the tool's inputs. Give each one a `description`, and mark `required` correctly. Types `string`, `number`/`integer` and `boolean` are kept. Other schema rules, such as `enum`, aren't passed on. |
+
+### Example: order lookup API
+
+This schema defines two actions: one looks up an order, the other creates a return.
+
+```json title="orders-openapi.json"
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Acme Orders",
+    "description": "Look up orders and create returns for Acme customers.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "https://api.acme.example.com/v1" }],
+  "paths": {
+    "/orders/{order_id}": {
+      "get": {
+        "operationId": "get_order_status",
+        "summary": "Get the status, items and delivery date of an order. Use when the customer asks where their order is.",
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "description": "The order number, for example A-10293.",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "The order." } }
+      }
+    },
+    "/returns": {
+      "post": {
+        "operationId": "create_return",
+        "summary": "Open a return for an order. Only call after the customer confirms which item to return and why.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["order_id", "sku", "reason"],
+                "properties": {
+                  "order_id": { "type": "string", "description": "The order number." },
+                  "sku": { "type": "string", "description": "SKU of the item being returned." },
+                  "reason": {
+                    "type": "string",
+                    "enum": ["damaged", "wrong_item", "no_longer_needed"],
+                    "description": "Why the customer is returning the item. One of: damaged, wrong_item, no_longer_needed."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "The return was created." } }
+      }
+    }
+  }
+}
+```
+
+The tool gets two actions, `get_order_status` and `create_return`. Running `get_order_status` with `order_id` set to `A-10293` calls `GET https://api.acme.example.com/v1/orders/A-10293`.
+
+## Authorization
+
+| Authorization type | What's sent |
+|---|---|
+| **None** | No credentials. Use it only for public APIs. |
+| **API Key** | A header on every request. **Key** is the header name (it starts as `Authorization`; keep it if unsure). **Value** is your secret. **Auth Type** controls the format. |
+
+| Auth Type | Header sent (with **Key** left as `Authorization`) |
+|---|---|
+| **Basic** (the default) | `Authorization: Basic <value>`. Supply the already base64-encoded `user:password`. |
+| **Bearer** | `Authorization: Bearer <value>` |
+| **Custom** | The value exactly as entered, with no prefix. Change **Key** too if your API expects another header, for example `X-API-Key: sk_live_…`. |
+
+<Callout type='warning'>
+  The credentials are shared by every flow that uses this tool. Create a key scoped to what the tool should be allowed to do, such as read orders and create returns, but not issue refunds.
+</Callout>
+
+You can also add **Tags**, a **Privacy policy** link and a **Custom disclaimer** for other builders in your workspace.
+
+## Design tips
+
+- **One action, one job.** `create_return` is easier to wire up and reason about than a generic `update_order` with a `mode` field.
+- **Describe actions and parameters.** Clear descriptions tell other builders, and any model that reads them, what each action and input is for.
+- **List allowed values in the description.** An `enum` in the schema isn't passed on, so name the valid values in the parameter's `description`.
+- **Return compact JSON.** Large responses use context and slow replies. Filter server-side.
+- **Return clear errors.** A body like `{"error": "Order A-10293 not found"}` makes failures easy to handle in the flow.
+
+## Troubleshooting
+
+- **"No server found in the openapi yaml."** Add a `servers` array with at least one `url`.
+- **"Invalid api schema, schema is neither json nor yaml…"** The schema has a syntax error. Validate it in an OpenAPI editor first.
+- **"Invalid api schema, openapi error: …"** The schema parsed but isn't valid OpenAPI or Swagger. For Swagger 2, the message may include "No operationId found in operation …": add an `operationId` to each operation.
+- **The custom tool isn't in the Autonomous Agent's tool picker.** Custom tools can't be added there. Use a [workflow tool](/docs/integrations/tools#workflows-as-tools) instead.
+- **401 or 403 in Test Results.** Check the **Key** header name and **Auth Type**. **Auth Type** starts as **Basic**, and many APIs expect **Bearer**.
+
+## Next steps
+
+<Cards>
+  <Card title='Tools' href='/docs/integrations/tools'>Install Library tools and use workflows as tools.</Card>
+  <Card title='HTTP Request block' href='/docs/blocks/http-request'>Call an API at a fixed step in a flow.</Card>
+</Cards>

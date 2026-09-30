@@ -1,0 +1,100 @@
+export const metadata = {
+  title: 'Condition',
+  description: 'Reference for the Condition block: IF, ELIF and ELSE branches, and/or logic, operators by variable type, file attributes, outputs and troubleshooting.',
+}
+
+# Condition
+
+The **Condition** block (formerly IF/ELSE) splits a flow into branches based on rules, "like an if/else in code". It compares variables to values, runs the first branch whose rules match, and falls through to **ELSE** otherwise. It doesn't call a model, so it runs instantly.
+
+## When to use it
+
+- Branch on exact values: a status code, a score, a plan name, whether a field is empty.
+- Check the result of an earlier step before acting on it, such as `__is_success` from a [Parameter Extractor](/docs/blocks/parameter-extractor) or `status_code` from an [HTTP Request](/docs/blocks/http-request).
+- For routing by what a message *means*, use an [Intent Classifier](/docs/blocks/intent-classifier) instead.
+
+## Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **IF** | The first case: one or more conditions. | One empty case |
+| **ELIF** | Adds another case, checked in order after IF. Delete a case with **Remove**. | None |
+| **ELSE** | Runs when no case matches. "Used to define the logic that should be executed when the if condition is not met." Always present. | — |
+| **Add Condition** | Adds a condition to a case: a variable, an operator and (for most operators) a value. | — |
+| **and** / **or** | How a case's conditions combine: all must match (**and**) or any (**or**). Click to toggle. | **and** |
+
+Cases are checked top to bottom. The first case that matches wins, even if a later case would also match. When there's more than one case, drag a case to reorder it.
+
+For text, type the value or type `/` to insert a variable. For numbers, switch between **Constant** (a fixed number) and **Variable** (a number from an earlier step). For an **Array[File]** variable with **contains**, **not contains** or **all of**, click **Sub Variable** to add conditions on the files' attributes (see below).
+
+## Operators by variable type
+
+| Variable type | Operators |
+|---|---|
+| String | contains, not contains, start with, end with, is, is not, is empty, is not empty |
+| Number | =, ≠, >, &lt;, ≥, ≤, is empty, is not empty |
+| Array[String], Array[Number] | contains, not contains, is empty, is not empty |
+| Array[Object] | is empty, is not empty |
+| File | exists, not exists |
+| Array[File] | contains, not contains, all of, is empty, is not empty |
+| Object and other types | is, is not, is empty, is not empty |
+
+For a **File** variable you can pick one of its attributes in the variable picker. **Sub Variable** conditions on an **Array[File]** use the same attributes:
+
+| File attribute | Operators |
+|---|---|
+| `name`, `url`, `mime_type` | contains, not contains, start with, end with, is, is not, is empty, is not empty |
+| `type` | in, not in (**Image**, **Doc**, **Audio**, **Video**) |
+| `transfer_method` | in, not in (**Local Upload**, **URL**) |
+| `extension` | is, is not, contains, not contains |
+| `size` | >, ≥, &lt;, ≤ (bytes) |
+
+**is empty**, **is not empty**, **exists** and **not exists** take no value.
+
+**is** and **is not** compare text. On an object variable they fail at run time, so compare one of the object's text fields instead, or use **is empty** / **is not empty**.
+
+## Inputs and outputs
+
+**Reads:** the variables used in conditions.
+
+**Branches:** one handle per case (IF, each ELIF) plus ELSE. Only one branch runs.
+
+The block records which case matched in the run log. It has no variables for later blocks. Use the branch itself to carry the decision.
+
+## Example
+
+Route an HTTP response:
+
+| Case | Conditions | Next block |
+|---|---|---|
+| **IF** | HTTP Request `status_code` **=** `200` **and** `body` **is not empty** | Custom Function that parses the body |
+| **ELIF** | `status_code` **=** `404` | Answer: "I couldn't find that order." |
+| **ELSE** | — | Answer: "Something went wrong, please try again." |
+
+Check a Parameter Extractor result:
+
+| Case | Conditions |
+|---|---|
+| **IF** | `__is_success` **=** `1` **and** `date` **is not empty** **and** `party_size` **>** `0` |
+| **ELSE** | Ask the user for the missing details |
+
+<Callout type='warning'>
+  Text comparisons are exact: **is** `Yes` doesn't match `yes` or `Yes ` with a trailing space. Normalize text with a [Custom Function](/docs/blocks/custom-function) first, or use **contains**.
+</Callout>
+
+## Troubleshooting
+
+- **"Condition NOT setup" on the canvas.** → A condition is missing its operator or its value. Finish it or delete it.
+- **"IF is required" or "Variable Value is required".** → A case has no conditions, or a condition has no value. Add a condition to every case, or fill in the value.
+- **"Variable … not found" in the run log.** → A condition reads a variable from a block that didn't run on this path, for example one branch of an earlier Condition. Compare a variable that is always set, or combine the branches with a [Variable Aggregator](/docs/blocks/transform#variable-aggregator) first.
+- **The ELSE branch always runs.** → Check the variable's type. A number stored as text (for example `"200"` from a webhook) only offers string operators. Declare the field as a number, or convert it.
+- **A later case never runs.** → An earlier case already matches the same input. Reorder the cases or make them stricter.
+- **The comparison value should come from another step.** → Type `/` in the value box to insert a variable instead of a fixed value.
+
+## Next steps
+
+<Cards>
+  <Card title='Intent Classifier' href='/docs/blocks/intent-classifier'>Route by meaning with a model.</Card>
+  <Card title='For Each & Repeat Until' href='/docs/blocks/loops'>Repeat steps over a list or until a condition.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Variable types and references.</Card>
+</Cards>

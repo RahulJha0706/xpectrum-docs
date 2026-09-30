@@ -1,0 +1,155 @@
+export const metadata = {
+  title: 'Core concepts',
+  description: 'Workspaces, apps, blocks, variables, knowledge, tools, channels, publishing, threads, runs and credits — the ideas behind every Xpectrum agent.',
+}
+
+# Core concepts
+
+This page explains the building blocks you meet everywhere in Xpectrum and how they fit together. Read it once before building; come back to the glossary at the end when a term is unclear.
+
+## How it fits together
+
+A **workspace** holds your **apps**. An app is an agent or an automation that you build in an editor — either by filling in a set of node cards or by connecting **blocks** on a canvas. Apps read **variables**, search **knowledge**, and call **tools**. When you **publish**, the draft becomes the live version that **channels** (phone, SMS, WhatsApp, email, web) and the **API** talk to. Every conversation is a **thread**, every reply or workflow run is a **run**, and each one is an **execution** that uses **credits**.
+
+```text
+Workspace
+ ├─ Members & roles
+ ├─ Apps ──────── draft ──Publish Changes──▶ live version ──▶ Channels / API
+ │   ├─ Instructions, model, variables
+ │   ├─ Knowledge (knowledge bases)
+ │   └─ Tools (plugins, workflows, custom OpenAPI tools)
+ ├─ Knowledge Base
+ ├─ Integrations (models, tools, MCP)
+ └─ Channels (Voice, Phone Number, SMS, WhatsApp, Email)
+```
+
+## Workspaces
+
+A workspace is the container for everything: apps, knowledge bases, integrations, phone numbers, members, billing and logs. Nothing is shared between workspaces, and API keys belong to apps inside one workspace. You can belong to several workspaces and switch between them from the workspace switcher at the bottom of the sidebar.
+
+Agencies can create **client workspaces** — separate workspaces for each customer, managed from your own. See [Client workspaces](/docs/workspaces/clients).
+
+## Members and roles
+
+Each member of a workspace has one role that decides what they can see and do:
+
+| Role | What it's for |
+|---|---|
+| **Owner** | Full workspace control, billing and member management. |
+| **Admin** | Builds apps and manages team settings, billing, monitoring and logs. |
+| **Editor** | Builds, edits and publishes apps. |
+| **Normal** | Uses apps but can't build them. |
+| **Knowledge Admin** | Manages the knowledge base only. |
+
+Details and limits are on [Workspaces, members & roles](/docs/getting-started/workspaces).
+
+## Apps and app types
+
+An **app** is one agent or automation. Its type decides the editor you build in and how it's called:
+
+- **Conversational apps** hold a conversation: **Autonomous Agent**, **Agent Flow**, **AI Chatbot** and **Multi-prompt Agent**.
+- **Automation apps** run start to finish with no conversation: **Workflow**.
+
+Not sure which to pick? See [App types](/docs/getting-started/app-types).
+
+## Blocks and the canvas
+
+**Agent Flow**, **Workflow** and **Multi-prompt Agent** apps are built on a **canvas**: you connect **blocks** (also called steps or nodes) — a **Trigger**, an **AI Model**, an **Intent Classifier**, a **Condition**, an **HTTP Request**, an **Answer** and so on. Data flows along the connections from left to right.
+
+**Autonomous Agent** and **AI Chatbot** use a simpler configuration canvas: a fixed set of node cards (**Trigger**, **Instructions**, **Knowledge**, **Tools**, **Vision**, **AI Agent**, **Output** — an AI Chatbot has no **Tools** card and calls its model card **AI Model**) that you click to configure. There are no connections to draw.
+
+Every block is described in the [Blocks reference](/docs/blocks).
+
+## Variables
+
+Variables carry data into and through an app:
+
+- **Input variables** are defined on the **Trigger** — for example a `customer_name` or `plan` field. Callers fill them from a form, a channel or the API's `variables` object.
+- **System variables** are filled in automatically, such as the user's message (`thread.user_query`), the thread id and the channel the message arrived on.
+- **Output variables** are what each block produces, such as an AI Model's `text`. Later blocks reference them.
+- **Constants** are fixed values stored with the app, including secrets such as API keys.
+- **Conversation variables** persist across turns of one conversation in Agent Flow apps.
+
+You insert a variable into any text field by typing `/`. See [Variables](/docs/build/variables).
+
+## Knowledge
+
+A **knowledge base** is a searchable collection of your content — uploaded files, website pages or YouTube transcripts — split into chunks and indexed. Agents search it to ground their answers and can cite the sources. Attach knowledge with the **Knowledge** card (Autonomous Agent, AI Chatbot) or the **Knowledge Search** block (Agent Flow, Workflow). See [Knowledge](/docs/knowledge).
+
+## Tools and integrations
+
+**Integrations** are the models and tools your workspace has installed:
+
+- **Models** — the language models (and embedding and rerank models) apps can use, running on the included quota or on your own provider key.
+- **Tools** — plugins (search, email, calendars and more), your own OpenAPI **custom tools**, and published **Workflows**, which become tools automatically.
+- **MCP** — published workflows exposed to external MCP clients.
+
+An Autonomous Agent decides for itself when to call a tool. In canvas apps you place a tool block where you want it to run. See [Tools](/docs/integrations/tools).
+
+## Channels
+
+A **channel** is how people reach a published agent: **Voice** and **Phone Number** (inbound and outbound calls, **Batch Calls**), **SMS**, **WhatsApp**, **Email**, and your website or app through the JavaScript SDK and API. One agent can serve every channel at once, and the channel a message came from is available to the agent as a system variable. See [Channels](/docs/channels).
+
+## Publishing and versions
+
+Every app has a **draft** — what you edit and test in **Preview** or with **Run** — and a **live version** — what channels and the API use. Clicking **Publish Changes** makes the live version match the draft.
+
+- Editing the draft never changes what callers see until you publish.
+- Canvas apps keep a **Version History**: every publish creates a version you can name and restore.
+- After the first publish, **API & Access** (hover the app name in the editor header) shows the endpoint and lets you create secret keys.
+
+See [Publishing & versions](/docs/deploy/publishing).
+
+## Threads, runs and sessions
+
+| Term | What it is | Where you see it |
+|---|---|---|
+| **Thread** | One conversation with one user, with its full message history. Identified by `thread_id`. | API ([Threads](/docs/api/threads)), **Logs** |
+| **Run** | One piece of work: a single reply in a conversation, or one workflow run from start to finish. Identified by `run_id`. | API ([Runs](/docs/api/runs)), **Run History**, **Logs** |
+| **Step** | One block executing inside a run. | Run details, **Run History** |
+| **Session** | One voice call, with its recording, transcript and outcome. | **Monitoring & Analytics › Sessions** |
+
+History lives on the server: to continue a thread over the API you send only the new message and the `thread_id`.
+
+## Executions and credits
+
+On workspaces billed with credits, usage is measured in **executions**. An execution is one chat reply, one email processed or one workflow run — loops and tool calls included, never charged per step. Voice is charged per minute and messaging per message. Third-party services such as models, speech and telephony are passed through at cost. You see your balance in the **Credits** chip in the sidebar; when it reads **Out of credits**, add credit to keep your agents running. See [Billing & credits](/docs/workspaces/billing).
+
+## Glossary
+
+| Term | Meaning |
+|---|---|
+| Agent Flow | Conversational app built as a flow of blocks on a canvas. |
+| Agent Settings | Dock tab with agent options such as **Maximum Iterations** and feature cards. |
+| API & Access | Panel with an app's endpoint and secret keys; available after publishing. |
+| App | One agent or automation in a workspace. |
+| Autonomous Agent | Conversational app that picks its own tools and steps to reach a goal. |
+| Block | One step on a canvas (Trigger, AI Model, Condition, …). Also called a node. |
+| Channel | A way to reach an agent: voice, phone, SMS, WhatsApp, email, web. |
+| Constant | A stored value (optionally secret) available to every block of an app. |
+| Conversation variable | A read-write value that persists across turns of one conversation. |
+| Credits | Prepaid balance that executions, voice minutes and messages draw from. |
+| Draft | The editable version of an app; tested with **Preview** or **Run**. |
+| Execution | One billable unit of work: a chat reply, an email processed or a workflow run. |
+| Instructions | The system prompt that tells an agent who it is and how to behave. |
+| Integrations | Installed models, tools and MCP settings for the workspace. |
+| Knowledge base | Indexed collection of your documents that agents search. |
+| Live version | The published version that channels and the API use. |
+| Preview | Test panel in the editor that runs the draft. |
+| Run | One reply or one workflow run; identified by `run_id`. |
+| Session | One voice call, visible in **Monitoring & Analytics › Sessions**. |
+| System variable | A variable filled automatically, such as `thread.user_query`. |
+| Thread | One conversation; identified by `thread_id`. |
+| Tool | Something an agent can call: a plugin, a workflow or a custom API. |
+| Trigger | The block that starts an app and defines its input variables. |
+| Workflow | Automation app that runs start to finish with no conversation. |
+| Workspace | The container for apps, knowledge, members, channels and billing. |
+
+## Next steps
+
+<Cards>
+  <Card title='Quickstart' href='/docs/getting-started/quickstart'>Build and publish your first agent.</Card>
+  <Card title='App types' href='/docs/getting-started/app-types'>Choose the right app for your use case.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Inputs, system variables and references.</Card>
+  <Card title='Blocks reference' href='/docs/blocks'>Every block you can place on a canvas.</Card>
+</Cards>

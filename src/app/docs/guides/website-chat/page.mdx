@@ -1,0 +1,252 @@
+export const metadata = {
+  title: 'Add chat to your website',
+  description: 'Put a chat bubble and a voice button for your Xpectrum agent on any website, with the API key kept on your server.',
+}
+
+# Add chat to your website
+
+By the end of this guide your website has a chat bubble that streams answers from your Xpectrum agent, an optional "talk to us" voice button, and a small server route that keeps your API key out of the browser.
+
+You use the `xpectrum` JavaScript SDK. It ships ready-made widgets (`ChatWidget`, `VoiceWidget`, `OmnichannelWidget`) and a no-code script embed for sites where you can only paste HTML.
+
+## Before you begin
+
+- A conversational app (Autonomous Agent, Agent Flow or AI Chatbot) that answers well in **Preview**. If you don't have one yet, follow the [Quickstart](/docs/getting-started/quickstart).
+- Permission to publish the app (Owner, Admin or Editor role).
+- For the proxy route: a Next.js 13+ App Router project (any server framework works the same way). For the script embed: the ability to add a `<script>` tag to your pages.
+- For voice: the site must be served over HTTPS, and the agent needs a voice configuration (see [Voice](/docs/channels/voice)).
+
+## Choose an approach
+
+| Approach | Key location | Use it when |
+|---|---|---|
+| **Server proxy + `ChatWidget`** (recommended) | Your server only | You control a backend (Next.js, Express, etc.). You can attach your own signed-in user ID. |
+| **Script embed** | In the page, visible to visitors | A static site, CMS or site builder where you can only paste HTML, and the agent only answers public questions. |
+| **Your own UI with `XpectrumChat`** | Your server (via proxy) | You want full control of the look and behaviour. See the [JavaScript SDK](/docs/api/javascript-sdk). |
+
+<Callout type='warning' title='A browser-side key is public'>
+  Any visitor can read a key that is sent from the browser in DevTools. If you embed a key directly, turn **Conversation history over API** off for that app, scope the agent to public information, and rotate the key if it leaks.
+</Callout>
+
+## Add the chat widget
+
+<Steps>
+<Step title='Publish the app with the right API access'>
+
+Open the app and click **Publish Changes**. In the publish panel, set the **External API** toggles:
+
+| Toggle | Set it to | Why |
+|---|---|---|
+| **Voice calls** | On if you want the voice button, otherwise Off | Lets the key start browser voice calls. |
+| **Conversation history over API** | Off for a website widget | The widget never loads history, and with this off a leaked key can't read your transcripts. |
+
+Click **Publish**. You see **Changes published** and the **API & Access** panel opens.
+
+</Step>
+<Step title='Create an API key'>
+
+In **API & Access**, click **Create new Secret key** and copy the key (it looks like `xpectrum_xxxxxxxxxxxx`). Note the **Endpoint** base URL as well; for Xpectrum Cloud it is `https://cloud.xpectrum.dev/v1`.
+
+Store the key as a server-side environment variable in your project:
+
+```bash title=".env.local"
+XPECTRUM_API_KEY=xpectrum_xxxxxxxxxxxx
+```
+
+Never prefix it with `NEXT_PUBLIC_`, or Next.js ships it to the browser.
+
+</Step>
+<Step title='Add a proxy route'>
+
+The widget accepts any `baseUrl`, so point it at your own server. This catch-all route forwards each SDK request to Xpectrum, swaps in the real key, and streams the response back unchanged:
+
+```ts title="app/api/xpectrum/[...path]/route.ts"
+const UPSTREAM = 'https://cloud.xpectrum.dev/v1'
+
+// Only the routes the widgets use
+const ALLOWED = [
+  /^chat\/completions$/,
+  /^models$/,
+  /^messages\/[^/]+\/suggestions$/,
+  /^runs\/[^/]+\/cancel$/,
+  /^voice\/tokens\/generate$/,
+  /^voice\/call-control\/end-call$/,
+]
+
+async function forward(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
+  const path = (await params).path.join('/')
+  if (!ALLOWED.some((re) => re.test(path))) {
+    return new Response('Not found', { status: 404 })
+  }
+
+  const url = new URL(req.url)
+  const upstream = await fetch(`${UPSTREAM}/${path}${url.search}`, {
+    method: req.method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.XPECTRUM_API_KEY}`,
+    },
+    body: req.method === 'GET' ? undefined : await req.text(),
+  })
+
+  // Pass the body through as-is so streamed replies stay streamed
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
+  })
+}
+
+export { forward as GET, forward as POST }
+```
+
+The allow-list matters: without it anyone could use your route to call endpoints you don't intend to expose, such as conversation history.
+
+<Callout type='tip'>
+  If your visitors sign in, set the `user` field on the server instead of trusting the browser. Parse the JSON body for `chat/completions`, set `body.user` to your session's user ID, and forward it. The API key is the only thing Xpectrum verifies, so the server is the right place to decide who the user is.
+</Callout>
+
+</Step>
+<Step title='Mount the widget'>
+
+Install the SDK:
+
+```bash title="Terminal"
+npm install xpectrum
+```
+
+Create a client component that mounts the widget once. `apiKey` is required by the widget but is replaced by your proxy, so any non-secret placeholder works:
+
+```tsx title="components/site-chat.tsx"
+'use client'
+
+import { useEffect } from 'react'
+
+export function SiteChat() {
+  useEffect(() => {
+    let widget: { destroy(): void } | undefined
+
+    import('xpectrum/widgets').then(({ ChatWidget }) => {
+      widget = new ChatWidget({
+        apiKey: 'proxied', // the real key is added by /api/xpectrum
+        baseUrl: `${window.location.origin}/api/xpectrum`,
+        title: 'Acme Support',
+        welcomeMessage: 'Hi! Ask me anything about Acme.',
+        inputPlaceholder: 'Type a message...',
+        primaryColor: '#0F766E',
+        theme: 'light',
+        position: 'bottom-right',
+      })
+    })
+
+    return () => widget?.destroy()
+  }, [])
+
+  return null
+}
+```
+
+Render `<SiteChat />` once, for example in `app/layout.tsx`. The widget renders inside a Shadow DOM, so your site's CSS doesn't leak into it and its styles don't leak out.
+
+</Step>
+<Step title='Add a voice button (optional)'>
+
+`VoiceWidget` adds a floating microphone button that starts an in-browser call with the same agent. It uses the voice settings you saved on the **Voice** page for that agent.
+
+```tsx title="components/site-voice.tsx"
+'use client'
+
+import { useEffect } from 'react'
+
+export function SiteVoice() {
+  useEffect(() => {
+    let widget: { destroy(): void } | undefined
+
+    import('xpectrum').then(({ VoiceWidget }) => {
+      widget = new VoiceWidget({
+        apiKey: 'proxied',
+        baseUrl: `${window.location.origin}/api/xpectrum`,
+        position: 'bottom-left',
+        buttonColor: '#0F766E',
+      })
+    })
+
+    return () => widget?.destroy()
+  }, [])
+
+  return null
+}
+```
+
+To offer chat and voice from one launcher, use `OmnichannelWidget` instead; it exposes `openChat()` and `openVoice()`. The browser asks for microphone permission when the visitor starts a call, which only works on HTTPS (or `localhost`).
+
+</Step>
+</Steps>
+
+## Script embed (no build step)
+
+If you can only paste HTML, load the pinned embed script. Put the config before the script tag:
+
+```html title="Before </body>"
+<script>
+  window.XpectrumChatConfig = {
+    apiKey: 'xpectrum_xxxxxxxxxxxx',
+    baseUrl: 'https://cloud.xpectrum.dev/v1',
+    title: 'Acme Support',
+    welcomeMessage: 'Hi! How can I help?',
+    primaryColor: '#0F766E',
+  };
+</script>
+<script src="https://unpkg.com/xpectrum@1.1.0/dist/chat-embed.min.js" defer></script>
+```
+
+The script embed is for chat only. For a voice button, use `VoiceWidget` from the npm package as shown above; the voice script embed in version 1.1.0 doesn't load in the browser. Always pin the version (`@1.1.0`) so a future release doesn't reach your live site before you've tested it.
+
+If your site has a server, you can still use the embed with the proxy: set `baseUrl` to your proxy URL and `apiKey` to a placeholder.
+
+## Widget options
+
+The most-used `ChatWidget` options. All are optional except `apiKey` and `baseUrl`.
+
+| Option | Default | What it does |
+|---|---|---|
+| `title` | The app's title | Header text in the chat window. |
+| `welcomeMessage` | The app's greeting, if set | First message shown when the window opens. |
+| `inputPlaceholder` | `'Type a message...'` | Placeholder in the message box. |
+| `starterQuestions` | `true` | Show the app's suggested questions (from its **Conversation Opener**). |
+| `suggestions` | `true` | Show follow-up questions after each reply, if **Follow-up** is on for the app. |
+| `position` | `'bottom-right'` | Corner for the launcher button. |
+| `theme` | `'light'` | `'light'` or `'dark'`. |
+| `primaryColor` | `'#7C3AED'` | Launcher and accent color. |
+| `buttonSize` | `48` | Launcher size in pixels. |
+| `windowWidth` / `windowHeight` | `400` / `600` | Chat window size in pixels. |
+| `borderRadius` | `12` | Corner radius in pixels. |
+| `container` | `document.body` | Element to mount into. |
+
+Methods: `open()`, `close()`, `toggle()`, `destroy()`. For every option, see the [JavaScript SDK](/docs/api/javascript-sdk).
+
+## Test it
+
+1. Open your site in a private window. The launcher appears in the corner you chose.
+2. Ask a question the agent can answer. The reply streams in word by word.
+3. Ask a follow-up question. It continues the same conversation until the page is reloaded; a reload starts a new one. Each browser gets an anonymous user ID (`anon_…`) that lasts 30 days, so conversations from the same browser belong to the same user.
+4. In the Xpectrum app, click **Logs** in the editor header. Your test conversation is listed.
+5. If you added voice, click the microphone, allow access, and speak. The call also appears in **Monitoring & Analytics › Sessions**.
+
+## Troubleshooting
+
+- **The launcher never appears** → open the browser console. Messages starting with `[Xpectrum]` name the missing setting, for example `XpectrumChatConfig is missing` (the config was defined after the script) or `.baseUrl is required`.
+- **Every message fails with `401`** → the proxy isn't sending a valid key. Check the environment variable is set on the server and redeploy; keys you deleted in **API & Access** stop working immediately.
+- **`404 model_not_found`** → the key belongs to a Workflow. Chat widgets need the key of an Autonomous Agent, Agent Flow or AI Chatbot.
+- **Replies arrive all at once instead of streaming** → your proxy or hosting platform is buffering. Return `upstream.body` directly, as in the example, and don't `await upstream.json()`.
+- **Voice button shows an error: `Voice is disabled for this app`** → turn on **Voice calls** in the publish panel and publish again.
+- **Microphone never prompts** → the page isn't on HTTPS, or the browser blocked the permission. Check the site settings in the address bar.
+- **Old answers after you changed the agent** → the widget talks to the published version. Click **Publish Changes** after editing.
+
+## Next steps
+
+<Cards>
+  <Card title='Web channel' href='/docs/channels/web'>Every widget, option and event in one place.</Card>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk'>Build your own chat UI with XpectrumChat.</Card>
+  <Card title='API keys' href='/docs/deploy/api-keys'>Create, rotate and revoke keys.</Card>
+  <Card title='Support agent on every channel' href='/docs/guides/support-agent'>Ground the agent in your docs and add email and WhatsApp.</Card>
+</Cards>

@@ -1,0 +1,685 @@
+export const metadata = {
+  title: 'Knowledge API',
+  description: 'Search knowledge bases and manage datasets, documents, chunks, metadata and tags with a knowledge API key.',
+}
+
+# Knowledge API
+
+The Knowledge API lets you search a knowledge base directly and manage its contents from code — create knowledge bases, add and update documents, check indexing progress, edit chunks, and manage metadata and tags. Use it to keep a knowledge base in sync with your own systems, or to run retrieval without going through an agent.
+
+## Before you begin
+
+- **Use a knowledge API key**, not an app key. Your workspace admin or Xpectrum support can issue one (see [Authentication](/docs/api/authentication#create-a-knowledge-api-key)). It is workspace-scoped and acts with the workspace owner's access, so it reaches every knowledge base in the workspace. Keep it on a server.
+- **Knowledge bases are called datasets** in the `/datasets` paths. A knowledge base's id is the same value in both places: `knowledge_id` in `/knowledge/{knowledge_id}/search` and `dataset_id` in `/datasets/{dataset_id}/…`. Copy it from the knowledge base's URL in the dashboard or from [`GET /datasets`](#list-knowledge-bases).
+- **Chunks are called segments** in the `/datasets` paths.
+
+The examples on this page read the key from an environment variable:
+
+```bash title="Terminal"
+export KNOWLEDGE_API_KEY="your knowledge API key"
+```
+
+Errors on the `/datasets` endpoints use the classic envelope `{"code", "message", "status"}`. Search errors are listed with the endpoint.
+
+## Search a knowledge base
+
+<Endpoint method='POST' path='/v1/knowledge/{knowledge_id}/search' />
+
+Runs a retrieval query against one knowledge base using its configured [retrieval settings](/docs/knowledge/retrieval) and returns the best-matching chunks with their scores. This is the recommended search endpoint and the one the SDK's `XpectrumKnowledge.search()` calls.
+
+<Params title='Path parameters'>
+  <Param name='knowledge_id' type='string (UUID)' required>The knowledge base to search.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='query' type='string' required>The search text. 1–250 characters.</Param>
+  <Param name='limit' type='integer' def='10'>Accepted, but it doesn't currently change the result: the number of matches follows the knowledge base's **Top K** retrieval setting.</Param>
+</Params>
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='object' type='string'>Always `list`.</Param>
+  <Param name='query' type='string'>The query you sent.</Param>
+  <Param name='data[].object' type='string'>Always `match`.</Param>
+  <Param name='data[].score' type='number'>Relevance score. Higher is better.</Param>
+  <Param name='data[].content' type='string'>The chunk's text.</Param>
+  <Param name='data[].document_id' type='string'>The document the chunk belongs to.</Param>
+  <Param name='data[].chunk_id' type='string'>The chunk's id (a segment id in the `/datasets` endpoints).</Param>
+  <Param name='data[].position' type='integer'>The chunk's position within its document.</Param>
+</Params>
+
+```json title="200 OK"
+{
+  "object": "list",
+  "query": "refund policy for damaged items",
+  "data": [
+    {
+      "object": "match",
+      "score": 0.87,
+      "content": "Damaged items can be returned within 30 days for a full refund…",
+      "document_id": "7a1b3c4d-2e5f-4a6b-8c9d-0e1f2a3b4c5d",
+      "chunk_id": "b2c3d4e5-6f70-4a81-92b3-c4d5e6f7a8b9",
+      "position": 4
+    }
+  ]
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/knowledge/0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f/search \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "query": "refund policy for damaged items", "limit": 5 }'
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="search.ts"
+import { XpectrumKnowledge } from 'xpectrum'
+
+const kb = new XpectrumKnowledge({
+  baseUrl: 'https://cloud.xpectrum.dev/v1',
+  apiKey: process.env.KNOWLEDGE_API_KEY!,
+})
+
+const { data } = await kb.search('0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f', 'refund policy for damaged items', { limit: 5 })
+for (const match of data) console.log(match.score, match.content)
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="search.py"
+import os
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/knowledge/0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f/search",
+    headers={"Authorization": f"Bearer {os.environ['KNOWLEDGE_API_KEY']}"},
+    json={"query": "refund policy for damaged items", "limit": 5},
+    timeout=30,
+)
+resp.raise_for_status()
+for match in resp.json()["data"]:
+    print(round(match["score"], 2), match["content"][:80])
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Code | Message | When |
+|---|---|---|---|
+| 400 | `invalid_request_error` (param `query`) | `Query is required and cannot exceed 250 characters` | Empty or too-long query. |
+| 400 | `invalid_param` (classic envelope) | Validation message | `query` is missing from the body. |
+| 400 | `knowledge_not_ready` | `The knowledge base is still indexing. Please try again shortly.` | Wait for indexing to finish, then retry. |
+| 401 | `unauthorized` | `Access token is invalid` | Wrong key, or an app key was used. |
+| 403 | `forbidden` | Permission message | The key can't access this knowledge base. |
+| 404 | `not_found` | `Knowledge base does not exist.` | Unknown `knowledge_id`. |
+
+## Knowledge bases
+
+### List knowledge bases
+
+<Endpoint method='GET' path='/v1/datasets' />
+
+<Params title='Query parameters'>
+  <Param name='page' type='integer' def='1'>Page number.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page.</Param>
+  <Param name='keyword' type='string'>Filter by name.</Param>
+  <Param name='tag_ids' type='string'>Filter by tag. Repeat the parameter for several tags.</Param>
+  <Param name='include_all' type='boolean' def='false'>`true` also lists knowledge bases that other members have restricted to themselves (only-me permission).</Param>
+</Params>
+
+Returns `{"data": [...], "has_more", "limit", "total", "page"}`, where each item is a [knowledge base object](#knowledge-base-object).
+
+```bash title="Terminal"
+curl "https://cloud.xpectrum.dev/v1/datasets?page=1&limit=20" \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY"
+```
+
+### Create a knowledge base
+
+<Endpoint method='POST' path='/v1/datasets' />
+
+Creates an empty knowledge base. Add documents to it afterwards.
+
+<Params title='Request body'>
+  <Param name='name' type='string' required>1–40 characters, unique in the workspace.</Param>
+  <Param name='description' type='string' def='""'>A description. Updates are limited to 4,000 characters.</Param>
+  <Param name='indexing_technique' type='string'>`high_quality` (embeddings) or `economy` (keyword index). If you omit it, you must set it on the first document.</Param>
+  <Param name='permission' type='string'>Who can use it: `only_me`, `all_team_members` or `partial_members`.</Param>
+  <Param name='embedding_model' type='string'>Embedding model name, for `high_quality`.</Param>
+  <Param name='embedding_model_provider' type='string'>The embedding model's provider.</Param>
+  <Param name='retrieval_model' type='object'>Default retrieval settings. See [the retrieval model object](#retrieval-model-object).</Param>
+  <Param name='provider' type='string' def='vendor'>`vendor` for a regular knowledge base, `external` to connect an [external knowledge](/docs/knowledge/external) source.</Param>
+  <Param name='external_knowledge_api_id' type='string'>For `external`: the connected knowledge API.</Param>
+  <Param name='external_knowledge_id' type='string'>For `external`: the knowledge id in the external system.</Param>
+</Params>
+
+Returns the new [knowledge base object](#knowledge-base-object).
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/datasets \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Product manuals", "indexing_technique": "high_quality", "permission": "only_me" }'
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```ts title="create-kb.ts"
+const res = await fetch('https://cloud.xpectrum.dev/v1/datasets', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.KNOWLEDGE_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ name: 'Product manuals', indexing_technique: 'high_quality', permission: 'only_me' }),
+})
+if (!res.ok) throw new Error((await res.json()).message)
+const kb = await res.json()
+console.log(kb.id)
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="create_kb.py"
+import os
+import requests
+
+kb = requests.post(
+    "https://cloud.xpectrum.dev/v1/datasets",
+    headers={"Authorization": f"Bearer {os.environ['KNOWLEDGE_API_KEY']}"},
+    json={"name": "Product manuals", "indexing_technique": "high_quality", "permission": "only_me"},
+    timeout=30,
+).json()
+print(kb["id"])
+```
+
+</Tab>
+</Tabs>
+
+### Get a knowledge base
+
+<Endpoint method='GET' path='/v1/datasets/{dataset_id}' />
+
+Returns the [knowledge base object](#knowledge-base-object). For `partial_members` knowledge bases it also includes `partial_member_list`.
+
+### Update a knowledge base
+
+<Endpoint method='PATCH' path='/v1/datasets/{dataset_id}' />
+
+Send only the fields to change: `name`, `description`, `indexing_technique`, `permission`, `partial_member_list` (member ids, with `permission: "partial_members"`), `embedding_model`, `embedding_model_provider`, `retrieval_model`, `external_retrieval_model`, `external_knowledge_id`, `external_knowledge_api_id`. Returns the updated object.
+
+<Callout>
+  Browsers can't send `PATCH` to the API (CORS allows `GET`, `POST`, `PUT`, `DELETE` and `OPTIONS`). Call the Knowledge API from your server.
+</Callout>
+
+### Delete a knowledge base
+
+<Endpoint method='DELETE' path='/v1/datasets/{dataset_id}' />
+
+Deletes the knowledge base and its documents. Fails with `409 dataset_in_use` while any app still uses it — remove it from those apps first.
+
+### Knowledge base object
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | The knowledge base id (`knowledge_id` / `dataset_id`). |
+| `name`, `description` | string | Display name and description. |
+| `provider` | string | `vendor` or `external`. |
+| `permission` | string | `only_me`, `all_team_members` or `partial_members`. |
+| `indexing_technique` | string | `high_quality` or `economy`. |
+| `doc_form` | string | Chunk structure: `text_model`, `hierarchical_model` or `qa_model`. |
+| `app_count`, `document_count`, `word_count` | integer | Usage counters. |
+| `embedding_model`, `embedding_model_provider` | string | The embedding model in use. |
+| `embedding_available` | boolean | `false` when the embedding model is no longer available in the workspace. |
+| `retrieval_model_dict` | object | Default retrieval settings. |
+| `tags` | array | Tags bound to the knowledge base. |
+| `doc_metadata` | array | Custom metadata fields. |
+| `built_in_field_enabled` | boolean | Whether built-in metadata fields are on. |
+| `external_knowledge_info`, `external_retrieval_model` | object | Set for external knowledge bases. |
+| `created_by`, `created_at`, `updated_by`, `updated_at` | string / integer | Audit fields. Timestamps are Unix seconds. |
+
+### Knowledge base errors
+
+| Status | Code | Message |
+|---|---|---|
+| 400 | `invalid_param` | `type is required. Name must be between 1 to 40 characters.` (with `"params": "name"`) / `Description cannot exceed 4000 characters.` (update only) |
+| 403 | `forbidden` | The key's role can't access or change this knowledge base. |
+| 404 | `not_found` | `Dataset not found.` |
+| 409 | `dataset_name_duplicate` | `The dataset name already exists. Please modify your dataset name.` |
+| 409 | `dataset_in_use` | `The dataset is being used by some apps. Please remove the dataset from the apps before deleting it.` |
+
+## Documents
+
+Adding or updating a document starts indexing in the background. The response includes a `batch` id — poll [indexing status](#get-indexing-status) with it until every document reaches `completed`.
+
+### Create a document from text
+
+<Endpoint method='POST' path='/v1/datasets/{dataset_id}/document/create-by-text' />
+
+<Params title='Request body'>
+  <Param name='name' type='string' required>Document name.</Param>
+  <Param name='text' type='string' required>The document's content.</Param>
+  <Param name='indexing_technique' type='string'>`high_quality` or `economy`. Required if the knowledge base doesn't have one yet (`indexing_technique is required.`).</Param>
+  <Param name='process_rule' type='object'>How to clean and chunk the text. See [the process rule object](#process-rule-object). Send it with every request; `{"mode": "automatic"}` uses the recommended defaults.</Param>
+  <Param name='doc_form' type='string' def='text_model'>`text_model` (plain chunks), `hierarchical_model` (parent and child chunks) or `qa_model` (question and answer pairs).</Param>
+  <Param name='doc_language' type='string' def='English'>Language of the document, used by `qa_model`.</Param>
+  <Param name='retrieval_model' type='object'>Retrieval settings to store on the knowledge base. See [the retrieval model object](#retrieval-model-object).</Param>
+  <Param name='embedding_model' type='string'>Embedding model, for `high_quality`.</Param>
+  <Param name='embedding_model_provider' type='string'>The embedding model's provider.</Param>
+  <Param name='original_document_id' type='string'>Replace an existing document instead of adding a new one.</Param>
+</Params>
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='document' type='object'>The [document object](#document-object).</Param>
+  <Param name='batch' type='string'>Indexing batch id for [indexing status](#get-indexing-status).</Param>
+</Params>
+
+```json title="200 OK"
+{
+  "document": {
+    "id": "7a1b3c4d-2e5f-4a6b-8c9d-0e1f2a3b4c5d",
+    "name": "Returns policy",
+    "indexing_status": "waiting",
+    "doc_form": "text_model",
+    "enabled": true,
+    "archived": false,
+    "word_count": 0,
+    "tokens": 0,
+    "created_from": "api",
+    "created_at": 1759190400
+  },
+  "batch": "20250930120000123456"
+}
+```
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/datasets/0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f/document/create-by-text \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Returns policy",
+    "text": "Damaged items can be returned within 30 days for a full refund...",
+    "indexing_technique": "high_quality",
+    "process_rule": { "mode": "automatic" }
+  }'
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```ts title="add-doc.ts"
+const res = await fetch(`https://cloud.xpectrum.dev/v1/datasets/${datasetId}/document/create-by-text`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${process.env.KNOWLEDGE_API_KEY}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Returns policy',
+    text: policyText,
+    indexing_technique: 'high_quality',
+    process_rule: { mode: 'automatic' },
+  }),
+})
+const { document, batch } = await res.json()
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="add_doc.py"
+import os
+import requests
+
+resp = requests.post(
+    f"https://cloud.xpectrum.dev/v1/datasets/{dataset_id}/document/create-by-text",
+    headers={"Authorization": f"Bearer {os.environ['KNOWLEDGE_API_KEY']}"},
+    json={
+        "name": "Returns policy",
+        "text": policy_text,
+        "indexing_technique": "high_quality",
+        "process_rule": {"mode": "automatic"},
+    },
+    timeout=60,
+)
+resp.raise_for_status()
+batch = resp.json()["batch"]
+```
+
+</Tab>
+</Tabs>
+
+### Create a document from a file
+
+<Endpoint method='POST' path='/v1/datasets/{dataset_id}/document/create-by-file' />
+
+Send `multipart/form-data` with two parts:
+
+<Params title='Form fields'>
+  <Param name='file' type='file' required>One file, up to 50 MB (images up to 10 MB). See [Data sources](/docs/knowledge/sources) for supported formats.</Param>
+  <Param name='data' type='string (JSON)'>A JSON string with the same settings as create-by-text, except `name` and `text` — for example `{"indexing_technique": "high_quality", "process_rule": {"mode": "automatic"}}`. `process_rule` is required unless the knowledge base already has one (`process_rule is required.`).</Param>
+</Params>
+
+Returns `{document, batch}` like create-by-text.
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/datasets/0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f/document/create-by-file \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY" \
+  -F 'data={"indexing_technique":"high_quality","process_rule":{"mode":"automatic"}}' \
+  -F "file=@./manual.pdf"
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```ts title="upload-doc.ts"
+import { readFile } from 'node:fs/promises'
+
+const form = new FormData()
+form.append('data', JSON.stringify({ indexing_technique: 'high_quality', process_rule: { mode: 'automatic' } }))
+form.append('file', new Blob([await readFile('./manual.pdf')]), 'manual.pdf')
+
+const res = await fetch(`https://cloud.xpectrum.dev/v1/datasets/${datasetId}/document/create-by-file`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${process.env.KNOWLEDGE_API_KEY}` }, // no Content-Type: fetch sets the boundary
+  body: form,
+})
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="upload_doc.py"
+import json
+import os
+import requests
+
+with open("manual.pdf", "rb") as f:
+    resp = requests.post(
+        f"https://cloud.xpectrum.dev/v1/datasets/{dataset_id}/document/create-by-file",
+        headers={"Authorization": f"Bearer {os.environ['KNOWLEDGE_API_KEY']}"},
+        data={"data": json.dumps({"indexing_technique": "high_quality", "process_rule": {"mode": "automatic"}})},
+        files={"file": ("manual.pdf", f)},
+        timeout=120,
+    )
+resp.raise_for_status()
+```
+
+</Tab>
+</Tabs>
+
+<Callout type='warning'>
+  A file with an unsupported extension or over the size limit is rejected with `400 invalid_param` and an empty message. Check the file against [Data sources](/docs/knowledge/sources) before uploading.
+</Callout>
+
+### Update a document
+
+<Endpoint method='POST' path='/v1/datasets/{dataset_id}/documents/{document_id}/update-by-text' />
+
+<Endpoint method='POST' path='/v1/datasets/{dataset_id}/documents/{document_id}/update-by-file' />
+
+Replaces a document's content or settings and re-indexes it. **update-by-text** takes JSON with optional `name` and `text` (send both to replace the content), `process_rule`, `doc_form`, `doc_language` and `retrieval_model`. **update-by-file** takes the same multipart form as create-by-file; the `file` part is optional if you are only changing settings. The indexing technique always stays the knowledge base's. Both return `{document, batch}`.
+
+### List documents
+
+<Endpoint method='GET' path='/v1/datasets/{dataset_id}/documents' />
+
+<Params title='Query parameters'>
+  <Param name='page' type='integer' def='1'>Page number.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page, up to 100.</Param>
+  <Param name='keyword' type='string'>Filter by document name.</Param>
+</Params>
+
+Returns `{"data": [...], "has_more", "limit", "total", "page"}`, newest first. Each item is a [document object](#document-object).
+
+### Delete a document
+
+<Endpoint method='DELETE' path='/v1/datasets/{dataset_id}/documents/{document_id}' />
+
+Deletes the document and its chunks. You can't delete an archived document or one that is still indexing.
+
+### Get indexing status
+
+<Endpoint method='GET' path='/v1/datasets/{dataset_id}/documents/{batch}/indexing-status' />
+
+Returns the progress of every document in an indexing batch. Poll every few seconds until each `indexing_status` is `completed` or `error`.
+
+<Params title='Response fields'>
+  <Param name='data[].id' type='string'>Document id.</Param>
+  <Param name='data[].indexing_status' type='string'>`waiting`, `parsing`, `cleaning`, `splitting`, `indexing`, `completed`, `error` or `paused`.</Param>
+  <Param name='data[].completed_segments' type='integer'>Chunks indexed so far.</Param>
+  <Param name='data[].total_segments' type='integer'>Total chunks.</Param>
+  <Param name='data[].error' type='string | null'>Why indexing failed.</Param>
+  <Param name='data[].processing_started_at' type='integer'>Also `parsing_completed_at`, `cleaning_completed_at`, `splitting_completed_at`, `completed_at`, `paused_at`, `stopped_at` — Unix timestamps for each stage.</Param>
+</Params>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/datasets/0f5e2d8c-1a2b-4c3d-9e8f-7a6b5c4d3e2f/documents/20250930120000123456/indexing-status \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY"
+```
+
+### Get a document's source file
+
+<Endpoint method='GET' path='/v1/datasets/{dataset_id}/documents/{document_id}/upload-file' />
+
+For documents created from a file, returns `{id, name, size, extension, mime_type, url, download_url, created_by, created_at}`. `url` and `download_url` are signed links that expire after about five minutes — fetch them right away rather than storing them.
+
+### Document object
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Document id. |
+| `name` | string | Document name. |
+| `position` | integer | Order within the knowledge base. |
+| `data_source_type` | string | `upload_file` for API-created documents. |
+| `indexing_status` | string | See [indexing status](#get-indexing-status). |
+| `display_status` | string | The status shown in the dashboard. |
+| `error` | string | Why indexing failed. |
+| `enabled`, `archived` | boolean | Disabled and archived documents are not searched. |
+| `doc_form` | string | `text_model`, `hierarchical_model` or `qa_model`. |
+| `word_count`, `tokens`, `hit_count` | integer | Size and retrieval counters. |
+| `doc_metadata` | array | Metadata values set on the document. |
+| `created_from`, `created_by`, `created_at` | string / integer | `created_from` is `api` for documents added here. |
+
+### Document errors
+
+| Status | Code | Message |
+|---|---|---|
+| 400 | `invalid_param` | `indexing_technique is required.` / `process_rule is required.` / `Dataset does not exist.` |
+| 400 | `too_many_files` | `Only one file is allowed.` |
+| 400 | `document_indexing` | `Cannot delete document during indexing.` |
+| 400 | `provider_not_initialize` | The embedding model's provider has no valid credentials. |
+| 403 | `forbidden` | `The number of documents has reached the limit of your subscription.` / `The capacity of the vector space has reached the limit of your subscription.` |
+| 403 | `archived_document_immutable` | `The archived document is not editable.` |
+| 404 | `not_found` | `Document Not Exists.` / `Documents not found.` / `Dataset not found.` |
+| 413 | `file_too_large` | `File size exceeded. …` (update-by-file) |
+| 415 | `unsupported_file_type` | `File type not allowed.` (update-by-file) |
+| 402 | `insufficient_credit` | `You're out of credits. Add credits to keep running.` The body also includes `balance` and `required`. |
+
+### Process rule object
+
+| Field | Description |
+|---|---|
+| `mode` | `automatic` (recommended defaults), `custom`, `hierarchical` (parent and child chunks), `semantic` or `structure`. See [Chunking & indexing](/docs/knowledge/indexing). |
+| `rules.pre_processing_rules` | Array of `{"id", "enabled"}` with ids `remove_extra_spaces` and `remove_urls_emails`. |
+| `rules.segmentation.separator` | Where to split. Default `\n`. |
+| `rules.segmentation.max_tokens` | Maximum chunk length in tokens, 50–4000. |
+| `rules.segmentation.chunk_overlap` | Tokens shared between neighbouring chunks. Default 0. |
+| `rules.parent_mode` | For `hierarchical`: `full-doc` or `paragraph`. |
+| `rules.subchunk_segmentation` | For `hierarchical`: `separator`, `max_tokens`, `chunk_overlap` for the child chunks. |
+
+```json
+{
+  "mode": "custom",
+  "rules": {
+    "pre_processing_rules": [
+      { "id": "remove_extra_spaces", "enabled": true },
+      { "id": "remove_urls_emails", "enabled": false }
+    ],
+    "segmentation": { "separator": "\n\n", "max_tokens": 500, "chunk_overlap": 50 }
+  }
+}
+```
+
+A `max_tokens` outside 50–4000 makes indexing fail: the document's `indexing_status` becomes `error`, with an `error` such as `Custom segment length should be between 50 and 4000.`
+
+### Retrieval model object
+
+| Field | Description |
+|---|---|
+| `search_method` | `semantic_search`, `full_text_search` or `hybrid_search`. |
+| `top_k` | Number of chunks to return. |
+| `score_threshold_enabled` | Whether to drop low-scoring chunks. |
+| `score_threshold` | The minimum score when enabled. |
+| `reranking_enable` | Whether to rerank results. |
+| `reranking_model` | `{"reranking_provider_name", "reranking_model_name"}`. |
+| `reranking_mode` | Reranking strategy for hybrid search. |
+| `weights` | Vector and keyword weights for hybrid search. |
+
+See [Retrieval settings](/docs/knowledge/retrieval) for what each option does.
+
+## Chunks
+
+Chunks (segments) can be added once a document has finished indexing and is enabled. Hierarchical documents also have child chunks inside each parent chunk.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/v1/datasets/{dataset_id}/documents/{document_id}/segments` | List chunks. Query: `page`, `limit` (default 20), `keyword`, and `status` (repeatable). Returns `{data, doc_form, total, has_more, limit, page}`. |
+| `POST` | `/v1/datasets/{dataset_id}/documents/{document_id}/segments` | Add chunks. Body: `{"segments": [{"content", "answer", "keywords"}]}`. `answer` is required for `qa_model` documents. Returns `{data, doc_form}`. |
+| `GET` | `/v1/datasets/{dataset_id}/documents/{document_id}/segments/{segment_id}` | Get one chunk. Returns `{data, doc_form}`. |
+| `POST` | `/v1/datasets/{dataset_id}/documents/{document_id}/segments/{segment_id}` | Update a chunk. Body: `{"segment": {"content", "answer", "keywords", "enabled", "regenerate_child_chunks"}}`. |
+| `DELETE` | `/v1/datasets/{dataset_id}/documents/{document_id}/segments/{segment_id}` | Delete a chunk. |
+| `GET` | `…/segments/{segment_id}/child_chunks` | List child chunks. Query: `page`, `limit` (max 100), `keyword`. Returns `{data, total, total_pages, page, limit}`. |
+| `POST` | `…/segments/{segment_id}/child_chunks` | Add a child chunk. Body: `{"content": "…"}`. |
+| `PATCH` | `…/segments/{segment_id}/child_chunks/{child_chunk_id}` | Update a child chunk. Body: `{"content": "…"}`. |
+| `DELETE` | `…/segments/{segment_id}/child_chunks/{child_chunk_id}` | Delete a child chunk. |
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/datasets/$DATASET_ID/documents/$DOCUMENT_ID/segments \
+  -H "Authorization: Bearer $KNOWLEDGE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "segments": [{ "content": "Gift cards never expire.", "keywords": ["gift card", "expiry"] }] }'
+```
+
+**Chunk object:** `id`, `position`, `document_id`, `content`, `answer`, `keywords`, `word_count`, `tokens`, `hit_count`, `enabled`, `status`, `error`, `child_chunks`, and timestamps (`created_at`, `updated_at`, `indexing_at`, `completed_at`). **Child chunk object:** `id`, `segment_id`, `content`, `position`, `word_count`, `type`, `created_at`, `updated_at`.
+
+| Status | Code | Message | When |
+|---|---|---|---|
+| 400 | `invalid_param` | `Content is empty` / `Answer is required` / `Answer is empty` | A chunk in `segments` is missing text. |
+| 400 | — | `{"error": "Segments is required"}` | The body has no `segments` array. |
+| 400 | `provider_not_initialize` | `No Embedding Model available. Please configure a valid provider in the Settings -> Model Provider.` | The knowledge base's embedding model isn't available. |
+| 403 | `forbidden` | `To unlock this feature and elevate your Xpectrum experience, please upgrade to a paid plan.` | Adding chunks, or adding, editing and deleting child chunks, isn't included in your plan. |
+| 404 | `not_found` | `Document is not completed.` / `Document is disabled.` | Wait for indexing, or enable the document. |
+| 404 | `not_found` | `Segment not found.` / `Child chunk not found.` / `Document not found.` | Unknown id. |
+
+## Retrieve (test retrieval)
+
+<Endpoint method='POST' path='/v1/datasets/{dataset_id}/retrieve' />
+
+The same as [search](#search-a-knowledge-base), but lets you override the retrieval settings for this call and returns the full chunk records — useful for testing settings before you save them. `/v1/datasets/{dataset_id}/hit-testing` is an alias.
+
+<Params title='Request body'>
+  <Param name='query' type='string' required>1–250 characters.</Param>
+  <Param name='retrieval_model' type='object'>Override the retrieval settings. See [the retrieval model object](#retrieval-model-object). When you override, include at least `search_method`, `top_k`, `score_threshold_enabled` and `reranking_enable`.</Param>
+</Params>
+
+Returns the matching records — as many as the knowledge base's **Top K** setting, or the `top_k` you sent:
+
+```json title="200 OK"
+{
+  "query": { "content": "refund policy for damaged items" },
+  "records": [
+    {
+      "score": 0.87,
+      "segment": {
+        "id": "b2c3d4e5-6f70-4a81-92b3-c4d5e6f7a8b9",
+        "position": 4,
+        "content": "Damaged items can be returned within 30 days…",
+        "keywords": ["refund", "damaged"],
+        "document": { "id": "7a1b3c4d-…", "name": "Returns policy", "data_source_type": "upload_file" }
+      },
+      "child_chunks": []
+    }
+  ]
+}
+```
+
+| Status | Code | Message |
+|---|---|---|
+| 400 | `invalid_param` | `Query is required and cannot exceed 250 characters` |
+| 400 | `dataset_not_initialized` | `The dataset is still being initialized or indexing. Please wait a moment.` |
+| 400 | `provider_not_initialize` | `No Embedding Model or Reranking Model available. Please configure a valid provider in the Settings -> Model Provider.` |
+| 404 | `not_found` | `Dataset not found.` |
+
+## Metadata
+
+Metadata fields let you tag documents with structured values (for example `product` or `region`) and filter on them at retrieval time. See [Retrieval settings](/docs/knowledge/retrieval).
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/v1/datasets/{dataset_id}/metadata` | List fields. Returns `{"doc_metadata": [{"id", "name", "type", "count"}], "built_in_field_enabled"}`. |
+| `POST` | `/v1/datasets/{dataset_id}/metadata` | Create a field. Body: `{"type": "string" \| "number" \| "time", "name": "…"}`. Returns `201` with `{id, type, name}`. |
+| `PATCH` | `/v1/datasets/{dataset_id}/metadata/{metadata_id}` | Rename a field. Body: `{"name": "…"}`. |
+| `DELETE` | `/v1/datasets/{dataset_id}/metadata/{metadata_id}` | Delete a field and its values. |
+| `GET` | `/v1/datasets/metadata/built-in` | List built-in fields as `{"fields": [{"name", "type"}]}`: `document_name`, `uploader`, `upload_date`, `last_update_date`, `source`. |
+| `POST` | `/v1/datasets/{dataset_id}/metadata/built-in/enable` | Turn built-in fields on (`…/disable` turns them off). |
+| `POST` | `/v1/datasets/{dataset_id}/documents/metadata` | Set values on documents. See below. |
+
+```json title="POST /v1/datasets/{dataset_id}/documents/metadata"
+{
+  "operation_data": [
+    {
+      "document_id": "7a1b3c4d-2e5f-4a6b-8c9d-0e1f2a3b4c5d",
+      "metadata_list": [
+        { "id": "e1f2a3b4-…", "name": "region", "value": "EU" },
+        { "id": "c5d6e7f8-…", "name": "version", "value": 3 }
+      ]
+    }
+  ]
+}
+```
+
+## Tags
+
+Tags group knowledge bases in the dashboard and can be used to filter [`GET /datasets`](#list-knowledge-bases). They are shared across the workspace.
+
+| Method | Path | Body | What it does |
+|---|---|---|---|
+| `GET` | `/v1/datasets/tags` | — | List knowledge tags: `[{"id", "name", "type", "binding_count"}]`. |
+| `POST` | `/v1/datasets/tags` | `{"name"}` | Create a tag (1–50 characters). |
+| `PATCH` | `/v1/datasets/tags` | `{"tag_id", "name"}` | Rename a tag. |
+| `DELETE` | `/v1/datasets/tags` | `{"tag_id"}` | Delete a tag. |
+| `POST` | `/v1/datasets/tags/binding` | `{"tag_ids": [...], "target_id"}` | Add tags to the knowledge base `target_id`. |
+| `POST` | `/v1/datasets/tags/unbinding` | `{"tag_id", "target_id"}` | Remove a tag from a knowledge base. |
+| `GET` | `/v1/datasets/{dataset_id}/tags` | — | Tags on one knowledge base: `{"data": [{"id", "name"}], "total"}`. |
+
+## Next steps
+
+<Cards>
+  <Card title='Knowledge bases' href='/docs/knowledge'>How knowledge works in Xpectrum.</Card>
+  <Card title='Chunking & indexing' href='/docs/knowledge/indexing'>Choose chunk sizes and modes.</Card>
+  <Card title='Retrieval settings' href='/docs/knowledge/retrieval'>Search methods, reranking and thresholds.</Card>
+  <Card title='Knowledge troubleshooting' href='/docs/troubleshooting/knowledge'>Fix indexing and retrieval problems.</Card>
+</Cards>

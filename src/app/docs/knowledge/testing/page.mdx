@@ -1,0 +1,78 @@
+export const metadata = {
+  title: 'Testing retrieval',
+  description: 'Use Retrieval Test to see which chunks a question returns, read the scores, and diagnose bad knowledge-based answers.',
+}
+
+# Testing retrieval
+
+**Retrieval Test** shows exactly which chunks a knowledge base returns for a query, without running an agent. Use it after you add content, after you change chunking or retrieval settings, and whenever an agent gives a wrong answer.
+
+## Run a test
+
+<Steps>
+<Step title='Open the test'>
+
+Open the knowledge base and select the **Retrieval Testing** tab.
+
+</Step>
+<Step title='Enter a query'>
+
+Type a query in the text box, up to 200 characters. The counter under the box shows how many you've used. A short sentence phrased the way a real user would ask works best, for example `How do I reset my password?`, not `password reset procedure documentation`.
+
+</Step>
+<Step title='Choose the retrieval setting (optional)'>
+
+The test uses the knowledge base's **Retrieval Setting**, summarized on the button under the text box (for example `weighted 0.7/0.3 · top 3 · no floor`). Click it to change the merge method, Top K or score threshold for this test only, then save the values you like in **Settings**.
+
+</Step>
+<Step title='Click Test'>
+
+The results appear under **Results** with the number of chunks returned. The query is also saved in the knowledge base's **Logs** tab, which lists queries from apps too. Click a query there to rerun it after changing settings.
+
+</Step>
+</Steps>
+
+## Read the results
+
+Each retrieved chunk shows:
+
+| Field | What to look for |
+|---|---|
+| Score | The relevance score. Compare good and bad hits across queries to choose a **Score Threshold**. |
+| Content | The first lines of the chunk text. Does it contain the answer, or only part of it? |
+| Source document | Which document the chunk came from, with **Open** to view it. Is it the one you expected, and is it the current version? |
+| Keywords | The chunk's keywords, when it has any. |
+| **Hit N child chunks** | For **Hierarchical** chunking, the child chunks that matched, shown under their parent. |
+
+Click a chunk to open **Chunk Detail** with the full text.
+
+<Callout type='tip'>
+  Build a small test set of 10–20 real questions from your support inbox or call transcripts. Rerun it after every chunking or retrieval change, so you know whether a change helped.
+</Callout>
+
+## Diagnose a bad answer
+
+When an agent answers wrongly, work through the pipeline in order. Most problems are retrieval problems, not prompt problems.
+
+1. **Is the content there?** Search **Documents** for the fact. If it's missing, add it. If the document is **Disabled**, **Archived** or in **Error**, fix that first. See [Sources](/docs/knowledge/sources#document-statuses).
+2. **Is it retrieved?** Run the user's exact question in Retrieval Test.
+   - **Not in the results.** Lower the **Score Threshold**, raise **Top K**, or try a rerank model. For exact terms such as SKUs or error codes, weight toward keywords. See [Retrieval](/docs/knowledge/retrieval).
+   - **Split across chunks, or cut off.** Increase the chunk length or switch to **Hierarchical**. See [Chunking and indexing](/docs/knowledge/indexing).
+   - **Buried among near-duplicates.** Remove outdated copies of the document, or add a rerank model.
+3. **Is it retrieved in the app?** App-level retrieval settings (Multi-path retrieval, metadata filters) can differ from the knowledge base's own settings. Check the Knowledge node or Knowledge Search block, and use the app's **Logs** to see what the run actually retrieved.
+4. **Does the model use it?** If the right chunk reaches the model and the answer is still wrong, tighten the instructions. For example: "Answer only from the provided context. If the context doesn't contain the answer, say you don't know and offer to connect a human."
+
+## Troubleshooting
+
+- **Retrieval Test returns nothing.** The knowledge base may still be indexing ("The dataset is still being initialized or indexing"), or the score threshold is too high.
+- **Good results in Retrieval Test but not in the app.** The app isn't attached to this knowledge base, uses different retrieval settings, or filters by metadata. Also check that you published the app after attaching the knowledge.
+- **The Test button is disabled.** The query is empty or longer than 200 characters. The counter turns red when it's too long.
+
+For more knowledge problems, see [Knowledge troubleshooting](/docs/troubleshooting/knowledge).
+
+## Next steps
+
+<Cards>
+  <Card title='Retrieval' href='/docs/knowledge/retrieval'>Adjust merging, Top K and threshold.</Card>
+  <Card title='Test your agent' href='/docs/deploy/testing'>Test the full agent end to end in Preview.</Card>
+</Cards>

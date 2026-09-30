@@ -1,0 +1,124 @@
+export const metadata = {
+  title: 'Answer & End',
+  description: 'Reference for the output blocks: Answer (Agent Flow replies), End (Workflow results, shown as Output) and Hand off (Multi-prompt Agent).',
+}
+
+# Answer & End
+
+Output blocks are where a flow gives something back. **Answer** sends a reply to the user in an Agent Flow. **End** (shown as **Output** on the canvas) returns a Workflow's result to whoever started it. **Hand off** moves a Multi-prompt Agent's caller into another flow.
+
+## When to use it
+
+| App type | Output block | What the caller receives |
+|---|---|---|
+| Agent Flow | **Answer** | A streamed chat reply, in the Preview, on a channel or through the API |
+| Workflow | **End** | A result object with the output variables you define |
+| Multi-prompt Agent | **Hand off** (optional) | The conversation continues in another Multi-prompt Agent |
+
+## Answer
+
+**Answer** "Define[s] the reply content of a chat conversation". It's only available in Agent Flows. Workflows have no conversation.
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Answer** | The reply text. Type `/` to insert variables, usually an AI Model's `text`. Mix fixed text and variables freely. | Empty: required ("Answer is required") |
+
+### How it behaves
+
+- Answers stream: if the text includes an AI Model's `text`, the user sees the model's words as they're generated. Fixed text around it is sent in order.
+- A flow can have several Answer blocks, one per branch. Only those on the branch that runs send anything.
+- Answer blocks placed one after another on the same branch all send, in order. Use this for a quick "One moment while I check that…" before a slow step.
+- The Answer's content is the assistant's message in the conversation history, so the next turn's memory includes it.
+
+### Example
+
+```text title="Answer"
+Here's what I found:
+
+[AI Model › text]
+
+Anything else I can help with?
+```
+
+In an Agent Flow with an error branch, add a second Answer on the fail branch of your HTTP Request or AI Model: "Sorry, I can't reach our order system right now. Please try again in a few minutes."
+
+## End
+
+**End** "Define[s] the end and result type of a workflow". The picker lists it as **End**, and the canvas shows it as **Output** ("Final output"). It's only available in Workflows.
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **output variable** (**+**) | Each row is a name and a variable to return under that name. | None |
+
+A workflow can have several End blocks, one per branch. The run returns the outputs of the End block that was reached.
+
+### Outputs
+
+The End block's outputs become the run's `outputs`:
+
+```json title="Run result (outputs)"
+{
+  "summary": "The contract renews annually on 1 March…",
+  "risk_level": "medium",
+  "clauses": ["auto-renewal", "limitation of liability"]
+}
+```
+
+- Through the API, they're in the run's `outputs`. See [Workflow runs](/docs/api/runs).
+- When the workflow is used as a tool, they're what the calling agent receives. See [Tools](/docs/integrations/tools).
+- When the workflow is exposed over MCP, they're the tool result. See [MCP](/docs/integrations/mcp).
+
+<Callout type='tip'>
+  Name outputs for whoever consumes them, such as `summary` and `risk_level`, not `text` and `structured_output`. They become field names in API responses and tool results.
+</Callout>
+
+## Hand off
+
+**Hand off** moves the caller into another Multi-prompt Agent: "Move the caller into another flow — its first step speaks, and there is no way back". It has no outgoing connections. The next turn starts in the other flow.
+
+<Callout type='warning'>
+  Hand off belongs to the Multi-prompt Agent, which has limited availability and is in Beta. It isn't available in client workspaces.
+</Callout>
+
+### Settings
+
+| Setting | Description |
+|---|---|
+| **Flow that takes over** | The Multi-prompt Agent to move to (**Choose a flow…**). Only other Multi-prompt Agents are listed, and the target's published version runs. "The caller carries on in that flow and does not come back. Its first step says whatever it is configured to say, so this step says nothing." |
+| **What it starts with** | Values to carry over (**Carry a value over**). Each row maps a key in the other flow ("key in the other flow") to a value read from this flow, such as `state.customer_email`. "Nothing is carried unless you say so." If a value can't be read at run time, it's skipped and the other flow starts without it. |
+
+### Example
+
+A reception agent identifies why someone is calling, then hands billing calls to a separate billing agent:
+
+| Key in the other flow | Read from this flow |
+|---|---|
+| `customer_email` | `state.customer_email` |
+| `account_id` | `state.account_id` |
+
+See [Multi-prompt Agent](/docs/build/multi-prompt-agent).
+
+## Errors and limits
+
+| Symptom or message | Cause | Fix |
+|---|---|---|
+| "The Answer block must be added" / "The End block must be added" | The flow has no output block. | Add an **Answer** (Agent Flow) or **End** (Workflow). |
+| "Answer is required" | An Answer block is empty. | Enter text or insert a variable. |
+| The user sees nothing, but the run succeeded | The branch that ran has no Answer block. | Add an Answer to every branch, including fail branches. |
+| A workflow run returns empty `outputs`, or an output is `null` | The End block has no output variables, or an output points to a step that didn't run on this branch (its value is `null`). | Add outputs, and give each branch its own End block. |
+| "Choose the flow that takes over." | Hand off has no target. | Pick a flow. |
+| "A carried value needs both a key and something to read." | A carry-over row is half filled. | Complete or delete the row. |
+| "This hand-off names no flow to hand the caller to." | A Hand off without a target was reached at run time. | Pick a target flow and publish. |
+| "Could not hand the caller to that flow: …" | The target flow couldn't take over, for example because it has never been published. | Publish the target Multi-prompt Agent, then try again. |
+
+## Next steps
+
+<Cards>
+  <Card title='AI Model' href='/docs/blocks/ai-model'>Generate the text an Answer shows.</Card>
+  <Card title='Workflow runs API' href='/docs/api/runs'>Read a workflow's outputs from code.</Card>
+  <Card title='Publishing' href='/docs/deploy/publishing'>Make your changes live.</Card>
+</Cards>

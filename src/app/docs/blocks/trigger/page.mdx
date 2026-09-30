@@ -1,0 +1,188 @@
+export const metadata = {
+  title: 'Trigger',
+  description: 'Reference for the Trigger, Webhook Trigger and Custom App Trigger blocks: inputs, output variables, test tools and errors.',
+}
+
+# Trigger
+
+Every flow begins with a trigger block. The **Trigger** (Start) block defines the inputs a person, an API call or a parent app passes in. A Workflow can instead start from a **Webhook Trigger** (an HTTP request to a generated URL) or a **Custom App Trigger** (an event in a connected app). For how triggers, schedules and runs fit together, see [Triggers](/docs/build/triggers).
+
+## When to use it
+
+| Start block | Use it when | App types |
+|---|---|---|
+| **Trigger** | Someone fills in a form, calls the API, or another app uses this workflow as a tool. | Agent Flow, Workflow |
+| **Webhook Trigger** | Another system should start the workflow by sending an HTTP request, for example a form tool, a CRM or a payment provider. | Workflow |
+| **Custom App Trigger** | The workflow should run on an event in a connected app, for example new mail arriving. | Workflow (not in client workspaces) |
+
+A new Workflow starts with a placeholder: **Pick a start node** ("The start node defines what triggers your workflow to run."). Agent Flows always use **Trigger**. A trigger has no incoming connections.
+
+<Callout type='warning'>
+  A workflow that starts from a **Webhook Trigger** or **Custom App Trigger** has no input form. It can't be run as a web app and can't be used as a tool. If it's already published as a tool, publishing with the new trigger removes it from the tool list and breaks any app using it. To test it in the editor, click **Run** and edit the **Test payload** instead of filling in a form.
+</Callout>
+
+## Trigger
+
+The **Trigger** (Start) block defines the input variables for a run.
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Input Field** (**+**) | One entry per input. Each has a **Variable Name**, a **Label Name**, an optional **Description** and options for its type. | None |
+| Field type | Chosen when you click **+**. In a Workflow: **Short Text**, **Paragraph**, **Select**, **Number**, **Image Upload** or **Document Upload**. In an Agent Flow, **+** adds a **Short Text** field. Fields created in older versions of the editor may also be **Single File** or **File List**. | — |
+| **Max length** | Maximum characters for **Short Text** (up to 256) and **Paragraph** fields. | 48 |
+| **Options** | The choices for a **Select** field (**Add option**). | — |
+| **Support File Types** | For file fields: **Image**, **Document**, **Audio**, **Video** or **Other file types**. | The type you picked |
+| **Required** | The run is rejected if the value is missing ("… is required in input form"). | On |
+| **Method** | Used when the workflow is published as a tool: **Parameter** ("LLM fills during inference") or **Setting** ("User fills in the tool configuration"). | **Parameter** |
+
+### Inputs and outputs
+
+The block's output variables are your input fields plus system variables:
+
+| Variable (as displayed) | Type | Available in | Contains |
+|---|---|---|---|
+| Your input fields | As defined | All | The values passed in |
+| `thread.user_query` | String | Agent Flow | The user's current message |
+| `thread.thread_id` | String | All | The conversation id |
+| `thread.user_id` | String | All | The end-user id passed by the caller |
+| `channel.name` | String | All | The channel the message came from, such as voice or WhatsApp |
+| `channel.metadata` | Object | All | Channel details, such as the caller's number |
+
+Older flows may show the stored names (`sys.query`, `sys.conversation_id`, `sys.user_id`, `sys.channel`, `sys.channel_metadata`). Both refer to the same values. See [Variables](/docs/build/variables).
+
+### Example
+
+A lead-scoring workflow with three inputs:
+
+| Variable Name | Field type | Required |
+|---|---|---|
+| `company` | Short Text | On |
+| `message` | Paragraph | On |
+| `plan` | Select (`starter`, `growth`, `enterprise`) | Off |
+
+Called through the API, the same inputs go in the request body:
+
+```json title="POST /v1/runs"
+{
+  "variables": { "company": "Acme", "message": "We need 40 seats", "plan": "growth" },
+  "user": "crm-sync"
+}
+```
+
+See [Workflow runs](/docs/api/runs).
+
+## Webhook Trigger
+
+The **Webhook Trigger** starts a workflow when an HTTP request reaches its URL. The **Webhook URL** is "Generated after the workflow is saved" and has the form `https://cloud.xpectrum.dev/triggers/webhook/<webhook_id>`. Copy the exact URL from the block. Treat it as a secret: anyone who has it can start the workflow. A workflow can have up to five Webhook Triggers.
+
+### Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Webhook URL** | The live URL. Copy it into the sending system. | Generated on save |
+| **Test URL** | A separate URL for testing from the editor. | Generated on save |
+| **Method** | GET, POST, PUT, DELETE, PATCH or HEAD. Requests with another method are rejected. | POST |
+| **Content-Type** | `application/json`, `multipart/form-data`, `application/x-www-form-urlencoded`, `text/plain` or `application/octet-stream`. Requests with another type are rejected. | `application/json` |
+| **Headers** | Headers to read. Each is a string and can be **Required**. | None |
+| **Query Parameters** | Query string values to read: string, number or boolean. Each can be **Required**. | None |
+| **Body** | Body fields to read. The types offered depend on **Content-Type**: JSON allows string, number, boolean, object and arrays of string, number, boolean or object; form types allow string, number and boolean (plus file for `multipart/form-data`); `text/plain` and `application/octet-stream` take a single field. | None |
+| **Status Code** | The HTTP status returned to the caller, from 200 to 399. | 200 |
+| **Response Body** | "Optional JSON or text returned to the caller". Text that isn't JSON is returned as `{"message": "<your text>"}`. | Empty |
+
+### Inputs and outputs
+
+Each header, query parameter and body field you declare becomes an output variable with the same name. Dashes in header names become underscores, so `X-Request-Id` is available as `X_Request_Id`. Headers are matched case-insensitively.
+
+`_webhook_raw` holds "The full request payload (method, headers, query and body)". Use it when you need a value you didn't declare.
+
+With `text/plain`, a body field receives the whole body as a string. With `application/octet-stream`, it receives the uploaded file.
+
+### Response to the caller
+
+The workflow runs in the background. The caller gets an immediate response. It doesn't wait for the workflow's result. The response is your **Status Code** and **Response Body**, or this body if you set none:
+
+```json
+{ "status": "success", "message": "Webhook processed successfully" }
+```
+
+To send results back, add an **HTTP Request** block at the end of the workflow that calls the other system.
+
+### Test it
+
+1. Save the workflow ("Save the workflow once to generate a test URL.").
+2. Under **Test**, click **Listen for test request** ("Listening… send your request now").
+3. Send a request to the **Test URL**, or use **Copy as cURL** and run the command in a terminal.
+4. The workflow runs against your draft and shows its **Outputs**. Listening stops after two minutes without a request.
+
+```bash title="Terminal"
+curl -X POST 'YOUR_TEST_URL' \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "ada@example.com", "plan": "growth"}'
+```
+
+### Errors
+
+| Status | Message | Fix |
+|---|---|---|
+| 400 | "HTTP method mismatch. Expected POST, got GET" | Send the configured **Method**. |
+| 400 | "Content-type mismatch. Expected application/json, got text/plain" | Send the configured **Content-Type**. |
+| 400 | "Required header missing: X", "Required parameter missing: X", "Required body parameter missing: X" | Include every field marked **Required**. |
+| 400 | "Invalid JSON body: …" | Send valid JSON. |
+| 404 | "Webhook not found: …" or "Webhook trigger is disabled for webhook …" | Check the URL and that the trigger is still in the published workflow. |
+| 404 | "Workflow not found for app …" | Publish the workflow. The live **Webhook URL** runs the published version; only the **Test URL** runs the draft. |
+| 409 | "No active debug listener" | Click **Listen for test request** before sending to the **Test URL**. |
+| 413 | Request body too large | Keep the body under 10 MB. |
+
+## Custom App Trigger
+
+The **Custom App Trigger** starts a workflow from an event in an external app ("pick a provider and the event to listen for, such as new mail arriving").
+
+<Callout type='warning'>
+  The apps offered depend on your workspace. Custom App Trigger isn't available in client workspaces.
+</Callout>
+
+### Settings
+
+| Setting | Description |
+|---|---|
+| **Choose an app** | The app that sends events, for example Gmail ("Start a workflow when new mail arrives in a Gmail mailbox"). |
+| **Choose an event** | Which event starts the workflow, for example **New message**. |
+| **Choose a connection** | The connected account to listen on. Use **Add new connection** to connect one. |
+| **Set up trigger** | Filters for this block only. For Gmail **New message**: **From contains**, **Subject contains** and **Has this label**. |
+
+One connection can feed several workflows, each filtering for something different ("These filters apply to this node only.").
+
+### Connection status
+
+| Status | Meaning |
+|---|---|
+| **Pending** | Created but not verified. "This connection will not start any workflow until it does." |
+| **Active** | Verified. It starts workflows. |
+| **Disabled** | Turned off. |
+| **Expired** | The connection's credentials have expired. Reconnect it. |
+
+To verify a new connection, finish the app-side setup, click **Verify** and send a test event. The first event that arrives activates the connection ("Verified. This connection is now active and will start workflows."). If none arrives, you'll see "No event arrived. Check the endpoint URL and try again."
+
+### Outputs
+
+The output variables are whatever the event provides. Gmail **New message** provides `message_id`, `thread_id`, `from`, `to`, `subject`, `date`, `snippet`, `body_text`, `body_html`, `body_truncated`, `has_attachments`, `attachments`, `label_ids`, `email_address` and `history_id`. The variable picker lists them with descriptions.
+
+To test the rest of the flow, click **Run**, edit the **Test payload** ("The event this trigger would receive. Edit the values, then run…") and run it. The payload must be a valid JSON object.
+
+## Troubleshooting
+
+- **The workflow isn't offered as a tool or web app.** → It starts from a Webhook Trigger or Custom App Trigger. Use a **Trigger** (Start) block if it needs a form or tool inputs.
+- **Webhook calls return 200 but nothing happens.** → The response is sent before the workflow runs, so a failed run still returns 200. Check the run in **Logs**. The live URL runs the published version, so publish your latest changes.
+- **A declared header is always empty.** → The sender uses a different name. Look at `_webhook_raw` in the run log to see what arrived.
+- **The Test URL doesn't reach the editor from an external service.** → "This test URL points at a local or private address, so external services will not be able to reach it." Send the test from a machine that can reach it, or use **Copy as cURL**.
+
+## Next steps
+
+<Cards>
+  <Card title='Triggers' href='/docs/build/triggers'>Schedules, webhooks and events compared.</Card>
+  <Card title='Variables' href='/docs/build/variables'>System variables, constants and references.</Card>
+  <Card title='HTTP Request' href='/docs/blocks/http-request'>Send results back to the calling system.</Card>
+  <Card title='Workflow runs API' href='/docs/api/runs'>Start a workflow with inputs from code.</Card>
+</Cards>

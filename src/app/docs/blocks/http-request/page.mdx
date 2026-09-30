@@ -1,0 +1,207 @@
+export const metadata = {
+  title: 'HTTP Request',
+  description: 'Reference for the HTTP Request block: method, URL, authorization, headers, params, body types, timeouts, retries, cURL import, outputs, limits and errors.',
+}
+
+# HTTP Request
+
+The **HTTP Request** block calls any HTTP endpoint and hands the response to the next steps. Use it to read from or write to your own systems (CRM, order database, helpdesk, calendar) without building a custom tool.
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| Call a specific endpoint with known parameters | **HTTP Request** |
+| Let a model decide when and how to call an API | Add it as a [custom tool](/docs/integrations/custom-tools) and use the [Agent](/docs/blocks/agent) block |
+| A ready-made integration exists | A tool from [Tools](/docs/integrations/tools) |
+| Send the workflow's result to another system at the end of a run | **HTTP Request** before the **End** block |
+
+## Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| Method | GET, POST, PUT, PATCH, DELETE or HEAD. | GET |
+| **API** | The URL. It must start with `http://` or `https://`. Type `/` to insert a variable anywhere in it ("Enter URL, type ‘/’ insert variable"). | Required |
+| **Import from cURL** | Paste a cURL command to fill in the method, URL, headers, params and body. See [Import from cURL](#import-from-curl). | — |
+| **Authorization** | **None** or **API-Key**. See below. | **None** |
+| **Headers** | Key-value pairs. Switch to **Bulk Edit** to paste `Key: Value` lines. | None |
+| **Params** | Query string parameters, as key-value pairs or **Bulk Edit** lines. | None |
+| **Body** | none, form-data, x-www-form-urlencoded, JSON, raw or binary. See below. | none |
+| **Timeout** | **Connection Timeout**, **Read Timeout** and **Write Timeout**, in seconds. | Blank, which uses the maximum. See [limits](#errors-and-limits) |
+| **Retry on failure** | Retries failed requests. Set **max retries** (1 to 10) and **retry interval** (100 to 5,000 ms). | On: 3 retries, 100 ms apart |
+| **Error Handling** | **None**, **Default Value** or **Fail Branch**. See [error handling](/docs/blocks#error-handling). | **None** |
+
+### Authorization
+
+| **Auth Type** | Header sent | Notes |
+|---|---|---|
+| **Bearer** | `Authorization: Bearer <API Key>` | Most REST APIs. |
+| **Basic** | `Authorization: Basic <encoded>` | Enter `username:password` and it's Base64-encoded for you. A value without a colon is sent as-is, so you can paste an already-encoded string. |
+| **Custom** | `<Header>: <API Key>` | For APIs that use their own header, such as `X-API-Key`. |
+
+Choose **API-Key**, then an **Auth Type** (**Basic** is preselected) and enter the **API Key**. You can insert a variable in the key. **Custom** also asks for the **Header** name. **Bearer** and **Basic** always use the `Authorization` header. Store keys as secret [constants](/docs/build/variables) and insert them, rather than typing them into the block, so they aren't exposed when you export the app.
+
+### Body types
+
+| Type | Content-Type | What you enter |
+|---|---|---|
+| none | — | Nothing. |
+| form-data | `multipart/form-data` | Key-value rows. A value can be text or a file variable, for uploads. |
+| x-www-form-urlencoded | `application/x-www-form-urlencoded` | Key-value rows. |
+| JSON | `application/json` | A JSON document, with variables. It must be valid JSON once variables are filled in. |
+| raw | as set in **Headers** | Any text, with variables. |
+| binary | as set in **Headers** | One file variable (**Binary File Variable**) sent as the raw body. |
+
+In a JSON body, put quotes around string variables, just as you would around any string value. A number variable goes in without quotes.
+
+## Inputs and outputs
+
+**Reads:** any variables in the URL, headers, params and body, and file variables for form-data or binary bodies.
+
+**Produces:**
+
+| Variable | Type | Description |
+|---|---|---|
+| `body` | String | The response body as text ("Response Content"). Empty when the response is a file. |
+| `status_code` | Number | The HTTP status, such as `200` or `404`. |
+| `headers` | Object | The response headers ("Response Header List JSON"). |
+| `files` | Array[File] | Files returned by the endpoint, such as a PDF or an image. Empty for text responses. |
+
+`body` is always a string, even for JSON. Parse it in a [Custom Function](/docs/blocks/custom-function) to use individual fields.
+
+### Error responses
+
+A response with a 4xx or 5xx status counts as a failure when **Retry** is on (the default) or **Error Handling** is set. The block retries, then fails with "Request failed with status code 404" (error type `HTTPResponseCodeError`), or follows your error handling. With both off, the block succeeds and you can branch on `status_code` with a [Condition](/docs/blocks/condition).
+
+<Callout type='warning'>
+  Because Retry is on by default, a `404` or `422` is retried three times and then fails the run. If "not found" is a normal outcome for your API, set **Error Handling** to **Fail Branch** or turn Retry off and branch on `status_code`.
+</Callout>
+
+## Example
+
+Look up an order and read its status.
+
+**1. HTTP Request**
+
+| Setting | Value |
+|---|---|
+| Method | GET |
+| **API** | `https://api.example.com/v2/orders/` followed by the **Trigger › order_id** variable |
+| **Authorization** | **API-Key**, **Bearer**, API Key = the `ORDERS_API_KEY` constant |
+| **Headers** | `Accept: application/json` |
+| **Error Handling** | **Fail Branch** → an **Answer** saying the order couldn't be found |
+
+A successful response:
+
+```json title="body"
+{
+  "id": "A-10492",
+  "status": "shipped",
+  "carrier": "UPS",
+  "tracking": "1Z999AA10123456784",
+  "items": [{ "sku": "TSHIRT-M", "quantity": 2 }]
+}
+```
+
+**2. Custom Function**, with input variable `body` = HTTP Request `body`, and outputs `status` (String), `tracking` (String), `item_count` (Number):
+
+<Tabs>
+<Tab title='Python3'>
+
+```python
+import json
+
+def main(body: str) -> dict:
+    order = json.loads(body)
+    return {
+        "status": order.get("status", "unknown"),
+        "tracking": order.get("tracking") or "",
+        "item_count": sum(i["quantity"] for i in order.get("items", [])),
+    }
+```
+
+</Tab>
+<Tab title='JavaScript'>
+
+```js
+function main({body}) {
+    const order = JSON.parse(body)
+    return {
+        status: order.status || 'unknown',
+        tracking: order.tracking || '',
+        item_count: (order.items || []).reduce((n, i) => n + i.quantity, 0)
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+**3.** An **AI Model** or **Answer** uses `status`, `tracking` and `item_count` to reply.
+
+A POST with a JSON body, for example to create a ticket. Each `{{#…#}}` below stands for a variable chip inserted with `/`:
+
+```json title="Body (json)"
+{
+  "subject": "{{#trigger.subject#}}",
+  "priority": "{{#ai_model.structured_output.priority#}}",
+  "requester": { "email": "{{#trigger.email#}}" }
+}
+```
+
+## Import from cURL
+
+Click **Import from cURL**, paste a command ("Paste cURL string here") and save. The block reads:
+
+| cURL option | Becomes |
+|---|---|
+| `-X`, `--request` | Method |
+| The URL | **API**. Its query string moves into **Params**. |
+| `-H`, `--header` | **Headers** (including any `Authorization` header) |
+| `-d`, `--data`, `--data-raw`, `--data-binary` | A raw body |
+| `--json` | A JSON body |
+| `-F`, `--form` | A form-data body |
+
+```bash title="Paste this"
+curl -X POST 'https://api.example.com/v2/tickets?notify=true' \
+  -H 'Authorization: Bearer sk_live_xxx' \
+  -H 'Content-Type: application/json' \
+  --json '{"subject": "Refund request", "priority": "high"}'
+```
+
+<Callout>
+  Include `-X POST` when you import a command with `-d`. Without `-X`, the method is imported as GET. Other options such as `-u` are ignored. After importing, move any secret from **Headers** into **Authorization** or a secret constant.
+</Callout>
+
+## Errors and limits
+
+| Limit | Value |
+|---|---|
+| Connection timeout | Up to 300 seconds |
+| Read timeout | Up to 600 seconds |
+| Write timeout | Up to 600 seconds |
+| Text response size | 1 MB |
+| File response size | 10 MB |
+
+A blank timeout uses the maximum.
+
+| Message | Cause | Fix |
+|---|---|---|
+| "API should start with http:// or https://" / "url should start with http:// or https://" | The URL is missing the scheme, or a variable at the start was empty. | Add the scheme. Check the variable has a value. |
+| "Request failed with status code …" | The endpoint returned 4xx or 5xx. | Check `status_code` and `body` in the run log. See [Error responses](#error-responses). |
+| "Text size is too large, max size is 1.00 MB, but current size is …" | The response is over 1 MB. | Ask the API for fewer fields or smaller pages. |
+| "File size is too large, max size is 10.00 MB, …" | The returned file is over 10 MB. | Fetch a smaller file, or pass its URL instead. |
+| "Failed to parse JSON: …" | The JSON body isn't valid after variables are filled in. | Quote string variables. Escape double quotes in values, or build the body in a Custom Function. |
+| `status_code` 401 or 403 | The API key is missing, empty or wrong. An empty **API Key** isn't rejected; the header is sent without a key. | Enter the key, or insert a constant that has a value. |
+| "Invalid cURL command. Command must start with \"curl\"." / "Missing URL or url not start with http." | **Import from cURL** couldn't read the command. | Paste the whole command, starting with `curl` and including an `http://` or `https://` URL. |
+| Timeout errors | The endpoint was slow. | Raise **Read Timeout**, or speed up the endpoint. |
+
+Requests to private or internal network addresses are blocked. The endpoint must be reachable from the public internet. HTTPS certificates are verified, so an endpoint with a self-signed or expired certificate fails. Redirects are followed automatically.
+
+## Next steps
+
+<Cards>
+  <Card title='Custom Function' href='/docs/blocks/custom-function'>Parse the response body.</Card>
+  <Card title='Custom tools' href='/docs/integrations/custom-tools'>Turn an API into a tool an agent can call.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Secret constants for API keys.</Card>
+</Cards>

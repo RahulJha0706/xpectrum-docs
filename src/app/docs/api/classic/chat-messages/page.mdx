@@ -1,0 +1,384 @@
+export const metadata = {
+  title: 'Chat messages',
+  description: 'Send a message to an Agent Flow, AI Chatbot or Autonomous Agent with the classic API, and stop a streaming response.',
+}
+
+# Chat messages
+
+Send an end user's message to a conversational app and get its reply, either as a stream of events or as a single JSON object. Use the same endpoint to start a new conversation or continue an existing one.
+
+<Callout type='tip' title='Recommended alternative'>
+  New integrations can use [`POST /v1/chat/completions`](/docs/api/chat-completions), the OpenAI-compatible equivalent. It takes `thread_id`, `variables` and `attachments` instead of `conversation_id`, `inputs` and `files`.
+</Callout>
+
+## Send a chat message
+
+<Endpoint method='POST' path='/v1/chat-messages' />
+
+Sends `query` to the app and returns its answer. Leave `conversation_id` empty to start a new conversation; the response contains the new `conversation_id`, which you pass on the next call to continue the conversation with its history as context.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='violet'>Multi-prompt Agent</Tag>
+
+### Request body
+
+<Params title='Request body'>
+  <Param name='query' type='string' required>
+    The end user's message.
+  </Param>
+  <Param name='inputs' type='object' required>
+    Values for the app's input variables, as `variable_name: value` pairs. Send `{}` if the app has none. For a file-type variable, pass a file object (or an array of file objects for a file-list variable) in the same shape as `files` below.
+  </Param>
+  <Param name='user' type='string' required>
+    Your identifier for the end user, unique within the app. Conversations belong to this user. See [The user parameter](/docs/api/classic#the-user-parameter).
+  </Param>
+  <Param name='response_mode' type='string' def='blocking'>
+    `streaming` (recommended) returns Server-Sent Events. `blocking` returns one JSON object when the run finishes; long blocking requests can be interrupted, so prefer streaming. The Autonomous Agent app type supports `streaming` only.
+  </Param>
+  <Param name='conversation_id' type='string'>
+    The id of the conversation to continue, as returned by an earlier response. Omit it or send `""` to start a new conversation. It must be a conversation created with the same `user`.
+  </Param>
+  <Param name='files' type='array'>
+    Files to send with the message. See [File objects](#file-objects).
+  </Param>
+  <Param name='auto_generate_name' type='boolean' def='true'>
+    Generate a conversation title automatically from the first message. Set to `false` and call [Rename a conversation](/docs/api/classic/conversations#rename-a-conversation) to set it yourself.
+  </Param>
+  <Param name='channel' type='string' def='chat'>
+    The channel the message came from, stored on the conversation. One of `chat`, `whatsapp`, `sms`, `email`, `voice`, `phone`, `mobile`. Aliases are accepted (`wa`, `text`, `mail`, `webrtc`, `call`, `app`, `web`, `api`); unknown values become `chat`.
+  </Param>
+  <Param name='channel_metadata' type='object' def='{}'>
+    Free-form details about the channel (for example the sender's phone number), stored with the conversation.
+  </Param>
+  <Param name='timezone' type='string'>
+    An IANA time zone such as `America/New_York`. Autonomous Agent apps use it as the current time zone and default to `America/Los_Angeles`. An invalid value returns `400 invalid_param`.
+  </Param>
+</Params>
+
+### File objects
+
+Each item in `files` (and each file value in `inputs`) describes one file:
+
+<Params title='File object'>
+  <Param name='type' type='string' required>
+    `document`, `image`, `audio`, `video` or `custom`. AI Chatbot and Autonomous Agent apps accept `image` only, and only when the app's model supports vision.
+  </Param>
+  <Param name='transfer_method' type='string' required>
+    `remote_url` to pass a public URL, or `local_file` to pass a file you uploaded with [`POST /v1/files/upload`](/docs/api/classic/files).
+  </Param>
+  <Param name='url' type='string'>
+    The file URL, when `transfer_method` is `remote_url`.
+  </Param>
+  <Param name='upload_file_id' type='string'>
+    The `id` returned by the upload endpoint, when `transfer_method` is `local_file`.
+  </Param>
+</Params>
+
+| `type` | Extensions |
+|---|---|
+| `document` | TXT, MD, MDX, MARKDOWN, PDF, HTML, XLSX, XLS, DOC, DOCX, CSV, EML, MSG, PPTX, PPT, XML, EPUB |
+| `image` | JPG, JPEG, PNG, GIF, WEBP, SVG |
+| `audio` | MP3, M4A, WAV, AMR, MPGA |
+| `video` | MP4, MOV, MPEG, WEBM |
+| `custom` | Any other file type (Agent Flow) |
+
+The file types an app accepts are set in its file upload settings. Read them from [`GET /v1/parameters`](/docs/api/classic/app#get-app-parameters).
+
+### Request
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/chat-messages' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "inputs": {},
+    "query": "What are your opening hours on Saturday?",
+    "response_mode": "streaming",
+    "conversation_id": "",
+    "user": "customer-1042",
+    "files": [
+      {
+        "type": "image",
+        "transfer_method": "remote_url",
+        "url": "https://example.com/storefront.png"
+      }
+    ]
+  }'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import json
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/chat-messages",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "inputs": {},
+        "query": "What are your opening hours on Saturday?",
+        "response_mode": "streaming",
+        "user": "customer-1042",
+    },
+    stream=True,
+)
+resp.raise_for_status()
+
+for line in resp.iter_lines(decode_unicode=True):
+    if not line or not line.startswith("data:"):
+        continue
+    event = json.loads(line[len("data:"):])
+    if event["event"] in ("message", "agent_message"):
+        print(event["answer"], end="", flush=True)
+    elif event["event"] == "message_end":
+        conversation_id = event["conversation_id"]
+    elif event["event"] == "error":
+        raise RuntimeError(event["message"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/chat-messages', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    inputs: {},
+    query: 'What are your opening hours on Saturday?',
+    response_mode: 'streaming',
+    user: 'customer-1042',
+  }),
+})
+
+const reader = res.body.getReader()
+const decoder = new TextDecoder()
+let buffer = ''
+while (true) {
+  const { done, value } = await reader.read()
+  if (done) break
+  buffer += decoder.decode(value, { stream: true })
+  const parts = buffer.split('\n\n')
+  buffer = parts.pop()
+  for (const part of parts) {
+    if (!part.startsWith('data:')) continue
+    const event = JSON.parse(part.slice(5))
+    if (event.event === 'message' || event.event === 'agent_message') {
+      process.stdout.write(event.answer)
+    }
+  }
+}
+```
+
+  </Tab>
+</Tabs>
+
+### Blocking response
+
+With `response_mode: "blocking"` the response is `application/json`:
+
+<Params title='Response'>
+  <Param name='event' type='string'>Always `message`.</Param>
+  <Param name='task_id' type='string'>The id of this run, used by [Stop a chat response](#stop-a-chat-response).</Param>
+  <Param name='id' type='string'>The message id (same as `message_id`).</Param>
+  <Param name='message_id' type='string'>The message id. Use it for feedback, suggested questions and text to speech.</Param>
+  <Param name='conversation_id' type='string'>The conversation id. Pass it on the next call to continue.</Param>
+  <Param name='mode' type='string'>The app mode, for example `chat` or `advanced-chat`.</Param>
+  <Param name='answer' type='string'>The full answer.</Param>
+  <Param name='metadata.usage' type='object'>Model usage: `prompt_tokens`, `prompt_unit_price`, `prompt_price_unit`, `prompt_price`, `completion_tokens`, `completion_unit_price`, `completion_price_unit`, `completion_price`, `total_tokens`, `total_price`, `currency`, `latency`.</Param>
+  <Param name='metadata.retriever_resources' type='array'>Knowledge citations used for the answer. Each item has `position`, `dataset_id`, `dataset_name`, `document_id`, `document_name`, `segment_id`, `score` and `content`.</Param>
+  <Param name='created_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+```json title="Blocking response"
+{
+  "event": "message",
+  "task_id": "c3800678-a077-43df-a102-53f23ed20b88",
+  "id": "9da23599-e713-473b-982c-4328d4f5c78a",
+  "message_id": "9da23599-e713-473b-982c-4328d4f5c78a",
+  "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+  "mode": "chat",
+  "answer": "We're open from 9 am to 5 pm on Saturdays.",
+  "metadata": {
+    "usage": {
+      "prompt_tokens": 1033,
+      "prompt_unit_price": "0.001",
+      "prompt_price_unit": "0.001",
+      "prompt_price": "0.0010330",
+      "completion_tokens": 14,
+      "completion_unit_price": "0.002",
+      "completion_price_unit": "0.001",
+      "completion_price": "0.0000280",
+      "total_tokens": 1047,
+      "total_price": "0.0010610",
+      "currency": "USD",
+      "latency": 1.21
+    },
+    "retriever_resources": [
+      {
+        "position": 1,
+        "dataset_id": "101b4c97-fc2e-463c-90b1-5261a4cdcafb",
+        "dataset_name": "Store policies",
+        "document_id": "8dd1ad74-0b5f-4175-b735-7d98bbbb4e00",
+        "document_name": "opening-hours.md",
+        "segment_id": "ed599c7f-2766-4294-9d1d-e5235a61270a",
+        "score": 0.87,
+        "content": "Saturday: 9:00–17:00"
+      }
+    ]
+  },
+  "created_at": 1705407629
+}
+```
+
+### Streaming response
+
+With `response_mode: "streaming"` the response is `text/event-stream`. Each chunk is a `data:` line holding one JSON event, followed by a blank line:
+
+```text title="Streaming response"
+data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": "We're", "created_at": 1705398420}
+
+data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "answer": " open", "created_at": 1705398420}
+
+data: {"event": "message_end", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c", "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2", "metadata": {"usage": {"total_tokens": 1047, "currency": "USD", "latency": 1.21}, "retriever_resources": []}}
+```
+
+The events you can receive:
+
+| Event | Sent by | What it carries |
+|---|---|---|
+| `message` | AI Chatbot, Agent Flow | A chunk of the answer in `answer`, plus `task_id`, `message_id`, `conversation_id`, `created_at`. Concatenate the chunks. |
+| `agent_message` | Autonomous Agent | Same as `message`. |
+| `agent_thought` | Autonomous Agent | One reasoning or tool step: `id`, `position`, `thought`, `tool` (tool names separated by `;`), `tool_input` (JSON string), `observation` (the tool result), `message_files`. |
+| `message_file` | All | A file the assistant produced: `id`, `type` (`image`), `belongs_to` (`assistant`), `url`. |
+| `message_end` | All | The answer is complete. Carries `metadata.usage` and `metadata.retriever_resources`. |
+| `message_replace` | All | Output moderation replaced the answer. `answer` holds the replacement text for the whole answer. |
+| `tts_message` | All | A base64-encoded MP3 audio chunk in `audio`. Sent only when text to speech auto-play is on. |
+| `tts_message_end` | All | End of the audio stream (`audio` is `""`). |
+| `workflow_started` | Agent Flow | The flow started: `workflow_run_id` and `data` with `id`, `workflow_id`, `sequence_number`, `created_at`. |
+| `node_started` | Agent Flow | A block started: `data` with `id`, `node_id`, `node_type`, `title`, `index`, `predecessor_node_id`, `inputs`, `created_at`. |
+| `node_finished` | Agent Flow | A block finished: the `node_started` fields plus `process_data`, `outputs`, `status`, `error`, `elapsed_time`, `execution_metadata` (`total_tokens`, `total_price`, `currency`). |
+| `workflow_finished` | Agent Flow | The flow finished: `data` with `id`, `workflow_id`, `status`, `outputs`, `error`, `elapsed_time`, `total_tokens`, `total_steps`, `created_at`, `finished_at`. |
+| `error` | All | An error during the run: `status`, `code`, `message`. The stream ends after it. |
+| `ping` | All | Keep-alive, about every 10 seconds. Ignore it. |
+
+Agent Flow apps can also send `node_retry`, `iteration_started`, `iteration_next`, `iteration_completed`, `loop_started`, `loop_next`, `loop_completed`, `parallel_branch_started`, `parallel_branch_finished`, `text_chunk`, `text_replace` and `agent_log` while blocks run. Ignore any event you don't use. See [Streaming](/docs/api/streaming) for general guidance on reading event streams.
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | A required field is missing, `user` is missing ("Arg user must be provided."), `conversation_id` is not a valid UUID, `timezone` is not a valid IANA time zone, or blocking mode was used with an Autonomous Agent ("Agent Chat App does not support blocking mode"). |
+| 400 | `not_chat_app` | The key belongs to a Workflow or Text Generator app. |
+| 400 | `app_unavailable` | The app's configuration is unavailable. Check and publish the app. |
+| 400 | `provider_not_initialize` | No valid model provider credentials are configured. |
+| 400 | `provider_quota_exceeded` | The hosted model quota is used up. |
+| 400 | `model_currently_not_support` | The configured model is not available. |
+| 400 | `completion_request_error` | The model call failed; the message contains the provider's error. |
+| 404 | `not_found` | "Conversation Not Exists." The `conversation_id` doesn't exist, was deleted, or belongs to a different `user`. |
+| 429 | `rate_limit_error` | A rate limit was reached. Retry with backoff. |
+| 500 | `internal_server_error` | Unexpected server error. |
+
+Errors that happen after streaming has started arrive as an `error` event instead of an HTTP status.
+
+## Stop a chat response
+
+<Endpoint method='POST' path='/v1/chat-messages/{task_id}/stop' />
+
+Stops a streaming response that is still generating. Take `task_id` from any event of the stream. Only streaming runs can be stopped.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='violet'>Multi-prompt Agent</Tag>
+
+<Params title='Path parameters'>
+  <Param name='task_id' type='string' required>
+    The `task_id` from the stream.
+  </Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='user' type='string' required>
+    The same `user` you sent when starting the message. A different value doesn't stop the run.
+  </Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='result' type='string'>Always `success`.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/chat-messages/900bbd43-dc0b-4383-a372-aa6e6c414227/stop' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"user": "customer-1042"}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+task_id = "900bbd43-dc0b-4383-a372-aa6e6c414227"
+resp = requests.post(
+    f"https://cloud.xpectrum.dev/v1/chat-messages/{task_id}/stop",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"user": "customer-1042"},
+)
+print(resp.json())  # {"result": "success"}
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const taskId = '900bbd43-dc0b-4383-a372-aa6e6c414227'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/chat-messages/${taskId}/stop`, {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ user: 'customer-1042' }),
+})
+console.log(await res.json()) // { result: 'success' }
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{ "result": "success" }
+```
+
+<Callout>
+  The response is `success` even when the task has already finished or the `task_id` is unknown, so don't treat it as proof that a run was stopped. Watch the stream end instead.
+</Callout>
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "Arg user must be provided." |
+| 400 | `not_chat_app` | The key belongs to a Workflow or Text Generator app. |
+
+<Callout type='tip' title='Recommended alternative'>
+  In the recommended API, cancel a chat run with [`POST /v1/runs/{run_id}/cancel`](/docs/api/runs), where `run_id` is the classic `task_id`.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='Files' href='/docs/api/classic/files'>Upload a file and reference it with `upload_file_id`.</Card>
+  <Card title='Conversations & messages' href='/docs/api/classic/conversations'>List conversations and read message history.</Card>
+  <Card title='Streaming' href='/docs/api/streaming'>Read Server-Sent Events reliably.</Card>
+</Cards>

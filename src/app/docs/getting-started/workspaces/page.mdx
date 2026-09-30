@@ -1,0 +1,123 @@
+export const metadata = {
+  title: 'Workspaces, members & roles',
+  description: 'Find your way around the sidebar, switch workspaces, invite members, assign roles and turn on multi-factor authentication.',
+}
+
+# Workspaces, members & roles
+
+A workspace holds your apps, knowledge bases, integrations, phone numbers, members and billing. This page maps the sidebar, explains how to switch workspaces, and covers members, roles, security settings and your time zone.
+
+## Sidebar navigation
+
+The sidebar opens collapsed to an icon rail; use **Expand sidebar** / **Collapse sidebar** to change it. Sections work as an accordion, and **Conversational Apps** is open first. What you see depends on your role and your workspace.
+
+| Section | Items | Notes |
+|---|---|---|
+| **Conversational Apps** | **Agent Flow**, **AI Chatbot**, **Autonomous Agent**, **Multi-prompt Agent**, **Analytics** | Multi-prompt Agent isn't shown in client workspaces. Analytics may not be enabled on every workspace. |
+| **Automation Apps** | **Workflow**, **Triggers** | **Triggers** opens **Scheduled Tasks**. |
+| **Resources** | **Knowledge Base**, **Integrations** | |
+| **Channels** | **Voice**, **Phone Number** (with **Batch Calls**), **SMS**, **WhatsApp**, **Telegram**, **Email** | Telegram is marked Coming soon. |
+| **Billings** | **Usage history**, **Tokens**, and Channels / TTS / STT (Coming soon) | Owner and Admin only. **Usage history** appears on workspaces billed with credits. |
+| **Monitoring & Analytics** | **Overview**, **Metrics**, **Execution**, **Sessions** | **Overview**, **Metrics** and **Execution** are Owner and Admin only. **Sessions** is visible to every role except Knowledge Admin. |
+| **Logs** | **Audit Log**, **Activity Log**, **Auth Event** | Owner and Admin only. |
+
+The sidebar footer holds **Support**, the credit chip on workspaces billed with credits (**Credits**, or **Out of credits** when your balance runs out), the workspace switcher, and your account menu with **Settings** and **Log out**.
+
+<Callout>
+  Knowledge Admins don't see the app, resource, channel or monitoring sections. Opening an app, channel or integrations page takes them to the Knowledge Base.
+</Callout>
+
+## Switch workspaces
+
+Click the workspace switcher at the bottom of the sidebar. The card labelled **Current Workspace** shows where you are; click another workspace to switch. Apps, knowledge, keys, channels and billing are never shared between workspaces, so check the switcher before you build or publish.
+
+## Members and invites
+
+Manage members in **Settings › Members** (open **Settings** from the account menu).
+
+<Steps>
+<Step title='Open the invite dialog'>
+
+Click **Add**. The **Add team member** dialog opens.
+
+</Step>
+<Step title='Enter emails and a role'>
+
+Enter one or more email addresses and choose a role. The default role is **Normal**.
+
+</Step>
+<Step title='Send the invite'>
+
+Click **Send Invite**. You see **Invitation sent**; invited people show as **Pending...** until they sign in. If invitation emails can't be sent, share the **Invitation Link** shown in the dialog instead.
+
+</Step>
+</Steps>
+
+From a member's row you can change their role, **Cancel the invitation** for pending invites, or **Remove from team**. You can remove yourself with **Leave workspace**.
+
+## Roles
+
+| Role | Description in the app | Can |
+|---|---|---|
+| **Owner** | "Full workspace control, billing & member management" | Everything, including owner-only role changes. A workspace can have at most 3 owners. |
+| **Admin** | "Can build apps & manage team settings" | Everything except owner-only actions. Sees **Billings**, **Monitoring & Analytics** and **Logs**. Can buy phone numbers. |
+| **Editor** | "Can build & edit apps" | Build, edit and publish apps; configure voice. |
+| **Normal** | "Only can use apps, can not build apps" | Use apps only. Opening an editor redirects to the overview. |
+| **Knowledge Admin** | "Only can manage the knowledge base" | Manage knowledge bases only. |
+
+### Client workspaces
+
+[Client workspaces](/docs/workspaces/clients) that an agency creates for its customers work a little differently:
+
+- They have no owners and are limited to one admin (**This workspace is limited to one admin.**). To add another, use **Request another admin** and explain why.
+- If you are the only admin and want to leave, you must first **Hand off admin access** to another active member, then click **Hand off & leave**.
+- API calls to a client workspace's apps fail until its admin accepts the invitation.
+
+## Multi-factor authentication
+
+Protect your account with MFA in **Settings › Security**.
+
+1. Click **Enable MFA**.
+2. Under **Verification Methods**, add one or more methods:
+   - **Authenticator App** — click **Open Setup**, scan the QR code with an authenticator app (TOTP) and enter its 6-digit code, then come back and click **Done**.
+   - **SMS Verification** — enter your phone number with country code, then the 6-digit code sent by text message.
+   - **Email Verification** — enter the 6-digit code sent to your email address.
+
+You can remove individual methods later, or turn MFA off with **Disable MFA**. Adding more than one method gives you a fallback if you lose your phone.
+
+## Settings
+
+**Settings** is grouped into two sections. Some pages appear only when they apply to your role or workspace — for example **Client Workspaces** for agencies, and **Billing** and **Customization** only where billing or branding is available.
+
+| Group | Page | What it's for |
+|---|---|---|
+| Workspace | **Members** | Invite members and change roles. |
+| Workspace | **Client Workspaces** | Create and manage client workspaces (agencies). See [Client workspaces](/docs/workspaces/clients). |
+| Workspace | **Billing** | Credits, payment method and usage. See [Billing & credits](/docs/workspaces/billing). |
+| Workspace | **Customization** | Brand the web app and app header with your logo. See [Branding](/docs/workspaces/branding). |
+| General | **My Account** | Your name, email and sign-in details. |
+| General | **Security** | Multi-factor authentication. |
+| General | **Time zone** | Your time zone. |
+
+### Time zone
+
+Set your time zone in **Settings › Time zone** so dates and times in the app line up with your local time. Schedules — such as **Scheduled Tasks** and **Batch Calls** — have their own **Timezone** field, so set it explicitly when you create them.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| You can't see **Billings**, **Logs**, **Overview**, **Metrics** or **Execution** | These are Owner/Admin only. Ask an owner to change your role. |
+| Opening an app sends you back to the overview | Your role is **Normal**, which can use apps but not edit them. |
+| You can't make another member an owner | The workspace already has 3 owners. |
+| The invite didn't arrive | Check spam, or copy the **Invitation Link** from the dialog and send it yourself. |
+| An app or knowledge base is "missing" | You're probably in a different workspace. Check **Current Workspace** in the switcher. |
+
+## Next steps
+
+<Cards>
+  <Card title='Client workspaces' href='/docs/workspaces/clients'>Build and manage agents for your customers.</Card>
+  <Card title='Billing & credits' href='/docs/workspaces/billing'>Credits, executions and payment methods.</Card>
+  <Card title='Governance' href='/docs/monitor/governance'>Audit, activity and auth event logs.</Card>
+  <Card title='Quickstart' href='/docs/getting-started/quickstart'>Build your first agent.</Card>
+</Cards>

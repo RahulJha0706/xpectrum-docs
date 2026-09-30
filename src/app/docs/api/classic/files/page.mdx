@@ -1,0 +1,201 @@
+export const metadata = {
+  title: 'Files',
+  description: 'Upload a file with the classic API and reference it in chat messages, completions and workflow runs.',
+}
+
+# Files
+
+Upload a file once, get back an id, and reference that id in a message or run. Use uploads for files that aren't reachable by a public URL; for files that are, you can skip the upload and pass the URL directly with `transfer_method: "remote_url"`.
+
+## Upload a file
+
+<Endpoint method='POST' path='/v1/files/upload' />
+
+Uploads one file as `multipart/form-data` and returns its id. The file can then be sent in `files` or in a file-type input variable of the same app.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='green'>Workflow</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+### Request body
+
+<Params title='Form fields (multipart/form-data)'>
+  <Param name='file' type='file' required>
+    The file to upload. Send exactly one file per request, with a file name and a content type.
+  </Param>
+  <Param name='user' type='string'>
+    Your identifier for the end user. Send the same value you use when you run the app. If omitted, the file is uploaded as the shared `DEFAULT-USER`.
+  </Param>
+</Params>
+
+### Supported file types
+
+The upload endpoint stores any file type. Whether a file can be **used** depends on the app it is sent to:
+
+| App type | What it accepts |
+|---|---|
+| Agent Flow, Workflow | The file types enabled in the app's file upload settings, from the groups below. `custom` covers any other extension. |
+| AI Chatbot, Autonomous Agent, Text Generator | Images only (PNG, JPG, JPEG, WEBP, GIF), and only when the app's model supports vision. |
+
+| Group (`type`) | Extensions |
+|---|---|
+| `document` | TXT, MD, MDX, MARKDOWN, PDF, HTML, XLSX, XLS, DOC, DOCX, CSV, EML, MSG, PPTX, PPT, XML, EPUB |
+| `image` | JPG, JPEG, PNG, GIF, WEBP, SVG |
+| `audio` | MP3, M4A, WAV, AMR, MPGA |
+| `video` | MP4, MOV, MPEG, WEBM |
+
+### Size limits
+
+The size limit depends on the file's extension:
+
+| Kind of file | Maximum size |
+|---|---|
+| Images (JPG, JPEG, PNG, WEBP, GIF, SVG) | 10 MB |
+| Audio (MP3, M4A, WAV, WEBM, AMR) | 50 MB |
+| Video (MP4, MOV, MPEG, MPGA) | 100 MB |
+| Everything else | 50 MB |
+
+The live limits, in MB, are returned by [`GET /v1/parameters`](/docs/api/classic/app#get-app-parameters) in `system_parameters`: `image_file_size_limit`, `audio_file_size_limit`, `video_file_size_limit` and `file_size_limit`. `workflow_file_upload_limit` is the maximum number of files for a workflow file input. Read them there rather than hard-coding the values.
+
+File names longer than 200 characters are shortened. File names can't contain `/ \ : * ? " < > |`.
+
+### Request
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/files/upload' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -F 'file=@invoice-1042.pdf;type=application/pdf' \
+  -F 'user=customer-1042'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+with open("invoice-1042.pdf", "rb") as f:
+    resp = requests.post(
+        "https://cloud.xpectrum.dev/v1/files/upload",
+        headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+        files={"file": ("invoice-1042.pdf", f, "application/pdf")},
+        data={"user": "customer-1042"},
+    )
+resp.raise_for_status()
+upload_file_id = resp.json()["id"]
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+import { readFile } from 'node:fs/promises'
+
+const form = new FormData()
+const bytes = await readFile('invoice-1042.pdf')
+form.append('file', new Blob([bytes], { type: 'application/pdf' }), 'invoice-1042.pdf')
+form.append('user', 'customer-1042')
+
+// Don't set Content-Type yourself: fetch adds the multipart boundary.
+const res = await fetch('https://cloud.xpectrum.dev/v1/files/upload', {
+  method: 'POST',
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+  body: form,
+})
+const { id: uploadFileId } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+### Response
+
+A successful upload returns `201 Created`:
+
+<Params title='Response'>
+  <Param name='id' type='string'>The file id. Pass it as `upload_file_id`.</Param>
+  <Param name='name' type='string'>The file name.</Param>
+  <Param name='size' type='integer'>Size in bytes.</Param>
+  <Param name='extension' type='string'>The file extension.</Param>
+  <Param name='mime_type' type='string'>The content type.</Param>
+  <Param name='created_by' type='string'>The id of the end user who uploaded it.</Param>
+  <Param name='created_at' type='integer'>Unix timestamp in seconds.</Param>
+  <Param name='preview_url' type='string'>A preview link, when one is available; otherwise `null`.</Param>
+</Params>
+
+```json title="Response"
+{
+  "id": "72fa9618-8f89-4a37-9b33-7e1178a24a67",
+  "name": "invoice-1042.pdf",
+  "size": 164235,
+  "extension": "pdf",
+  "mime_type": "application/pdf",
+  "created_by": "6ad1ab0a-73ff-4ac1-b9e4-cdb312f71f13",
+  "created_at": 1705407629,
+  "preview_url": null
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `bad_request_key_error` | The request has no `file` form field (for example, it isn't sent as `multipart/form-data`). The message is a generic "The browser (or proxy) sent a request that this server could not understand." |
+| 400 | `too_many_files` | More than one file was sent. "Only one file is allowed." |
+| 400 | `filename_not_exists_error` | The file part has no file name. "The specified filename does not exist." |
+| 400 | `invalid_param` | "Filename contains invalid characters" |
+| 413 | `file_too_large` | The file is over the size limit for its type. The message starts with "File size exceeded." |
+| 415 | `unsupported_file_type` | The file part has no content type. "File type not allowed." |
+
+## Reference an uploaded file
+
+Pass the returned `id` as `upload_file_id` with `transfer_method: "local_file"`. The `type` is the file's group (`document`, `image`, `audio`, `video` or `custom`).
+
+In a chat message or completion, put the file in `files`:
+
+```json title="POST /v1/chat-messages"
+{
+  "inputs": {},
+  "query": "What is the total on this invoice?",
+  "user": "customer-1042",
+  "files": [
+    {
+      "type": "document",
+      "transfer_method": "local_file",
+      "upload_file_id": "72fa9618-8f89-4a37-9b33-7e1178a24a67"
+    }
+  ],
+  "response_mode": "streaming"
+}
+```
+
+For an app with a **File** or **File Array** input variable, put the file object (or an array of them) in `inputs`:
+
+```json title="POST /v1/workflows/run"
+{
+  "inputs": {
+    "invoice": {
+      "type": "document",
+      "transfer_method": "local_file",
+      "upload_file_id": "72fa9618-8f89-4a37-9b33-7e1178a24a67"
+    }
+  },
+  "response_mode": "blocking",
+  "user": "customer-1042"
+}
+```
+
+To send a file from a public URL instead, use `"transfer_method": "remote_url"` and `"url"` in place of `upload_file_id`.
+
+<Callout type='tip' title='Recommended alternative'>
+  The recommended API takes the same uploaded file id as `file_id` inside `attachments`. See [Chat completions](/docs/api/chat-completions) and [Workflow runs](/docs/api/runs).
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='Chat messages' href='/docs/api/classic/chat-messages'>Send a message with files attached.</Card>
+  <Card title='Workflows' href='/docs/api/classic/workflows'>Pass files as workflow inputs.</Card>
+  <Card title='Feedback, audio & app info' href='/docs/api/classic/app'>Read the app's upload settings and limits.</Card>
+</Cards>

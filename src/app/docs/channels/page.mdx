@@ -1,0 +1,117 @@
+export const metadata = {
+  title: 'Channels',
+  description: 'Put one agent on the phone, SMS, WhatsApp, email and your website, and understand how channels map to agents and conversations.',
+}
+
+# Channels
+
+A channel is where people reach your agent: a phone line, a text thread, a WhatsApp chat, an email inbox or a widget on your website. You build the agent once, then connect it to as many channels as you need from the **Channels** section of the sidebar.
+
+## Channel overview
+
+| Channel | What it does | Set it up in | Prerequisites |
+|---|---|---|---|
+| [Voice](/docs/channels/voice) | Gives the agent a voice: text-to-speech, transcription, greeting, silence handling and call length. Applies to every call, phone or browser. | **Channels › Voice** | A conversational agent. Editor role or higher to change settings. |
+| [Phone numbers](/docs/channels/phone-numbers) | Buys a number and routes inbound calls to an agent; places single outbound calls. | **Channels › Phone Number** | Owner or Admin to buy a number; a card on file for the purchase. |
+| [Batch calls](/docs/channels/batch-calls) | Calls a list of numbers from a CSV on a schedule. | **Channels › Phone Number › Batch Calls** | An outbound-capable number and an Autonomous Agent. |
+| [SMS](/docs/channels/sms) | Answers and sends text messages on a number you own. | **Channels › SMS** | A number from **Phone Number** with SMS capability. |
+| [WhatsApp](/docs/channels/whatsapp) | Answers WhatsApp messages on a verified business number. | **Channels › WhatsApp** | A Meta business account and a phone number you can verify. |
+| [Email](/docs/channels/email) | Routes an inbound email address to an agent that replies by email. | **Channels › Email** | An address you can route to the agent. |
+| [Website & widgets](/docs/channels/web) | Adds a chat bubble, a voice button, or both, to any web page. | Your site's code, with an app API key | A published app and an [API key](/docs/deploy/api-keys). |
+| [API](/docs/api) | Calls the agent from your own backend or app. | Your code | A published app and an API key. |
+
+<Callout type='warning' title='Coming soon'>
+  **Telegram** appears in the Channels menu but is marked **Coming soon** and can't be connected yet.
+</Callout>
+
+## Which agents can go on a channel
+
+Every conversational app type can be put on a channel: **Autonomous Agent**, **Agent Flow**, **Multi-prompt Agent** and **AI Chatbot**. Channel pickers group your apps under those headings (**Autonomous Agents**, **Agent Flows**, **Multi-prompt Agents**, **Chatbots**) so you can find the one you want.
+
+Workflows are not conversational and can't be assigned to a channel. Run them with a [trigger](/docs/build/triggers) or the [runs API](/docs/api/runs) instead.
+
+<Callout>
+  [Batch calls](/docs/channels/batch-calls) are the exception: the batch agent picker lists **Autonomous Agents** only.
+</Callout>
+
+## How an agent is mapped to a channel
+
+Mapping is always done from the channel side. You pick a number, inbox or account, and assign an agent to it:
+
+- **Phone numbers:** choose **Assign to Agent** when you buy the number, or **Assign Agent** / **Change Agent** on its row later. Inbound calls to that number go to that agent.
+- **SMS:** **Enable SMS** on a number and choose the agent that replies to texts.
+- **WhatsApp:** **Assign agent** on a registered WhatsApp number.
+- **Email:** **Add Email** maps an inbound address to an agent.
+- **Web and API:** the app's API key selects the agent. There's no separate mapping step.
+
+Each number, inbox or WhatsApp number answers with exactly one agent at a time. One agent can be assigned to as many of them as you like.
+
+<Callout type='tip'>
+  Voice settings belong to the agent, not to the number. If you assign one agent to three phone numbers, all three use the same voice, greeting and call limits from **Channels › Voice**.
+</Callout>
+
+## Knowing which channel a message came from
+
+Every conversation records the channel it arrived on, and your agent can read it through system variables:
+
+| Variable (as shown in the editor) | Stored as | Contains |
+|---|---|---|
+| `channel.name` | `sys.channel` | The channel name, for example `phone` or `chat`. |
+| `channel.metadata` | `sys.channel_metadata` | An object with channel-specific details. For phone calls it holds call details such as the caller's number and the number they dialled. |
+
+`sys.channel` holds one of these values:
+
+| Value | Used for |
+|---|---|
+| `phone` | Calls over a phone number, inbound or outbound. |
+| `voice` | In-browser voice calls (the voice widget, the SDK, or the **Call** button on the Voice screen). |
+| `chat` | Web chat and API calls. This is the default when no channel is given. |
+| `sms` | Text messages. |
+| `whatsapp` | WhatsApp messages. |
+| `email` | Email. |
+| `mobile` | Mobile apps that pass it through the API. |
+
+When you call the [chat completions API](/docs/api/chat-completions) yourself, you can set `channel` and `channel_metadata` in the request body. Aliases are normalized — for example `web` and `api` become `chat`, `text` becomes `sms`, and `call` becomes `phone`. Unknown values fall back to `chat`.
+
+### Example: change behavior per channel
+
+In an [Agent Flow](/docs/build/agent-flow), add a [Condition](/docs/blocks/condition) on `channel.name`:
+
+- If `channel.name` **is** `phone` or `voice`, route to a model whose prompt asks for short, spoken answers with no lists or links.
+- Otherwise, route to a model that can use Markdown and links.
+
+Or keep a single [AI Model](/docs/blocks/ai-model) block and insert the variable into its prompt: type `/` and pick `channel.name`.
+
+```text title="System prompt"
+You are replying on the channel shown here: [channel.name]
+If the channel is phone or voice, answer in one or two short spoken sentences.
+Never read out URLs on a call; offer to text them instead.
+```
+
+In the prompt editor, `[channel.name]` above is the variable chip that `/` inserts, not literal text.
+
+## One agent on many channels
+
+Putting the same agent on several channels keeps one source of truth: the same instructions, knowledge and tools answer everywhere. Common setups:
+
+- **Receptionist:** one agent on a phone number, SMS on the same number, and a website chat widget.
+- **Support:** one agent on an email inbox, WhatsApp and the website.
+
+Tune per-channel behavior with `sys.channel` rather than building separate agents, unless the channels need genuinely different logic.
+
+## Conversation continuity
+
+Conversations are stored per end user and per app. How a new message joins a conversation depends on the channel:
+
+- **SMS** has an **Inbound Conversation Mode**. **Continue Conversation** picks up the texter's last voice or SMS conversation (and starts a new one if there is none). **New Conversation** starts fresh on every inbound text.
+- **Email** keeps a thread's context until the **Conversation expiry** you choose for the address runs out (3 days by default). You can clear a thread's context from the **Conversations** tab.
+- **Web and API** continue a conversation when you pass its `thread_id`. Without one, a new thread starts. The chat widget remembers an anonymous visitor for 30 days by default.
+
+## Next steps
+
+<Cards>
+  <Card title='Voice' href='/docs/channels/voice'>Choose a voice, greeting and call limits.</Card>
+  <Card title='Phone numbers' href='/docs/channels/phone-numbers'>Buy a number and route calls to an agent.</Card>
+  <Card title='Website & widgets' href='/docs/channels/web'>Add chat and voice to your site.</Card>
+  <Card title='Build an AI receptionist' href='/docs/guides/ai-receptionist'>A complete phone agent, end to end.</Card>
+</Cards>

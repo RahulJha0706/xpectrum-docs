@@ -1,0 +1,120 @@
+export const metadata = {
+  title: 'Voice sessions',
+  description: 'Track every voice call an agent handles: volume and pickup charts, call outcomes, AI summaries, recordings, transcripts and participant timelines.',
+}
+
+# Voice sessions
+
+**Monitoring & Analytics › Sessions** lists every voice call an agent handled, whether over a phone number (inbound or outbound) or in the browser, with charts for volume and pickup rate, an outcome for each call, and a detail page with an AI summary, the recording and the transcript.
+
+Everyone who can build apps can open **Sessions**. Pick an agent in the sidebar first; until you do, the page shows **Select an agent to view sessions**.
+
+## Filters and time range
+
+| Control | Options |
+|---|---|
+| Time range | **Past 1 hour**, **Past 24 hours** (default), **Past 7 days**, **Past 30 days**, or **Custom date** |
+| Status (table) | **All Status**, **Active**, **Closed**, **Error** |
+| **Refresh** | Reload the charts and the table |
+
+Times display in your account's time zone if you've set one other than UTC, otherwise in your browser's.
+
+## Summary tiles
+
+| Tile | Meaning |
+|---|---|
+| **Total Calls** | Calls in the selected range. |
+| **Avg Duration** | Average call length, with the total below. |
+| **Success Rate** | Share of calls that were answered and had a conversation. |
+| **Calls Today** | Calls today, and how many are active now. |
+
+## Charts
+
+| Chart | What it shows | Use it to |
+|---|---|---|
+| **Inbound vs Outbound** | Calls split into **Inbound** (phone calls to your numbers), **Outbound** (calls the agent placed) and **WebRTC** (in-browser calls, such as the web voice widget or the **Call** button). | See where your call volume comes from. |
+| **Peak Concurrent Calls** | How many calls were active at the same time over the range, with the **Peak** and **Avg**. | Plan for busy periods. |
+| **Call Volume Over Time** | Total calls per interval. | Spot busy hours and days. |
+| **Outbound Pickup Rate** | Outbound calls **Picked Up** versus **Missed**. | Judge a campaign's reach and best calling times. |
+
+## Sessions table
+
+| Column | Shows |
+|---|---|
+| **Session ID** | Short session ID; click to open the detail. |
+| **Room Name** | The call's room identifier. |
+| **Started At**, **Ended At**, **Duration** | Timing. |
+| **Participants** | Number of participants (caller, agent, and any others). |
+| **Features** | **Agents** when an agent joined; **SIP** for phone calls. |
+| **From**, **To** | Phone numbers for phone calls. |
+| **Outcome** | The call outcome (see below), with ↗ for outbound and ↙ for inbound. |
+| **Sentiment** | Positive, neutral or negative, from the AI summary. |
+| **Status** | **ACTIVE** (call in progress), **CLOSED** or **ERROR**. |
+
+The table shows 20 calls per page.
+
+### Outcome badges
+
+| Badge | Meaning | Typical next step |
+|---|---|---|
+| **TALKED** | The call was answered and a conversation took place. | Read the summary; check it was resolved. |
+| **NO TALK** | The call was answered but no conversation happened. | Replay it: the greeting may not have played, the caller may have hung up at once, or speech wasn't picked up. |
+| **NO ANSWER** | Nobody answered. | For campaigns, try again at another time. |
+| **REJECTED** | The call was declined. | Don't redial straight away. |
+| **FAILED** | The call couldn't be connected. | Check the number, its format and the caller number's setup. |
+| **VOICEMAIL** | The call reached voicemail. | Follow up by SMS. |
+
+<Callout>
+  The outcome describes whether the call connected. How the conversation went is in the **AI Summary**, which has its own outcome (**Resolved**, **Unresolved**, **Escalated**, **No contact**).
+</Callout>
+
+## Session detail
+
+Click a **Session ID** to open the detail. **Back to Sessions** returns to the list.
+
+| Section | Contents |
+|---|---|
+| Info cards | **Room Name**, **Room Session ID**, **Unique Participants**, **Start Time**, **End Time**, **Duration**, **Agent App** |
+| **AI Summary** | Generated from the call transcript: a sentiment (**Positive**, **Neutral**, **Negative**), an outcome (**Resolved**, **Unresolved**, **Escalated**, **No contact**), a short summary, **Topics** and **Action items**. |
+| **Recording** | Player for the call recording, with a download button. Expand it to see a two-channel waveform (**Agent** and **User**) and a synced transcript. |
+| **Transcript** | Each turn with a timestamp, agent and caller. Shown on its own when there's no recording. |
+| **Session Timeline** | One bar per participant from when they joined to when they left; **Ongoing** for a call in progress. |
+| **Publishers** | Participants with **Participant Identity**, **Name**, **Type** (**Agent**, **SIP**, **Egress**, **User**), **Joined At**, **Left At**. |
+| **Events** | Room events such as **Room Started** and **Participant Joined**, with an **Event payload** button for the raw JSON. |
+
+### AI Summary states
+
+| Message | Meaning |
+|---|---|
+| **Analyzing this call…** | The summary is being generated. Refresh in a moment. |
+| **No transcript available to analyze.** | Nothing was said, so there's nothing to summarize. |
+| **Analysis failed — …** | The summary couldn't be generated; the reason follows. |
+| **No analysis yet.** | The call hasn't been analyzed. |
+
+## Recordings
+
+Recordings exist only for calls where **Record Session** was on in the agent's voice **Configurations** (it's off by default). See [Voice](/docs/channels/voice).
+
+- Click **Audio** to download the recording as an `.ogg` file. The agent is on one channel and the caller on the other.
+- Click the waveform to jump to a point in the call, or click a transcript line (**Jump to this moment**) to play from there.
+
+<Callout type='warning'>
+  Recording laws differ by country and state. If you turn on **Record Session**, tell callers they're being recorded where the law requires it, for example in your **Initial Message**.
+</Callout>
+
+## Troubleshooting
+
+- **No sessions listed** → pick the agent in the sidebar, widen the time range, and check the status filter isn't set to **Active** or **Error**.
+- **No Recording section** → **Record Session** was off when the call happened. Turn it on and click **Publish Changes** on the Voice page; earlier calls can't be recorded retroactively.
+- **Transcript is missing the greeting** → a greeting spoken before the caller fully joined may not appear in the transcript.
+- **Many NO TALK outcomes** → replay a few. Check the **Initial Message** and **Initial Message Delay (seconds)**, and that the transcriber **Language** matches your callers.
+- **Many calls end at the same length** → they're hitting **Call Duration**. Raise it in the voice **Configurations**.
+- **Sessions show ERROR** → the call failed to start or dropped. Check the agent is published, has a model, and that the workspace has credit. See [Voice troubleshooting](/docs/troubleshooting/voice).
+
+## Next steps
+
+<Cards>
+  <Card title='Voice' href='/docs/channels/voice'>Voices, transcriber, greeting, nudges and recording.</Card>
+  <Card title='Run an outbound campaign' href='/docs/guides/outbound-campaign'>Call a list and review outcomes here.</Card>
+  <Card title='Voice troubleshooting' href='/docs/troubleshooting/voice'>Fix silent, dropped or failed calls.</Card>
+</Cards>

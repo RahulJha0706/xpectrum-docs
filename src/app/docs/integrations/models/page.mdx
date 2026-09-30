@@ -1,0 +1,100 @@
+export const metadata = {
+  title: 'Models',
+  description: 'Install model providers, choose between the included quota and your own API key, pick a model per block and tune its parameters.',
+}
+
+# Models
+
+Every AI step in Xpectrum runs on a model from a model provider. You manage providers in **Integrations › Models**, then choose a model, and its parameters, in each block or node that calls one.
+
+## The Models tab
+
+Open **Resources › Integrations** and select **Models**. The page has two lists:
+
+- **Installed Models**: providers already installed in this workspace. Click one to expand it and see its models and key settings.
+- **Available Models**: providers you can still install from the Xpectrum Library. Click **Install** on a provider to add it.
+
+Use the search box to filter by name, and **Refresh** to reload the list after changes.
+
+## Provider keys
+
+When you expand an installed provider, its key form shows one of these states:
+
+| Message | Meaning |
+|---|---|
+| "Running on Xpectrum’s included quota (default key)." | The provider works out of the box on the platform's key. On billable workspaces, usage is charged to your workspace credits. |
+| "Using your custom key. It overrides the platform default." | Calls to this provider use your own account with the vendor. |
+| "No key configured yet — add one to enable this provider." | There's no default key for this provider. Add your key to use it. |
+
+To use your own key, fill in the provider's credential fields (for most providers, an API key; some also ask for an endpoint or organization) and click **Save key**. Keys are "Stored encrypted per workspace. Never shown again after saving." To go back to the default, click **Remove**.
+
+### Default quota or your own key?
+
+| Use the included quota when… | Use your own key when… |
+|---|---|
+| You're prototyping or running moderate volumes. | You already have committed spend or discounts with the vendor. |
+| You want one bill through Xpectrum credits. | You want your own vendor account's rate limits and usage reporting. |
+| You don't want to manage vendor accounts. | Your contract or data policy requires your own vendor account. |
+
+Third-party model usage on the included quota is passed through at cost. See [Billing](/docs/workspaces/billing).
+
+<Callout type='warning'>
+  A custom key applies to the whole workspace and overrides the default for every app. If the key is revoked or runs out of quota, every app using that provider fails until you fix or remove it.
+</Callout>
+
+## Choose a model per step
+
+Each step picks its own model, so you can use a fast, inexpensive model for routing and a stronger one for the final answer.
+
+| Where | Setting |
+|---|---|
+| Autonomous Agent | **AI Agent** node: model selector. Instructions node: optional **Knowledge Model (Optional)** and **Tool Model (Optional)**. |
+| AI Chatbot | **AI Model** node. |
+| Agent Flow, Workflow | [AI Model](/docs/blocks/ai-model), [Agent](/docs/blocks/agent), [Intent Classifier](/docs/blocks/intent-classifier) and [Parameter Extractor](/docs/blocks/parameter-extractor) blocks each have a **Model** setting. |
+| Knowledge | **Embedding Model** and **Rerank Model**. See [Chunking and indexing](/docs/knowledge/indexing). |
+
+A node shows **Needs setup** with "No model selected" until you choose one.
+
+<Callout type='tip'>
+  Agent mode follows the model. On an Autonomous Agent, **Agent Mode** shows **Function Calling** for models that support tool calling and **ReAct** otherwise. Prefer function-calling models for agents that use tools.
+</Callout>
+
+Features that need specific model support include vision (images and documents), structured output and tool calling. If the selected model doesn't support one, the product tells you. For example: "Please select a model which supports vision in the AI AGENT node."
+
+## Model parameters
+
+Open the parameters next to the model selector. The exact list depends on the model. Common ones:
+
+| Parameter | What it does | Typical setting |
+|---|---|---|
+| **Temperature** | Randomness. Lower is more deterministic and repetitive, higher is more varied. | 0–0.3 for support, extraction and classification. 0.7+ for creative writing. |
+| **Top P** | Nucleus sampling, an alternative way to limit randomness. | Leave it at the default and adjust Temperature instead. |
+| **Presence penalty** | Discourages returning to topics already mentioned. | 0 for most agents. |
+| **Frequency penalty** | Discourages repeating the same words or lines. | 0, raised slightly if replies repeat themselves. |
+| **Max token** | The upper limit on the length of the reply. | High enough for your longest expected answer. Voice agents benefit from short replies. |
+| **Stop sequences** | Up to four sequences where generation stops. | Rarely needed. |
+
+**Load Presets** applies a starting combination: **Creative**, **Balanced** or **Precise**.
+
+## Debug as Multiple Models
+
+On Autonomous Agents and AI Chatbots, **Debug as Multiple Models** runs the same conversation against up to four models side by side in Preview. Use it to compare quality, speed and tone before you choose a model. Click **Debug as Single Model** to go back.
+
+<Callout type='warning'>
+  **Debug as Multiple Models** isn't available on every workspace.
+</Callout>
+
+## Troubleshooting
+
+- **"No valid model provider credentials found…"** The provider has no default key and no custom key. Add a key in **Integrations › Models**.
+- **"Your quota for … has been exhausted…"** The included quota for that provider is used up. Add your own key, or pick another provider.
+- **A model is missing from the selector.** Install its provider from **Available Models**, or add the key it needs.
+- **A rate limit error (HTTP 429, `rate_limit_error`).** Too many requests reached the model provider or the app at once. Retry with backoff. If the provider's limit is the cause, your own key with higher limits can help.
+- **The agent never calls tools.** Switch to a model that supports function calling.
+
+## Next steps
+
+<Cards>
+  <Card title='Tools' href='/docs/integrations/tools'>Give agents actions: install tools and set credentials.</Card>
+  <Card title='AI Model block' href='/docs/blocks/ai-model'>Prompts, context, memory and structured output.</Card>
+</Cards>

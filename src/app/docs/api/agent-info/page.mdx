@@ -1,0 +1,219 @@
+export const metadata = {
+  title: 'Agent info & suggestions',
+  description: 'Read the agent behind an API key — name, type, greeting and starter questions — and fetch follow-up suggestions for a reply.',
+}
+
+# Agent info & suggestions
+
+Two small endpoints help you build a chat interface without hardcoding anything: `GET /v1/models` describes the agent behind the API key, and `GET /v1/messages/{message_id}/suggestions` generates follow-up questions for a reply.
+
+## Get agent info
+
+<Endpoint method='GET' path='/v1/models' />
+
+Returns the agent that the API key reaches, in the shape of an OpenAI model list. An API key belongs to exactly one app, so the list always has one entry. Besides the standard OpenAI fields it carries the agent's display details — use them to render a chat header, a greeting and starter questions before the first message, and to check which endpoint the key needs.
+
+**Supported app types:** all app types.
+
+This endpoint takes no parameters.
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='object' type='string'>Always `list`.</Param>
+  <Param name='data[0].id' type='string'>The agent's id. The same value is returned as `model` by chat completions.</Param>
+  <Param name='data[0].object' type='string'>Always `model`.</Param>
+  <Param name='data[0].created' type='integer'>Unix timestamp when the app was created.</Param>
+  <Param name='data[0].owned_by' type='string'>Always `xpectrum`.</Param>
+  <Param name='data[0].name' type='string'>The app's name.</Param>
+  <Param name='data[0].description' type='string'>The app's description, or an empty string.</Param>
+  <Param name='data[0].mode' type='string'>The app type. See the table below.</Param>
+  <Param name='data[0].title' type='string'>Display title for a chat header. Falls back to `name`.</Param>
+  <Param name='data[0].greeting' type='string'>The opening message configured for the agent, or an empty string.</Param>
+  <Param name='data[0].starter_questions' type='string[]'>Suggested first questions configured for the agent. May be empty.</Param>
+</Params>
+
+| `mode` | App type | Call |
+|---|---|---|
+| `chatbot` | AI Chatbot | `POST /chat/completions` |
+| `agent` | Autonomous Agent | `POST /chat/completions` (streaming only) |
+| `flow` | Agent Flow | `POST /chat/completions` |
+| `multi-prompt-agent` | Multi-prompt Agent (Beta) | `POST /chat/completions` |
+| `analytics` | Analytics | `POST /chat/completions` |
+| `workflow` | Workflow | `POST /runs` |
+| `completion` | Text Generator | Classic `POST /completion-messages` |
+
+```json title="200 OK"
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "9d2c4e57-3b8a-4f2e-a1c6-0e7b5d3f8a21",
+      "object": "model",
+      "created": 1756684800,
+      "owned_by": "xpectrum",
+      "name": "Store assistant",
+      "description": "Answers questions about stock, orders and opening hours.",
+      "mode": "chatbot",
+      "title": "Ask the store",
+      "greeting": "Hi! How can I help you today?",
+      "starter_questions": ["Where is my order?", "What are your opening hours?"]
+    }
+  ]
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/models \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx"
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="agent.ts"
+import { XpectrumChat } from 'xpectrum'
+
+const chat = new XpectrumChat({ baseUrl: 'https://cloud.xpectrum.dev/v1', apiKey })
+
+const agent = await chat.getAgent()
+// { id, name, description, mode, title, greeting, starterQuestions }
+renderHeader(agent.title)
+if (agent.greeting) showMessage(agent.greeting)
+showChips(agent.starterQuestions)
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="agent.py"
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/models",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    timeout=30,
+)
+resp.raise_for_status()
+agent = resp.json()["data"][0]
+print(agent["title"], agent["mode"], agent["starter_questions"])
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+Only [authentication errors](/docs/api/authentication#authentication-errors) apply. The SDK's `getAgent()` throws `agent_not_found` if the list comes back empty.
+
+## Get follow-up suggestions
+
+<Endpoint method='GET' path='/v1/messages/{message_id}/suggestions' />
+
+Generates questions the user is likely to ask next, based on the thread so far. Show them as clickable chips under the latest reply. Each call costs one model call, so request suggestions only when you are about to display them.
+
+The agent's follow-up suggestions feature must be turned on in the agent's settings.
+
+**Supported app types:** <Tag tone='green'>AI Chatbot</Tag> <Tag tone='green'>Autonomous Agent</Tag> <Tag tone='green'>Agent Flow</Tag> <Tag tone='amber'>Multi-prompt Agent (Beta)</Tag>
+
+<Params title='Path parameters'>
+  <Param name='message_id' type='string (UUID)' required>
+    The assistant message to follow on from: the chat completion `id` with the `chatcmpl-` prefix removed, or an assistant message `id` from [`GET /threads/{thread_id}/messages`](/docs/api/threads#list-messages-in-a-thread).
+  </Param>
+</Params>
+
+<Params title='Query parameters'>
+  <Param name='user' type='string'>
+    The end user the message belongs to. Use the same value you sent to chat completions.
+  </Param>
+</Params>
+
+### Response
+
+<Params title='Response fields'>
+  <Param name='object' type='string'>Always `list`.</Param>
+  <Param name='message_id' type='string'>The message the suggestions follow.</Param>
+  <Param name='data' type='string[]'>The suggested questions. Empty strings are removed; the list may be empty.</Param>
+</Params>
+
+```json title="200 OK"
+{
+  "object": "list",
+  "message_id": "5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10",
+  "data": [
+    "Are you open on public holidays?",
+    "Can I pick up my order in store?",
+    "Do you have parking nearby?"
+  ]
+}
+```
+
+### Request samples
+
+<Tabs>
+<Tab title='cURL'>
+
+```bash title="Terminal"
+curl "https://cloud.xpectrum.dev/v1/messages/5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10/suggestions?user=user-123" \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx"
+```
+
+</Tab>
+<Tab title='JavaScript (SDK)'>
+
+```ts title="suggestions.ts"
+const reply = await chat.send('What are your opening hours?')
+
+// Resolves with [] when the agent has follow-ups turned off
+const suggestions = await chat.getSuggestions(reply.messageId!)
+```
+
+</Tab>
+<Tab title='Python'>
+
+```python title="suggestions.py"
+import requests
+
+completion_id = "chatcmpl-5f0b6c1e-7a2d-4c1b-9f53-2a8f1e4d9c10"
+message_id = completion_id.removeprefix("chatcmpl-")
+
+resp = requests.get(
+    f"https://cloud.xpectrum.dev/v1/messages/{message_id}/suggestions",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"user": "user-123"},
+    timeout=60,
+)
+if resp.status_code == 403:
+    suggestions = []  # follow-ups are turned off for this agent
+else:
+    resp.raise_for_status()
+    suggestions = resp.json()["data"]
+```
+
+</Tab>
+</Tabs>
+
+### Errors
+
+| Status | Type / code | Message | When |
+|---|---|---|---|
+| 403 | `invalid_request_error` / `suggestions_disabled` | `Follow-up suggestions are disabled for this agent. Enable them in the agent settings.` | The feature is off. Treat as "no suggestions". |
+| 404 | `invalid_request_error` / `model_not_found` | `This API key belongs to an app that does not support suggestions (only conversational apps do).` | Workflow or Text Generator key. |
+| 404 | `invalid_request_error` / `message_not_found` | `Message does not exist.` | Unknown `message_id`, or it belongs to another `user`. Check you removed `chatcmpl-`. |
+| 404 | `invalid_request_error` / `thread_not_found` | `Thread does not exist.` | The message's thread no longer exists. |
+| 429 | `insufficient_quota` | `Model provider quota exceeded.` | The model provider's quota is used up. |
+| 500 | `server_error` / `provider_not_initialized` | Provider message | The model provider has no valid credentials. |
+| 500 | `server_error` | `Suggestion generation failed.` or provider message | The model call failed. Retry. |
+| 500 | `server_error` | `Internal server error.` | Unexpected failure. Retry. |
+
+## Next steps
+
+<Cards>
+  <Card title='Chat completions' href='/docs/api/chat-completions'>Send the starter question the user picked.</Card>
+  <Card title='JavaScript SDK' href='/docs/api/javascript-sdk'>`getAgent()` and `getSuggestions()` in the SDK.</Card>
+</Cards>

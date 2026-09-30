@@ -1,0 +1,122 @@
+export const metadata = {
+  title: 'Governance & audit',
+  description: 'Watch execution health across your flows and workflows, drill into failed runs node by node, and keep an audit trail of changes and sign-ins.',
+}
+
+# Governance & audit
+
+Governance tools answer two questions for workspace Owners and Admins: **are our flows healthy?** and **who did what?** The **Overview** dashboard and **Execution** list under **Monitoring & Analytics** track success rates, latency and failures across your Agent Flows and Workflows. The **Logs** section keeps the audit trail of changes, activity and sign-ins.
+
+<Callout>
+  **Overview**, **Execution** and the **Logs** section are visible to **Owners** and **Admins** only.
+</Callout>
+
+## Filters
+
+**Overview** and **Execution** share the page header **Workflow Monitoring** and the same filters:
+
+| Filter | Options |
+|---|---|
+| App | **All Workflows**, or search for one Agent Flow or Workflow (**Search workflows...**) |
+| Time range | **Past hour**, **Past 24 hours** (default), **Past 7 days**, **Past 30 days**, **All Time**, or **Custom date** |
+| Status (Execution only) | **All Statuses**, **Succeeded**, **Failed**, **Partial** |
+
+| Status | Meaning |
+|---|---|
+| **Succeeded** | Every block that ran completed. |
+| **Failed** | The run stopped on an error. |
+| **Partial** | The run finished, but at least one block failed and was handled by **Error Handling** (a default value or a fail branch). |
+
+## Overview dashboard
+
+**Monitoring & Analytics › Overview** opens the health dashboard.
+
+### Health banner
+
+The banner at the top rates the selected app(s) and range, and lists the reasons, such as **Recent failure spike detected** or a high P95 latency:
+
+| State | When |
+|---|---|
+| **Healthy** | None of the thresholds below are crossed. |
+| **Degraded** | Failure rate at least 20%, average latency over 5 s, or a run longer than 30 s. |
+| **Incident** | Failure rate at least 50%, or average latency over 10 s. |
+
+### KPIs and charts
+
+| Item | Shows |
+|---|---|
+| **Total Executions** | Runs in the range. |
+| **Success Rate** | Share of runs that succeeded. |
+| **Avg Duration**, **P95 Latency**, **P99 Latency**, **Max Duration** | How long runs take. P95 means 95% of runs finished faster than this. |
+| **Status Distribution** | Succeeded, failed and partial runs. |
+| **Failure Type Distribution** | What kinds of errors occurred. |
+| **Top Failing Node Types** | Which kinds of block fail most, for example HTTP Request or Custom Function. |
+| **Duration Trend (Avg ms/hour)** | Average run time by hour. |
+| **Error Rate Trend (%/hour)** | Failure rate by hour. |
+| **Node Performance Breakdown** | Per block type: **Avg Duration**, **Runs** and **Err%**. |
+| **Top Failing Workflows** | Apps with the most failures. Click one to open **Execution** filtered to that app's failed runs. |
+| **Top Slowest Workflows** | Apps with the longest runs (needs at least two runs). |
+
+## Execution
+
+**Monitoring & Analytics › Execution** lists individual runs with **App**, **Status**, **Nodes**, **Failed**, **Duration**, **Triggered By** and **Time**, 20 per page.
+
+Click a run to open its trace:
+
+- **Total Nodes**, **Succeeded**, **Failed** and **Total Time** at the top.
+- **Node Execution Pipeline**: every block in order. Expand one to see its **Error**, **Inputs**, **Outputs** and **Metadata**; Condition and Intent Classifier blocks show which branch was taken.
+- **Show Failed Node** jumps to the block that failed.
+- **Replay** re-runs the workflow with the same original inputs, so you can check whether a fix worked. It shows **Replay Passed** or **Replay Failed**. It's available only when the original inputs were recorded.
+
+Use <Kbd>←</Kbd> and <Kbd>→</Kbd> to move between runs and <Kbd>Esc</Kbd> to close.
+
+<Callout type='warning'>
+  **Replay** runs the workflow for real. Any HTTP requests, tool calls or messages in it happen again, and it counts as a new run.
+</Callout>
+
+## Audit logs
+
+The sidebar's **Logs** section keeps the workspace audit trail:
+
+| View | Records |
+|---|---|
+| **Audit Log** | Who changed what, and when: creating, updating, publishing and deleting apps, knowledge and workflows; inviting, removing and changing members' roles; API keys, model providers, voice and agent configuration, phone numbers. |
+| **Activity Log** | What ran: sign-ins, app runs, knowledge queries and file uploads. |
+| **Auth Event** | Sign-ins, sign-outs, failed attempts, password changes and MFA events. |
+
+Filter by app, user, action, resource and time range (up to **Past 60 days** as a preset, or **All Time** and **Custom date**), and **Export CSV** for an auditor. For a workflow publish, **Details** shows what changed in the graph compared with the previous publish. Every column and filter is described in [Logs](/docs/monitor/logs#workspace-logs).
+
+### Common audit tasks
+
+| Task | How |
+|---|---|
+| Who published the version that broke production? | **Audit Log**, action **Publish**, resource **Workflow** or **App**, then open **Details**. |
+| Who removed a team member? | **Audit Log**, action **Remove**, resource **Member**. |
+| Was an API key created or deleted? | **Audit Log**, resource **API Key**. |
+| Are there repeated failed sign-ins? | **Auth Event**, search for the user's email and look for **Login Failed**. |
+| Quarterly access review | **Activity Log**, **Past 60 days** or a custom range, then **Export CSV**. |
+
+## Compliance and guardrails
+
+<Callout type='warning' title='Coming soon'>
+  **Compliance** (data retention policies, PII detection and masking, consent tracking, and audit reports for SOC 2 and GDPR) and **Guardrails** (input and output content filters, prompt-injection detection, rate limiting, model access controls, sensitive-topic blocking) are planned and aren't available yet.
+</Callout>
+
+Today you can already moderate content per app with the **Content moderation** feature in an agent's **Agent Settings** (OpenAI Moderation or a keyword list, on input and output, with a preset reply). It isn't available on self-serve workspaces.
+
+## Troubleshooting
+
+- **The dashboard says there's no data** → only Agent Flows and Workflows are tracked, and only in the selected range. Widen the range or pick **All Time**.
+- **An Autonomous Agent or AI Chatbot isn't in the app list** → those app types aren't tracked here. Use their [Logs](/docs/monitor/logs) and [Analytics](/docs/monitor/analytics).
+- **Replay isn't offered** → the run's original inputs weren't recorded.
+- **Health says Degraded but nothing failed** → the rating also considers latency. Check **P95 Latency** and **Top Slowest Workflows** for a slow HTTP Request or model.
+- **No Overview, Execution or Logs in the sidebar** → you need the **Owner** or **Admin** role.
+
+## Next steps
+
+<Cards>
+  <Card title='Logs' href='/docs/monitor/logs'>App logs, Run History and workspace logs in detail.</Card>
+  <Card title='Error handling' href='/docs/blocks'>Default values, fail branches and retries on blocks.</Card>
+  <Card title='Tracing' href='/docs/integrations/tracing'>Send traces to an external observability tool.</Card>
+  <Card title='Workspaces & roles' href='/docs/getting-started/workspaces'>Roles, members and MFA.</Card>
+</Cards>

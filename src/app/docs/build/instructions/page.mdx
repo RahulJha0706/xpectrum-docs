@@ -1,0 +1,239 @@
+export const metadata = {
+  title: 'Writing instructions',
+  description: 'Write system prompts that make agents accurate, safe and on-brand — with templates, voice tips and worked examples.',
+}
+
+# Writing instructions
+
+Instructions are the system prompt that tells an agent who it is, what it's for, and what it must never do. They matter more than any other setting. This page gives you a structure to start from, tips for knowledge, tools and voice, and complete examples.
+
+## Where instructions live
+
+| App type | Where you write them |
+|---|---|
+| Autonomous Agent | **Instructions** card → **Instructions**; plus optional **Knowledge Prompt** and **Tool Prompt** |
+| AI Chatbot | **Instructions** card → **Instructions** |
+| Agent Flow, Workflow | The system message in each **AI Model** block's prompt section |
+| Multi-prompt Agent | **Who this agent is** in **Flow state**, plus each step's **What this step says** |
+
+An Autonomous Agent or AI Chatbot shows **Needs setup** on the **Instructions** card until the field has content.
+
+## A structure that works
+
+Write instructions in labelled sections. Models follow structured prompts more reliably than one long paragraph, and they're easier for your team to review.
+
+```text title="Instructions template"
+# Role
+You are <name>, the <role> for <company>. <One sentence on tone.>
+
+# Goal
+Help <who> to <what>. A conversation is successful when <outcome>.
+
+# What you know
+- Use the knowledge provided to answer questions about <topics>.
+- The customer is {{customer_name}} on the {{plan}} plan.
+
+# How to respond
+- Keep answers under <N> words.
+- Ask one question at a time.
+- <Formatting rules for this channel.>
+
+# Tools
+- Use <tool> when <situation>. Confirm <detail> before calling <tool>.
+
+# Guardrails
+- Never <forbidden action>.
+- If you don't know, say so and <fallback>.
+- If the user asks for <out-of-scope thing>, <what to do>.
+```
+
+### Persona
+
+Give the agent a name, a role and a tone in one or two sentences. Be specific about tone — "friendly and concise, like an experienced front-desk receptionist" works better than "be nice".
+
+### Goal and success
+
+State what a successful conversation looks like: "the customer has a confirmed booking", "the ticket has an order number and a category". The agent uses this to decide when it's done and what to ask for next.
+
+### Guardrails
+
+List what the agent must never do, and what to do instead:
+
+- **Scope** — "Only discuss Acme products and orders. Politely decline anything else."
+- **No guessing** — "If the answer isn't in the provided knowledge, say you don't know and offer to connect them with support."
+- **No promises** — "Never promise refunds, discounts or delivery dates. Explain the policy."
+- **Sensitive data** — "Never ask for full card numbers or passwords."
+- **Escalation** — "If the customer is upset or asks for a person, offer a transfer."
+
+Pair guardrails with [Content moderation](/docs/build/autonomous-agent#agent-settings) when you need hard input or output filtering.
+
+## Use variables
+
+Variables give each conversation its own context, so the agent doesn't ask for things you already know. The syntax depends on the app type.
+
+### Autonomous Agent and AI Chatbot
+
+In **Instructions**, reference the Trigger's input variables by name in double braces:
+
+```text
+The customer's name is {{customer_name}}. They are on the {{plan}} plan.
+Greet them by name and don't ask for details you already have.
+```
+
+If you type a name that isn't defined yet, the editor asks **Undefined variables referenced in pre-prompt, are you want to add them in user input form?** — click **Add** to create it on the **Trigger**. Callers then fill it in, or you pass it in the API's `variables` object.
+
+### Agent Flow and Workflow
+
+In an **AI Model** block's prompt, type `/` to insert any variable — Trigger inputs, earlier block outputs, system variables and constants. They're stored as `{{#nodeId.variable#}}`:
+
+```text
+Customer message: {{#sys.query#}}
+The conversation is happening over {{#sys.channel#}}.
+If the channel is voice or sms, reply in plain sentences without markdown.
+```
+
+| Variable | Use it to… |
+|---|---|
+| A Trigger input such as `customer_name` | Personalize replies and skip questions you already know. |
+| `channel.name` | Adapt the format per channel. |
+| `thread.user_query` | Quote the current message in a prompt. |
+| A constant | Keep values like a support email in one place. |
+
+See [Variables](/docs/build/variables) for every variable and the full syntax.
+
+## Knowledge prompt and tool prompt
+
+Autonomous Agents have two extra prompts, each on its own tab of the **Instructions** card.
+
+**Knowledge Prompt** — guides how the agent searches your linked datasets and uses the results:
+
+```text title="Knowledge Prompt"
+Search the knowledge base before answering any question about policies,
+pricing or product specs. Prefer the most recent document when two conflict.
+Quote exact figures (prices, dimensions, time limits) as written.
+If nothing relevant is found, say so instead of answering from general knowledge.
+```
+
+**Tool Prompt** — guides which tools the agent calls and how it handles results:
+
+```text title="Tool Prompt"
+Call lookup_order whenever the customer mentions an order number.
+Call create_ticket only after you have the order number, the problem and
+the customer's email, and the customer has agreed.
+If a tool returns an error, don't retry more than once. Apologise and offer
+to take a message.
+```
+
+Each can run on its own model with **Knowledge Model (Optional)** and **Tool Model (Optional)**.
+
+## Voice agents
+
+Voice callers can't see formatting or scroll back. Write instructions for the ear:
+
+- **Keep sentences short.** One idea per sentence; no more than two or three sentences per turn.
+- **No markdown.** No bullet points, headings, bold, tables, links or emoji — they're read aloud or skipped.
+- **Spell out numbers and symbols** the way people say them: "two thirty PM", "nine one seven, five five five, zero one two three", "twenty dollars", "at" instead of "@".
+- **Ask one question at a time** and wait for the answer.
+- **Confirm important details back**: "So that's Tuesday the fourteenth at ten AM — is that right?"
+- **Don't read long lists.** Offer two or three options and ask which one they want.
+- **Plan for silence and interruptions.** Keep turns short so callers can jump in; tune greetings and nudges in [Voice](/docs/channels/voice).
+- **Say when you're working.** "One moment while I check that." Pair with **Tool Acknowledgement** in voice settings.
+
+```text title="Voice section to add to any prompt"
+# Speaking style
+You are speaking on a phone call. Your words are converted to speech.
+- Use short, natural sentences. Never use lists, markdown, emoji or URLs.
+- Say numbers, dates, times and prices in words, e.g. "three fifteen PM".
+- Ask only one question per turn.
+- Repeat back names, dates and phone numbers to confirm them.
+```
+
+## Examples
+
+### Customer support agent
+
+```text title="Instructions — support agent"
+# Role
+You are Max, the support assistant for Northwind Outdoor, an online store
+for camping gear. You are calm, friendly and to the point.
+
+# Goal
+Resolve order, shipping, return and product questions in as few turns as
+possible. A conversation is resolved when the customer has a clear answer
+or a ticket has been created.
+
+# How to respond
+- Answer from the knowledge base. Keep answers under 100 words.
+- Use a short numbered list only for step-by-step instructions.
+- Ask for the order number whenever a question is about a specific order.
+
+# Tools
+- lookup_order: use when you have an order number.
+- create_ticket: use for damaged items, missing parcels or refund requests,
+  after confirming the customer's email.
+
+# Guardrails
+- Never promise refunds, replacements or delivery dates; explain the policy.
+- Never ask for card details or passwords.
+- If you don't know, say so and offer to create a ticket.
+- If the customer asks for a person, create a ticket marked "human follow-up".
+```
+
+### Receptionist (voice)
+
+```text title="Instructions — receptionist"
+# Role
+You are Ada, the receptionist for Brightline Dental. You are warm, brief
+and professional. You are speaking on a phone call.
+
+# Goal
+Book, move or cancel appointments, and answer questions about hours,
+location and insurance. Otherwise take a message.
+
+# Speaking style
+- Short sentences. One question at a time. No lists or markdown.
+- Say times and numbers in words: "ten thirty AM", "Tuesday the fourteenth".
+- Repeat back the name, date and time before booking.
+
+# Tools
+- check_availability: call before offering any time.
+- book_appointment: call only after the caller confirms the time.
+
+# Guardrails
+- Never give medical advice or diagnoses. For pain, swelling or bleeding,
+  say you'll pass them to the on-call dentist and transfer the call.
+- Don't share other patients' information.
+- If you can't help, take their name, number and reason for calling.
+```
+
+See the [AI receptionist guide](/docs/guides/ai-receptionist) and [support agent guide](/docs/guides/support-agent) for complete builds.
+
+## Common mistakes
+
+| Mistake | Better |
+|---|---|
+| Vague persona: "You are a helpful assistant." | Name, company, role and tone in one or two sentences. |
+| No fallback for unknown answers | Tell the agent exactly what to say and do when it doesn't know. |
+| Contradictory rules ("be detailed" and "keep it short") | Pick one and give a number: "under 100 words". |
+| Pasting whole documents into instructions | Put reference content in a [knowledge base](/docs/knowledge); keep instructions about behavior. |
+| Hard-coding secrets or URLs in the prompt | Use a secret constant or a tool; never put API keys in prompts. |
+| Only negative rules ("don't…") | Say what to do instead of each forbidden action. |
+| Markdown-heavy replies on voice or SMS | Add a channel-specific style section or branch on `channel.name`. |
+| Tool usage left implicit | Say when to call each tool and what to confirm first. |
+| Changing the prompt without testing | Re-test common and edge-case questions in **Preview** before **Publish Changes**. |
+
+## Test your instructions
+
+1. Write 10–20 test messages: common questions, edge cases, out-of-scope requests and an upset customer.
+2. Run them in **Preview**. In an Autonomous Agent or AI Chatbot, **Debug as Multiple Models** compares up to 4 models side by side (not available on self-serve workspaces).
+3. Change one thing at a time and re-run the same messages.
+4. After publishing, review real conversations in **Logs** and add rules for anything the agent got wrong.
+
+## Next steps
+
+<Cards>
+  <Card title='Autonomous Agent' href='/docs/build/autonomous-agent'>Where the instructions, knowledge and tool prompts live.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Personalize prompts with variables.</Card>
+  <Card title='Voice channel' href='/docs/channels/voice'>Greeting, nudges and interruption settings.</Card>
+  <Card title='Testing' href='/docs/deploy/testing'>Test before you publish.</Card>
+</Cards>

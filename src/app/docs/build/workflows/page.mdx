@@ -1,0 +1,156 @@
+export const metadata = {
+  title: 'Workflows',
+  description: 'Build automations that run start to finish on a trigger, schedule or API call — and reuse them as tools and MCP servers.',
+}
+
+# Workflows
+
+A Workflow is an automation that runs start to finish with no conversation. It takes inputs, runs a series of blocks — models, knowledge searches, HTTP requests, code, loops — and returns outputs. Run it from the API, a webhook, a schedule, or as a tool that your agents call.
+
+## How it works
+
+Each run starts at a start block — a **Trigger** with input variables, a **Webhook Trigger** or a **Custom App Trigger** — and flows through the connected blocks to one or more **Output** blocks. Runs you start in the editor are recorded in **Run History**, and every run — including API, webhook and tool runs — appears in **Logs**.
+
+| Start with | Runs when | Can be a tool or MCP server? |
+|---|---|---|
+| **Trigger** | You click **Run**, call the API, or an agent calls it as a tool | Yes |
+| **Webhook Trigger** | An HTTP request arrives at its URL (including from **Scheduled Tasks**) | No |
+| **Custom App Trigger** | An event arrives from a connected app | No |
+
+See [Triggers](/docs/build/triggers) for the differences.
+
+## Build a workflow
+
+Open **Automation Apps › Workflow** and click **Create from Blank**. The workflow opens on the canvas with a **Trigger**.
+
+1. Click the **Trigger** and add input variables — for example `ticket_text` (**Paragraph**) and `customer_email` (**Short Text**).
+2. Click **+** on a block to open **Add a step** and add blocks. Type `/` in any field to reference an earlier block's output.
+3. End with an **Output** block (listed as **End** in **Add a step**) and add the output variables the workflow returns.
+
+Example — triage a support ticket:
+
+```text
+Trigger (ticket_text, customer_email)
+  → AI Model        classify urgency and topic, structured output
+  → Condition       urgency is "high"?
+      ├─ yes → HTTP Request  POST to your paging service
+      └─ no  → (continue)
+  → Output          urgency, topic, summary
+```
+
+## The Output block
+
+The workflow's **Output** block (listed as **End** in **Add a step**) decides what a run returns. Add one output variable per value: give it a name and pick the block output it takes its value from. The run returns these as the `outputs` object — for example `{ "urgency": "high", "topic": "damaged_item", "summary": "…" }`.
+A workflow must have an **Output** block before you can publish (**The End block must be added**).
+
+## Run and test
+
+Click **Run** in the header. Fill in the Trigger's input variables and start the run; the header shows **Running** with a stop button until it finishes. Each block shows its status on the canvas, and you can open any step to see its inputs and outputs.
+
+<Callout>
+  For a workflow that starts from a **Webhook Trigger** or **Custom App Trigger**, **Run** asks for the payload the trigger would have received and starts the run at the trigger. To test with a real request, use **Listen for test request** on the Webhook Trigger. See [Triggers](/docs/build/triggers#test-a-webhook).
+</Callout>
+
+### Test a single step
+
+Use **Run this step** to run one block with inputs you type in, without running the whole workflow. It's available on blocks such as AI Model, Knowledge Search, Custom Function, Template, Intent Classifier, HTTP Request, tools, Parameter Extractor, For Each, Agent, Doc Extractor and Repeat Until.
+
+### Run history
+
+The **Run History** dock tab lists the runs you started in the editor. Open one to see its status, each step's inputs, outputs and errors, how long each took, and token usage. Runs from the API, webhooks, schedules and tools are in **Logs** (header). For workspace-wide run metrics, see [Logs](/docs/monitor/logs).
+
+## Error handling and retry
+
+The AI Model, tool, HTTP Request and Custom Function blocks have **Error Handling** and **Retry** settings.
+
+| Setting | Options | Default |
+|---|---|---|
+| **Error Handling** | **None** — the run fails. **Default Value** — continue with values you define. **Fail Branch** — continue down a separate branch (**Add Fail Branch**). | None |
+| **Retry** max retries | 1–10 | 3 |
+| **Retry** interval | 100–5000 ms | 1000 ms |
+
+Use **Retry** for flaky network calls, **Fail Branch** to send an alert or log the failure, and **Default Value** when a missing value is acceptable.
+
+## Use a workflow as a tool
+
+Publishing a Workflow that starts with a **Trigger** registers it (or updates it) as a workflow tool automatically. Agents can then add it from the **Workflow** tab of the tool picker, and Agent Flows can place it as a block.
+
+- The tool is named after the workflow, and its description comes from the workflow's description.
+- The tool's parameters come from the Trigger's input variables.
+- For each variable, choose how it's filled with **Method** in its field settings: **Parameter** ("LLM fills during inference") or **Setting** ("User fills in the tool configuration").
+- Give variables clear names and descriptions — the model reads them to decide what to pass.
+
+<Callout type='warning'>
+  If you replace the Trigger with a Webhook or Custom App Trigger and publish, the workflow is removed from the tool list.
+</Callout>
+
+## Use a workflow as an MCP server
+
+You can also let external MCP clients (such as Cursor) call a published workflow.
+
+1. Publish the workflow, hover its name and open **API & Access**.
+2. Click **Enable MCP**.
+3. Enter a **Tool name** and **Tool description** (required), and a description for each input.
+4. Copy the **MCP server URL** (it looks like `https://cloud.xpectrum.dev/mcp/<server_code>`) into your MCP client, and make sure **Accepting calls** is on. Copy the exact URL from the app.
+
+<Callout type='danger'>
+  Anyone with this URL can run the workflow. Share it like a password. Use **Rotate URL** if it leaks — the old URL stops working immediately — or **Remove MCP access** to turn it off.
+</Callout>
+
+Group several workflows behind one URL with **MCP groups** in **Integrations › MCP**. See [MCP](/docs/integrations/mcp).
+
+## Call a workflow from the API
+
+After publishing, create a key in **API & Access** and call [Runs](/docs/api/runs). Pass the Trigger's input variables in `variables`:
+
+```bash title="Terminal"
+curl https://cloud.xpectrum.dev/v1/runs \
+  -H "Authorization: Bearer xpectrum_xxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variables": {
+      "ticket_text": "My order arrived damaged and I need a replacement today.",
+      "customer_email": "sam@example.com"
+    },
+    "user": "support-system"
+  }'
+```
+
+```json title="Response (abridged)"
+{
+  "id": "5a3c…",
+  "object": "run",
+  "status": "succeeded",
+  "outputs": { "urgency": "high", "topic": "damaged_item", "summary": "…" },
+  "error": null,
+  "elapsed_seconds": 3.2
+}
+```
+
+Set `"stream": true` to receive `run.started`, `step.started`, `step.completed` and `run.completed` events as the run progresses. Workflow keys only work with `/v1/runs`, not `/v1/chat/completions`.
+
+## Versions and publishing
+
+Click **Publish Changes** — workflows publish directly, with no extra options. Each publish creates a version in **Version History**, where you can **Name this version** (**Title**, **Release Notes**) and **Restore** an earlier version into the draft. The checklist must be clean first. See [Publishing & versions](/docs/deploy/publishing).
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **A start node is required — add a Trigger or a Webhook Trigger** | Add a start block and connect it. |
+| **The End block must be added** | Add an **Output** block at the end of each path. |
+| The workflow doesn't appear in the agent's tool picker | Publish it, and make sure it starts with a **Trigger**, not a Webhook or Custom App Trigger. |
+| API returns `This API key belongs to an app that does not support chat completions…` | You used a workflow key on `/v1/chat/completions`. Use `/v1/runs`. |
+| API returns `Missing required variable 'X'.` | Include every required Trigger variable in `variables`. |
+| **Run** asks for a payload instead of input variables | The workflow starts from a webhook or app trigger. Enter a sample payload, or test with a real request using **Listen for test request**. |
+| A run fails on an HTTP Request | Open the run in **Run History** or **Logs** to read the step's error; add **Retry** or a **Fail Branch**. |
+| `Max steps 500 reached.` | A loop runs too many times. Lower **Maximum Loop Count** or tighten the loop's termination condition. |
+
+## Next steps
+
+<Cards>
+  <Card title='Triggers' href='/docs/build/triggers'>Webhooks, app events and schedules.</Card>
+  <Card title='Runs API' href='/docs/api/runs'>Run workflows from code and stream steps.</Card>
+  <Card title='Blocks reference' href='/docs/blocks'>Every block you can use.</Card>
+  <Card title='MCP' href='/docs/integrations/mcp'>Expose workflows to MCP clients.</Card>
+</Cards>

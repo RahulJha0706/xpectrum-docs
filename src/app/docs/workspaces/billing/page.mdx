@@ -1,0 +1,150 @@
+export const metadata = {
+  title: 'Billing & credits',
+  description: 'How credits, executions and pass-through costs work, how to add credit and a payment method, and where to see usage history and token costs.',
+}
+
+# Billing & credits
+
+In a self-serve workspace, Xpectrum usage is paid from a prepaid credit balance. Each chat reply, email or workflow run counts as one execution, voice is charged per minute, messaging per message, and model, speech and telephony costs are passed through at cost. Phone numbers are billed separately to a card. This page explains each part and where to find it under **Billings** in the sidebar.
+
+<Callout>
+  **Billings** is visible to **Owners** and **Admins**. Credits apply only to self-serve workspaces: the credit balance, the **Billings** overview, **Usage history**, the credit chip and the low-balance banner appear only there. Other workspaces, including agency-managed client workspaces, aren't billed on credit; for them **Billings** opens **Tokens**. See [Client workspaces](/docs/workspaces/clients#provisioning-modes).
+</Callout>
+
+## How pricing works
+
+The **How pricing works** panel on the **Billings** page shows the current rates for your workspace. The model has four parts:
+
+| Charge | Unit | What it covers |
+|---|---|---|
+| **Execution** | One execution | A single piece of work by an agent (see below). |
+| **Voice** | Per minute | Time on voice calls. |
+| **Messaging** | Per message | Messages sent through messaging channels. |
+| **Third-party** | At cost | Models (LLM), text-to-speech, speech-to-text and telephony, charged at exactly what the provider charges, with no markup. |
+
+Model cost is passed through only when a call uses the platform's shared model credentials. If you've connected your own provider API key, the provider bills you directly and nothing is passed through for that call.
+
+### What counts as one execution
+
+> An execution is one chat reply, one email processed or one workflow run — loops and tool calls included, never charged per step.
+
+So a workflow run that loops 20 times and calls five tools is still one execution. The model tokens it used are charged separately as third-party cost.
+
+| Example | Executions |
+|---|---|
+| A customer sends a chat message and gets a reply | 1 |
+| An Agent Flow reply that runs Intent Classifier, Knowledge Search and an AI Model | 1 |
+| An inbound email the agent reads and answers | 1 |
+| A scheduled workflow run with a **For Each** over 50 items | 1 |
+| A five-minute phone call | Voice minutes plus third-party speech, model and telephony costs |
+
+## The Billings page
+
+Open **Billings** in the sidebar. Choose **Last 7 days**, **Last 30 days** (default) or **Last 90 days** at the top.
+
+| Section | Shows |
+|---|---|
+| **Credits remaining** | Your current balance, with a bar showing how much of your free signup credit is left. Self-serve workspaces start with a free credit grant, and no card is required to start. |
+| **Spent this period** | Total spend for the selected period. |
+| **Where it went** | Spend split into **Executions**, **Voice**, **Messaging** and **Third-party**. Third-party breaks down by type, such as **LLM**, **TTS**, **STT** and **Telephony**. **See every charge →** opens Usage history. |
+| **How pricing works** | Your rates (**One execution**, **Voice** per minute, **Messaging** per message), and the execution and pass-through rules above. |
+| **Add credit** | Buy more credit (see below). |
+| **Payment method** | The card used for phone numbers (see below). |
+
+## Add credit
+
+<Steps>
+<Step title='Choose an amount'>
+
+On **Billings**, pick a preset (**$10**, **$25** or **$50**) or choose **Other** and enter any amount from $5 to $500.
+
+</Step>
+<Step title='Pay'>
+
+Click the button, which shows the amount (for example **Add $25 credit**). You're redirected to a secure checkout to pay by card. The card is also saved for phone-number renewals.
+
+</Step>
+<Step title='Confirm'>
+
+Back in Xpectrum, you see **Payment received. Your credit will appear in a few moments.** If you cancelled, nothing is charged (**Payment canceled. No credit was added.**).
+
+</Step>
+</Steps>
+
+## Payment method
+
+The **Payment method** card holds a card used **only** for buying and renewing phone numbers. It is separate from your credit balance.
+
+- **Add payment method** / **Update payment method** saves a card.
+- **Remove** deletes it after you confirm **Remove payment method?**. Afterwards you can't buy or renew phone numbers until you add a new card; your credit balance is unaffected.
+
+### Phone number charges
+
+If you have numbers, the **Phone numbers** panel lists each one with its agent, provider and monthly rent. Rent is **charged to your card each month, not to credit**.
+
+| Status | Meaning |
+|---|---|
+| **Renews** *date* | Active; the next rent charge is on that date. |
+| **Cancels on** *date* | You cancelled; the number stays active until then. |
+| **Billing paused** | Rent is not currently being charged. |
+| **Suspended — payment failed** | The card charge failed. Update your payment method. |
+
+To stop paying for a number, click **Cancel** and confirm **Cancel rent** (or click **Keep**). It stays active until the end of the paid period, then it is released and **can't be recovered**. Nothing is refunded for the current period. Until then you can **Resume**. Some numbers show **Contact support to release** instead of **Cancel**; ask support to release those.
+
+## Usage history
+
+**Billings › Usage history** has two views:
+
+- **Daily usage** (7, 30 or 90 days): one row per day with **Date**, **Spend**, **Executions**, **Voice**, **Messaging**, **Third-party**, **Total** and **Balance**.
+- **Every charge**: one row per ledger entry with **Time**, **Type**, **What**, **Provider**, **Reference**, **Qty**, **Amount** and **Balance**. Filter by type (**All types**, **Execution**, **Voice**, **Messaging**, **LLM**, **TTS**, **STT**, **Telephony**, **Phone number**). Credit added to your balance (the signup grant and top-ups) shows as **Grant**.
+
+A single voice call appears as several rows: the platform's voice fee and each provider's cost are recorded separately.
+
+## Tokens
+
+**Billings › Tokens** shows model token consumption and **estimated** model cost per app, for apps that use a model. Pick a period (all time by default) or a custom date range. It's available on every workspace, including ones not billed on credit.
+
+| Figure | Meaning |
+|---|---|
+| **Total Cost** | Estimated model cost for the period. |
+| **Total Tokens** | Tokens consumed across apps. |
+| **Billable Apps** | Apps with token usage, out of all apps. |
+| **Token usage per app** | One chart per app. |
+
+Costs here are estimates aggregated from token usage; your ledger in **Usage history** is the source of truth for what you were charged. **Channels**, **TTS** and **STT** views under Billings are marked **Coming soon**.
+
+## Low and empty balance
+
+| Balance | What you see | What happens |
+|---|---|---|
+| Healthy | The **Credits** chip in the sidebar footer shows your balance. | Everything runs. |
+| Low | Below a quarter of your signup credit: an amber chip and a dismissable banner, for example **You have $X left — about N more replies.**, with **View billing**. You may also receive an email. | Everything runs. |
+| Empty | A red **Out of credits** chip and a banner: **Out of credits. Conversations already running will finish — add credits to start new ones.** | Work already in progress finishes. New work is refused once your balance falls below the minimum needed to start, until you add credit. |
+
+When a workspace is out of credits:
+
+- In the console, starting new work shows an **Out of credits** notice with **+ Add credits**.
+- Visitors to a shared web app see **This assistant is temporarily unavailable. Please try again later.**
+- Voice calls don't start.
+- New knowledge indexing and speech-to-text or text-to-speech requests are refused.
+- API requests return HTTP `402` with code `insufficient_credit`. See [Errors](/docs/api/errors).
+
+Once the added credit appears in your balance, new work resumes; you don't need to republish anything.
+
+## Troubleshooting
+
+- **No Billings section in the sidebar** → you need the **Owner** or **Admin** role.
+- **No credit balance or Usage history** → the workspace isn't billed on credit (only self-serve workspaces are). If it's an agency-managed client workspace, your agency bills you directly.
+- **"Credit balance is unavailable right now."** → a temporary problem reading the balance. Your usage is still being recorded; click **Retry**.
+- **Credit didn't appear after paying** → it can take a few moments. Refresh **Billings**; if it's still missing, check **Every charge** for the grant and contact support.
+- **Buying a phone number sends you to add a card** → phone numbers are charged to a card, not to credit. If no card is on file, you're redirected to add one first, then returned to confirm the purchase. You can also add one ahead of time under **Payment method**.
+- **Tokens cost doesn't match Usage history** → Tokens shows estimates for model use only; Usage history has every actual charge, including executions, voice and messaging.
+
+## Next steps
+
+<Cards>
+  <Card title='Phone numbers' href='/docs/channels/phone-numbers'>Buy and manage numbers.</Card>
+  <Card title='Analytics' href='/docs/monitor/analytics'>Conversations, messages and token usage per app.</Card>
+  <Card title='Client workspaces' href='/docs/workspaces/clients'>Credit health across your clients.</Card>
+  <Card title='Limits & quotas' href='/docs/troubleshooting/limits'>Every limit in one place.</Card>
+</Cards>

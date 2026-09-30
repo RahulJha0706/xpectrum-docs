@@ -1,0 +1,488 @@
+export const metadata = {
+  title: 'Workflows',
+  description: 'Run a Workflow app with the classic API, read a run, stop a streaming run and list workflow logs.',
+}
+
+# Workflows
+
+Run a published Workflow app from your code, follow its progress block by block, and look up past runs. Workflow runs have no conversation: each call is an independent run with its own inputs and outputs.
+
+<Callout type='tip' title='Recommended alternative'>
+  New integrations can run workflows with [`POST /v1/runs`](/docs/api/runs). It takes `variables` and `attachments` instead of `inputs` and `files`, and returns a simpler set of step events.
+</Callout>
+
+## Run a workflow
+
+<Endpoint method='POST' path='/v1/workflows/run' />
+
+Runs the app's **published** workflow with the values in `inputs`. Changes you haven't published are not used. The response is either a stream of run and block events or, in blocking mode, the finished run with its outputs.
+
+**Supported app types:** <Tag tone='green'>Workflow</Tag>
+
+### Request body
+
+<Params title='Request body'>
+  <Param name='inputs' type='object' required>
+    Values for the variables defined on the workflow's start block, as `variable_name: value` pairs. Send `{}` if there are none (`null` is rejected). A **File** variable takes one file object; a **File Array** variable takes an array of file objects. See [Pass files as inputs](#pass-files-as-inputs).
+  </Param>
+  <Param name='user' type='string' required>
+    Your identifier for the end user, unique within the app. It is shown as the end user's `session_id` in [workflow logs](#list-workflow-logs).
+  </Param>
+  <Param name='response_mode' type='string' def='blocking'>
+    `streaming` (recommended) returns Server-Sent Events. `blocking` returns the finished run; long blocking requests can be interrupted, so use streaming for long workflows.
+  </Param>
+  <Param name='files' type='array'>
+    Files for the run, as file objects. See [File objects](/docs/api/classic/chat-messages#file-objects).
+  </Param>
+</Params>
+
+### Request
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/workflows/run' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "inputs": {"customer_email": "jane@example.com", "order_id": "A-10293"},
+    "response_mode": "blocking",
+    "user": "crm-sync"
+  }'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/workflows/run",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "inputs": {"customer_email": "jane@example.com", "order_id": "A-10293"},
+        "response_mode": "blocking",
+        "user": "crm-sync",
+    },
+)
+resp.raise_for_status()
+run = resp.json()["data"]
+print(run["status"], run["outputs"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/workflows/run', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    inputs: { customer_email: 'jane@example.com', order_id: 'A-10293' },
+    response_mode: 'blocking',
+    user: 'crm-sync',
+  }),
+})
+const { data } = await res.json()
+console.log(data.status, data.outputs)
+```
+
+  </Tab>
+</Tabs>
+
+### Blocking response
+
+<Params title='Response'>
+  <Param name='task_id' type='string'>The id of this run's task, used by [Stop a workflow run](#stop-a-workflow-run).</Param>
+  <Param name='workflow_run_id' type='string'>The run id, used by [Get a workflow run](#get-a-workflow-run).</Param>
+  <Param name='data.id' type='string'>The run id (same as `workflow_run_id`).</Param>
+  <Param name='data.workflow_id' type='string'>The id of the workflow version that ran.</Param>
+  <Param name='data.status' type='string'>`running`, `succeeded`, `failed` or `stopped`.</Param>
+  <Param name='data.outputs' type='object'>The workflow's output variables.</Param>
+  <Param name='data.error' type='string'>The error message if the run failed, otherwise `null`.</Param>
+  <Param name='data.elapsed_time' type='number'>Run time in seconds.</Param>
+  <Param name='data.total_tokens' type='integer'>Tokens used by all blocks.</Param>
+  <Param name='data.total_steps' type='integer'>Number of blocks that ran.</Param>
+  <Param name='data.created_at' type='integer'>Unix timestamp in seconds.</Param>
+  <Param name='data.finished_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+```json title="Blocking response"
+{
+  "task_id": "c3800678-a077-43df-a102-53f23ed20b88",
+  "workflow_run_id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01",
+  "data": {
+    "id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01",
+    "workflow_id": "7c3f1a2e-4b5d-4c6e-8f90-1a2b3c4d5e6f",
+    "status": "succeeded",
+    "outputs": {
+      "summary": "Order A-10293 shipped on 12 March."
+    },
+    "error": null,
+    "elapsed_time": 2.38,
+    "total_tokens": 412,
+    "total_steps": 4,
+    "created_at": 1705407629,
+    "finished_at": 1705407631
+  }
+}
+```
+
+### Streaming response
+
+With `response_mode: "streaming"` the response is `text/event-stream`, one `data:` line per event:
+
+```text title="Streaming response"
+data: {"event": "workflow_started", "task_id": "c3800678-a077-43df-a102-53f23ed20b88", "workflow_run_id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01", "data": {"id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01", "workflow_id": "7c3f1a2e-4b5d-4c6e-8f90-1a2b3c4d5e6f", "sequence_number": 12, "created_at": 1705407629}}
+
+data: {"event": "node_started", "task_id": "c3800678-a077-43df-a102-53f23ed20b88", "workflow_run_id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01", "data": {"id": "e3c2...", "node_id": "1705407610000", "node_type": "llm", "title": "Summarize order", "index": 2, "predecessor_node_id": "start", "inputs": null, "created_at": 1705407629}}
+
+data: {"event": "text_chunk", "task_id": "c3800678-a077-43df-a102-53f23ed20b88", "workflow_run_id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01", "data": {"text": "Order A-10293", "from_variable_selector": ["1705407610000", "text"]}}
+
+data: {"event": "workflow_finished", "task_id": "c3800678-a077-43df-a102-53f23ed20b88", "workflow_run_id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01", "data": {"id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01", "workflow_id": "7c3f1a2e-4b5d-4c6e-8f90-1a2b3c4d5e6f", "status": "succeeded", "outputs": {"summary": "Order A-10293 shipped on 12 March."}, "error": null, "elapsed_time": 2.38, "total_tokens": 412, "total_steps": 4, "created_at": 1705407629, "finished_at": 1705407631}}
+```
+
+| Event | What it carries |
+|---|---|
+| `workflow_started` | The run started: `task_id`, `workflow_run_id` and `data` with `id`, `workflow_id`, `sequence_number`, `created_at`. |
+| `node_started` | A block started: `data` with `id`, `node_id`, `node_type`, `title`, `index`, `predecessor_node_id`, `inputs`, `created_at`. |
+| `text_chunk` | A piece of text output: `data.text` and `data.from_variable_selector` (the block and variable it came from). |
+| `node_finished` | A block finished: the `node_started` fields plus `process_data`, `outputs`, `status`, `error`, `elapsed_time`, `execution_metadata` (`total_tokens`, `total_price`, `currency`). |
+| `workflow_finished` | The run finished: `data` with `id`, `workflow_id`, `status`, `outputs`, `error`, `elapsed_time`, `total_tokens`, `total_steps`, `created_at`, `finished_at`. |
+| `tts_message` / `tts_message_end` | Base64 MP3 audio chunks, when text to speech auto-play is on. |
+| `error` | An error during the run: `status`, `code`, `message`. The stream ends after it. |
+| `ping` | Keep-alive, about every 10 seconds. |
+
+Workflows that use loops, iterations, parallel branches or retries also send `iteration_started`, `iteration_next`, `iteration_completed`, `loop_started`, `loop_next`, `loop_completed`, `parallel_branch_started`, `parallel_branch_finished` and `node_retry`. Ignore any event you don't use. See [Streaming](/docs/api/streaming).
+
+### Pass files as inputs
+
+Upload each file with [`POST /v1/files/upload`](/docs/api/classic/files), then pass the returned `id` as `upload_file_id` in the file variable. This example fills a **File Array** variable named `attachments` with one uploaded PDF and one file from a URL:
+
+```json title="Request body"
+{
+  "inputs": {
+    "attachments": [
+      {
+        "type": "document",
+        "transfer_method": "local_file",
+        "upload_file_id": "72fa9618-8f89-4a37-9b33-7e1178a24a67"
+      },
+      {
+        "type": "document",
+        "transfer_method": "remote_url",
+        "url": "https://example.com/terms.pdf"
+      }
+    ]
+  },
+  "response_mode": "streaming",
+  "user": "crm-sync"
+}
+```
+
+For a single **File** variable, pass one file object instead of an array.
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `inputs` is missing or `null`, a required input variable is missing or has the wrong type, `user` is missing ("Arg user must be provided."), or the workflow has not been published. |
+| 400 | `not_workflow_app` | The key doesn't belong to a Workflow app. "Please check if your app mode matches the right API route." |
+| 400 | `provider_not_initialize` | No valid model provider credentials are configured. |
+| 400 | `provider_quota_exceeded` | The hosted model quota is used up. |
+| 400 | `model_currently_not_support` | The configured model is not available. |
+| 400 | `completion_request_error` | A model call failed; the message contains the provider's error. |
+| 429 | `rate_limit_error` | A rate limit was reached. Retry with backoff. |
+| 500 | `internal_server_error` | Unexpected server error. |
+
+A run that starts but fails inside a block is not an HTTP error: blocking mode returns `status: "failed"` with `error` set, and streaming mode reports it in `node_finished` and `workflow_finished`.
+
+## Get a workflow run
+
+<Endpoint method='GET' path='/v1/workflows/run/{workflow_run_id}' />
+
+Returns the current state of a run by its id. Use it to check on a run after a blocking request timed out or a stream disconnected.
+
+**Supported app types:** <Tag tone='green'>Workflow</Tag> <Tag tone='violet'>Agent Flow</Tag>
+
+<Params title='Path parameters'>
+  <Param name='workflow_run_id' type='string' required>
+    The `workflow_run_id` from the run response or the `workflow_started` event.
+  </Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='id' type='string'>The run id.</Param>
+  <Param name='workflow_id' type='string'>The id of the workflow version that ran.</Param>
+  <Param name='status' type='string'>`running`, `succeeded`, `failed` or `stopped`.</Param>
+  <Param name='inputs' type='string'>The run's inputs, as a JSON-encoded string.</Param>
+  <Param name='outputs' type='string'>The run's outputs, as a JSON-encoded string.</Param>
+  <Param name='error' type='string'>The error message if the run failed.</Param>
+  <Param name='total_steps' type='integer'>Number of blocks that ran.</Param>
+  <Param name='total_tokens' type='integer'>Tokens used.</Param>
+  <Param name='created_at' type='integer'>Unix timestamp in seconds.</Param>
+  <Param name='finished_at' type='integer'>Unix timestamp in seconds, or `null` while running.</Param>
+  <Param name='elapsed_time' type='number'>Run time in seconds.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/workflows/run/fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import json
+import requests
+
+run_id = "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01"
+resp = requests.get(
+    f"https://cloud.xpectrum.dev/v1/workflows/run/{run_id}",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+)
+run = resp.json()
+outputs = json.loads(run["outputs"] or "{}")
+print(run["status"], outputs)
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const runId = 'fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/workflows/run/${runId}`, {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const run = await res.json()
+console.log(run.status, JSON.parse(run.outputs || '{}'))
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01",
+  "workflow_id": "7c3f1a2e-4b5d-4c6e-8f90-1a2b3c4d5e6f",
+  "status": "succeeded",
+  "inputs": "{\"customer_email\": \"jane@example.com\", \"order_id\": \"A-10293\"}",
+  "outputs": "{\"summary\": \"Order A-10293 shipped on 12 March.\"}",
+  "error": null,
+  "total_steps": 4,
+  "total_tokens": 412,
+  "created_at": 1705407629,
+  "finished_at": 1705407631,
+  "elapsed_time": 2.38
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `not_workflow_app` | The key belongs to an app that isn't built on a workflow (AI Chatbot, Autonomous Agent or Text Generator). |
+
+## Stop a workflow run
+
+<Endpoint method='POST' path='/v1/workflows/tasks/{task_id}/stop' />
+
+Stops a streaming workflow run that is still running. Take `task_id` from any event of the stream (it is different from `workflow_run_id`). Only streaming runs can be stopped.
+
+**Supported app types:** <Tag tone='green'>Workflow</Tag>
+
+<Params title='Path parameters'>
+  <Param name='task_id' type='string' required>The `task_id` from the stream.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='user' type='string' required>The same `user` you sent when starting the run.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='result' type='string'>Always `success`, even if the run had already finished.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/workflows/tasks/c3800678-a077-43df-a102-53f23ed20b88/stop' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"user": "crm-sync"}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+task_id = "c3800678-a077-43df-a102-53f23ed20b88"
+resp = requests.post(
+    f"https://cloud.xpectrum.dev/v1/workflows/tasks/{task_id}/stop",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"user": "crm-sync"},
+)
+print(resp.json())  # {"result": "success"}
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const taskId = 'c3800678-a077-43df-a102-53f23ed20b88'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/workflows/tasks/${taskId}/stop`, {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ user: 'crm-sync' }),
+})
+console.log(await res.json())
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{ "result": "success" }
+```
+
+A stopped run ends with `status: "stopped"`.
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "Arg user must be provided." |
+| 400 | `not_workflow_app` | The key doesn't belong to a Workflow app. |
+
+## List workflow logs
+
+<Endpoint method='GET' path='/v1/workflows/logs' />
+
+Lists the app's workflow runs, newest first, with who started each one.
+
+**Supported app types:** <Tag tone='green'>Workflow</Tag>
+
+<Params title='Query parameters'>
+  <Param name='keyword' type='string'>Filter runs by keyword.</Param>
+  <Param name='status' type='string'>`succeeded`, `failed` or `stopped`.</Param>
+  <Param name='created_at__after' type='string'>Only runs created after this ISO 8601 time, for example `2025-01-01T00:00:00Z`.</Param>
+  <Param name='created_at__before' type='string'>Only runs created before this ISO 8601 time.</Param>
+  <Param name='page' type='integer' def='1'>Page number, 1–99999.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page, 1–100.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='page' type='integer'>The current page.</Param>
+  <Param name='limit' type='integer'>Items per page.</Param>
+  <Param name='total' type='integer'>Total number of matching runs.</Param>
+  <Param name='has_more' type='boolean'>Whether there is another page.</Param>
+  <Param name='data[].id' type='string'>The log entry id.</Param>
+  <Param name='data[].workflow_run' type='object'>The run: `id`, `version`, `status`, `error`, `elapsed_time`, `total_tokens`, `total_steps`, `created_at`, `finished_at`, `exceptions_count`.</Param>
+  <Param name='data[].created_from' type='string'>Where the run came from, for example `service-api`.</Param>
+  <Param name='data[].created_by_role' type='string'>`end_user` for API and end-user runs, `account` for runs started by a workspace member.</Param>
+  <Param name='data[].created_by_account' type='object'>The workspace member who started the run, or `null`.</Param>
+  <Param name='data[].created_by_end_user' type='object'>The end user who started the run, or `null`: `id`, `type`, `is_anonymous` and `session_id` (the `user` value you sent).</Param>
+  <Param name='data[].created_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/workflows/logs?status=failed&page=1&limit=20' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/workflows/logs",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"status": "failed", "page": 1, "limit": 20},
+)
+for log in resp.json()["data"]:
+    print(log["workflow_run"]["id"], log["workflow_run"]["error"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const params = new URLSearchParams({ status: 'failed', page: '1', limit: '20' })
+const res = await fetch(`https://cloud.xpectrum.dev/v1/workflows/logs?${params}`, {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { data, has_more } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "page": 1,
+  "limit": 20,
+  "total": 1,
+  "has_more": false,
+  "data": [
+    {
+      "id": "b1f0a3c4-2d5e-4f60-9a7b-8c9d0e1f2a3b",
+      "workflow_run": {
+        "id": "fb47b2e6-5e3b-4a8e-a1a5-2f8b5c3a9d01",
+        "version": "2025-01-10 09:12:44.123456",
+        "status": "failed",
+        "error": "HTTP request failed with status 502",
+        "elapsed_time": 1.02,
+        "total_tokens": 0,
+        "total_steps": 2,
+        "created_at": 1705407629,
+        "finished_at": 1705407630,
+        "exceptions_count": 0
+      },
+      "created_from": "service-api",
+      "created_by_role": "end_user",
+      "created_by_account": null,
+      "created_by_end_user": {
+        "id": "7f7d9b0e-1c2a-4e3b-9d4c-5a6b7c8d9e0f",
+        "type": "service_api",
+        "is_anonymous": false,
+        "session_id": "crm-sync"
+      },
+      "created_at": 1705407629
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `status` is not one of the allowed values, or `page` / `limit` is out of range. |
+
+## Next steps
+
+<Cards>
+  <Card title='Files' href='/docs/api/classic/files'>Upload files to pass as workflow inputs.</Card>
+  <Card title='Workflow runs' href='/docs/api/runs'>The recommended API for running workflows.</Card>
+  <Card title='Streaming' href='/docs/api/streaming'>Read Server-Sent Events reliably.</Card>
+</Cards>

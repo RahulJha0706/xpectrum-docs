@@ -1,0 +1,247 @@
+export const metadata = {
+  title: 'Completion messages',
+  description: 'Run a Text Generator app with the classic API and stop a streaming generation.',
+}
+
+# Completion messages
+
+Run a Text Generator app: send its input variables and get the generated text back, streamed or all at once. Text Generator runs are one-shot, so there is no conversation to continue.
+
+<Callout>
+  Text Generator apps are only available through the classic API. The recommended API's [Chat completions](/docs/api/chat-completions) endpoint does not run them.
+</Callout>
+
+## Create a completion message
+
+<Endpoint method='POST' path='/v1/completion-messages' />
+
+Runs the app once with the values in `inputs` and returns the generated text.
+
+**Supported app types:** <Tag tone='amber'>Text Generator</Tag>
+
+### Request body
+
+<Params title='Request body'>
+  <Param name='inputs' type='object' required>
+    Values for the app's input variables, as `variable_name: value` pairs, for example `{"query": "Summarize this ticket…"}` for an app with a `query` variable. List the app's variables with [`GET /v1/parameters`](/docs/api/classic/app#get-app-parameters).
+  </Param>
+  <Param name='user' type='string' required>
+    Your identifier for the end user, unique within the app. See [The user parameter](/docs/api/classic#the-user-parameter).
+  </Param>
+  <Param name='response_mode' type='string' def='blocking'>
+    `streaming` (recommended) returns Server-Sent Events. `blocking` returns one JSON object when generation finishes; long blocking requests can be interrupted, so prefer streaming.
+  </Param>
+  <Param name='files' type='array'>
+    Images to send with the input, when the app's model supports vision. Each item is `{"type": "image", "transfer_method": "remote_url" | "local_file", "url" | "upload_file_id"}`. See [File objects](/docs/api/classic/chat-messages#file-objects) and [Files](/docs/api/classic/files).
+  </Param>
+</Params>
+
+### Request
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/completion-messages' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "inputs": {"query": "Write a two-line welcome message for new customers."},
+    "response_mode": "blocking",
+    "user": "customer-1042"
+  }'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/completion-messages",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={
+        "inputs": {"query": "Write a two-line welcome message for new customers."},
+        "response_mode": "blocking",
+        "user": "customer-1042",
+    },
+)
+resp.raise_for_status()
+print(resp.json()["answer"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/completion-messages', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    inputs: { query: 'Write a two-line welcome message for new customers.' },
+    response_mode: 'blocking',
+    user: 'customer-1042',
+  }),
+})
+const data = await res.json()
+console.log(data.answer)
+```
+
+  </Tab>
+</Tabs>
+
+### Blocking response
+
+<Params title='Response'>
+  <Param name='event' type='string'>Always `message`.</Param>
+  <Param name='task_id' type='string'>The id of this run, used by [Stop a completion](#stop-a-completion).</Param>
+  <Param name='id' type='string'>The message id (same as `message_id`).</Param>
+  <Param name='message_id' type='string'>The message id. Use it for [feedback](/docs/api/classic/app#send-message-feedback) and [text to speech](/docs/api/classic/app#text-to-audio).</Param>
+  <Param name='mode' type='string'>Always `completion`.</Param>
+  <Param name='answer' type='string'>The generated text.</Param>
+  <Param name='metadata.usage' type='object'>Model usage: tokens, prices, `currency` and `latency`. Same fields as in [Chat messages](/docs/api/classic/chat-messages#blocking-response).</Param>
+  <Param name='metadata.retriever_resources' type='array'>Knowledge citations, when the app uses knowledge.</Param>
+  <Param name='created_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+```json title="Blocking response"
+{
+  "event": "message",
+  "task_id": "d2f1c1a5-3b0e-4f8e-9a51-1f0f4a8d7c11",
+  "id": "5e3b8c2a-9d8e-4f6b-8e1a-3c7d9b2f1a60",
+  "message_id": "5e3b8c2a-9d8e-4f6b-8e1a-3c7d9b2f1a60",
+  "mode": "completion",
+  "answer": "Welcome aboard! We're glad you're here.\nReply any time if you need a hand.",
+  "metadata": {
+    "usage": {
+      "prompt_tokens": 42,
+      "completion_tokens": 19,
+      "total_tokens": 61,
+      "total_price": "0.0000610",
+      "currency": "USD",
+      "latency": 0.84
+    }
+  },
+  "created_at": 1705395332
+}
+```
+
+### Streaming response
+
+With `response_mode: "streaming"` the response is `text/event-stream`, one `data:` line per event:
+
+```text title="Streaming response"
+data: {"event": "message", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c", "answer": "Welcome", "created_at": 1705398420}
+
+data: {"event": "message_end", "task_id": "900bbd43-dc0b-4383-a372-aa6e6c414227", "message_id": "663c5084-a254-4040-8ad3-51f2a3c1a77c", "metadata": {"usage": {"total_tokens": 61, "currency": "USD", "latency": 0.84}}}
+```
+
+| Event | What it carries |
+|---|---|
+| `message` | A chunk of the generated text in `answer`, plus `task_id`, `message_id`, `created_at`. |
+| `message_end` | Generation is complete. Carries `metadata.usage` and `metadata.retriever_resources`. |
+| `message_replace` | Output moderation replaced the text; `answer` holds the replacement for the whole output. |
+| `tts_message` | A base64-encoded MP3 audio chunk in `audio`, when text to speech auto-play is on. |
+| `tts_message_end` | End of the audio stream (`audio` is `""`). |
+| `error` | An error during generation: `status`, `code`, `message`. The stream ends after it. |
+| `ping` | Keep-alive, about every 10 seconds. |
+
+See [Streaming](/docs/api/streaming) for how to read the stream.
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `inputs` is missing, a required input variable is missing, or `user` is missing ("Arg user must be provided."). |
+| 400 | `app_unavailable` | The key doesn't belong to a Text Generator app, or the app's configuration is unavailable. |
+| 400 | `provider_not_initialize` | No valid model provider credentials are configured. |
+| 400 | `provider_quota_exceeded` | The hosted model quota is used up. |
+| 400 | `model_currently_not_support` | The configured model is not available. |
+| 400 | `completion_request_error` | The model call failed, including provider rate limits; the message contains the provider's error. |
+| 500 | `internal_server_error` | Unexpected server error. |
+
+## Stop a completion
+
+<Endpoint method='POST' path='/v1/completion-messages/{task_id}/stop' />
+
+Stops a streaming generation that is still running. Take `task_id` from any event of the stream. Only streaming runs can be stopped.
+
+**Supported app types:** <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Path parameters'>
+  <Param name='task_id' type='string' required>The `task_id` from the stream.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='user' type='string' required>The same `user` you sent when starting the generation.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='result' type='string'>Always `success`, even if the task had already finished.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/completion-messages/900bbd43-dc0b-4383-a372-aa6e6c414227/stop' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"user": "customer-1042"}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+task_id = "900bbd43-dc0b-4383-a372-aa6e6c414227"
+resp = requests.post(
+    f"https://cloud.xpectrum.dev/v1/completion-messages/{task_id}/stop",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"user": "customer-1042"},
+)
+print(resp.json())  # {"result": "success"}
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const taskId = '900bbd43-dc0b-4383-a372-aa6e6c414227'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/completion-messages/${taskId}/stop`, {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ user: 'customer-1042' }),
+})
+console.log(await res.json())
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{ "result": "success" }
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "Arg user must be provided." |
+| 400 | `app_unavailable` | The key doesn't belong to a Text Generator app. |
+
+## Next steps
+
+<Cards>
+  <Card title='Feedback, audio & app info' href='/docs/api/classic/app'>Rate a generation, convert it to speech, read the app's variables.</Card>
+  <Card title='About the classic API' href='/docs/api/classic'>Authentication, the user parameter and error format.</Card>
+</Cards>

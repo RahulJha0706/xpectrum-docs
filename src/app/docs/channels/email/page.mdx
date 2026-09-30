@@ -1,0 +1,120 @@
+export const metadata = {
+  title: 'Email',
+  description: 'Route an inbound email address to an agent that replies by email, control how long threads keep context, and send test emails.',
+}
+
+# Email
+
+Map an email address to an agent and it answers the mail sent to that address, in the same thread. Each email thread keeps its context for as long as you choose, so follow-up replies are answered with the earlier messages in mind.
+
+## Before you begin
+
+- A published conversational agent. Any type works: Autonomous Agent, Agent Flow, Multi-prompt Agent or AI Chatbot.
+- An inbound address whose mail is delivered to Xpectrum, for example `support@inbound.yourcompany.com`. If you're not sure how to route your domain's mail, contact support before you add the address.
+- The **Owner** or **Admin** role to add, change or delete addresses.
+
+## Add an email address
+
+<Steps>
+<Step title='Open Email'>
+
+Go to **Channels › Email** and click **Add Email** (or **Route a new inbox to an agent** in the overview).
+
+</Step>
+<Step title='Fill in the address'>
+
+| Field | What to enter |
+|---|---|
+| **Assign to Agent** | The agent that answers this address. |
+| **Email Address** | The inbound address routed to this agent, for example `support@inbound.yourcompany.com`. |
+| **Description** | Optional note for your team, for example `Customer support inbox`. |
+| **Conversation expiry** | How long a thread keeps its context. See below. |
+
+</Step>
+<Step title='Save'>
+
+Click **Save**. You see "Email mapping added successfully", and the address appears under **Email Addresses**.
+
+</Step>
+</Steps>
+
+## Conversation expiry
+
+**Conversation expiry** sets how long an email thread remembers earlier messages. After it runs out, the next email in that thread starts a fresh conversation.
+
+| Option | Use it when |
+|---|---|
+| **Default (3 days)** | Most support inboxes. Covers a normal back-and-forth. |
+| **1 hour** | Quick, one-off requests where old context would get in the way. |
+| **1 day** | Same-day requests. |
+| **7 days** | Issues that take a week to resolve. |
+| **30 days** | Long-running cases, such as orders or claims. |
+| **Never expire** | Every reply in a thread should see its full history. |
+
+<Callout type='tip'>
+  Pick the shortest expiry that covers a real conversation. A thread that stays live for weeks can drag an old, settled issue into a new request.
+</Callout>
+
+## Send a test email
+
+On an address's row, click **Send Test** (or **Send Test Email** in the row menu). The dialog shows which address the mail is sent **From**. Fill in:
+
+| Field | Default |
+|---|---|
+| **To Email** | — (the recipient, such as your own inbox) |
+| **Subject** | `Test Email from AI Assistant` |
+| **Message** | `This is a test email sent via the AI assistant email service.` |
+
+Click **Send Email**. "Test email sent successfully" means it went out. Reply to it from your inbox and check that the agent answers in the same thread.
+
+## The Email page
+
+The page has three tabs.
+
+### Overview
+
+Counts of **Email Addresses**, **Agents on Email** and **Active Conversations** (threads with context), plus quick actions to add an address and **Refresh**.
+
+### Email Addresses
+
+"Inboxes routed to an agent — incoming email is answered by that agent." Columns: **Email Address**, **Conversation Expiry**, **Status**, **Assigned Agent** and **Actions**. Row actions: **Send Test**, **Change Agent**, **Copy Email Address** and **Delete**.
+
+Deleting an address asks "Delete email address?" — email sent to it will no longer reach an agent.
+
+### Conversations
+
+"Open threads — clearing one removes its context so the next reply starts fresh." Columns: **Thread**, **Conversation**, **Initial Message**, **Channel** and **Actions**. Search by email address.
+
+Threads appear here after an outbound email is sent or a reply comes in. To reset a thread, choose **Clear conversation context**: "The agent forgets this thread, so the next reply starts a fresh conversation."
+
+## Writing for email
+
+Email replies can be longer and more structured than chat. Add guidance like this to the agent's instructions:
+
+```text title="Instructions (email section)"
+You are replying by email.
+- Start with a greeting using the sender's name if you know it.
+- Answer every question in the email, in order.
+- Use short paragraphs. Use a numbered list for steps.
+- End with a sign-off from "The Acme Support Team".
+- If you can't resolve the issue, say what happens next and when.
+```
+
+If the same agent also answers chat or calls, branch on `channel.name` so this style only applies to email. See [Channels](/docs/channels#knowing-which-channel-a-message-came-from).
+
+## Troubleshooting
+
+- **Emails to the address get no reply** → Check the address is listed under **Email Addresses** with an agent, the agent is published, and mail for that address is actually delivered to Xpectrum.
+- **"Please enter a valid email address"** → Check the address for typos and spaces.
+- **The agent forgets the earlier emails in a thread** → The **Conversation expiry** ran out. Choose a longer one.
+- **The agent brings up an old, unrelated issue** → The thread's context is still live. Use **Clear conversation context**, or choose a shorter expiry.
+- **The test email didn't arrive** → Check spam, and that **To Email** is correct.
+- **You can't add or delete addresses** → You need the Owner or Admin role.
+
+## Next steps
+
+<Cards>
+  <Card title='Support agent guide' href='/docs/guides/support-agent'>Build an agent that answers from your documents.</Card>
+  <Card title='Knowledge' href='/docs/knowledge'>Ground email replies in your help center.</Card>
+  <Card title='Channels overview' href='/docs/channels'>How channels, agents and conversations fit together.</Card>
+</Cards>

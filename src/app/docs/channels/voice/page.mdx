@@ -1,0 +1,206 @@
+export const metadata = {
+  title: 'Voice',
+  description: 'Configure how an agent sounds and behaves on calls: text-to-speech, transcription, greeting, nudges, call length, recording, tool acknowledgements and testing.',
+}
+
+# Voice
+
+The **Voice** screen turns a conversational agent into a voice agent. It sets the voice the agent speaks with, how speech is transcribed, what the agent says first, how it handles silence, and how long a call may last. The same settings apply to every call the agent takes — over a [phone number](/docs/channels/phone-numbers), in a [batch](/docs/channels/batch-calls), or in the browser through the [voice widget](/docs/channels/web).
+
+## How a call works
+
+1. The caller's audio is transcribed to text.
+2. The text is sent to your agent as a message, exactly like a chat turn. The agent's reply streams back.
+3. The reply is spoken with the text-to-speech (TTS) voice you choose.
+
+The caller's turn ends when they finish speaking, and the caller can talk over the agent once it has been speaking for about half a second. Your agent's instructions, knowledge and tools work the same way they do in chat. The voice layer only adds speech on each side.
+
+## Open the Voice screen
+
+Go to **Channels › Voice** and pick an agent from the list. Agents are grouped as **Autonomous Agents**, **Agent Flows**, **Multi-prompt Agents** and **Chatbots**.
+
+The header shows three actions:
+
+| Button | What it does |
+|---|---|
+| **Publish Changes** | Saves this agent's voice configuration. It is separate from publishing the agent itself. |
+| **Chat** | Opens a text chat with the agent in a side panel. |
+| **Call** | Starts an in-browser voice call with the agent. |
+
+Settings are split across two tabs, **Voice & Transcriber** and **Configurations**.
+
+<Callout>
+  You need the Editor role or higher to change voice settings. Other roles see the screen read-only, with the notice "You have read-only access. Contact an admin to make changes."
+</Callout>
+
+## Voice & Transcriber tab
+
+### Text-to-speech provider
+
+Under **Voice Selection**, choose a **Provider** and a **Model**. The providers are **OpenAI**, **ElevenLabs** and **Cartesia**. New agents use Cartesia.
+
+The provider's configuration card has an **API Key** switch:
+
+- **Default (Workspace Key)** uses the provider key installed in your workspace, so you don't enter anything here. If none is installed you see "No workspace key found — install the … key plugin in your workspace, or switch to Custom Key." See [Models](/docs/integrations/models) for workspace keys.
+- **Custom Key** stores a key on this agent only. It overrides the workspace key for this agent's calls.
+
+Provider-specific settings:
+
+| Provider | Setting | Range |
+|---|---|---|
+| OpenAI | **Voice**, **Response Format** | — |
+| OpenAI | Speed | 0.25x–4x |
+| ElevenLabs | Voice (searchable list from your ElevenLabs account) | — |
+| ElevenLabs | Stability | 0–1 |
+| ElevenLabs | Similarity Boost | 0–1 |
+| ElevenLabs | Speed | 0.8x–1.2x |
+| ElevenLabs | **SSML Parsing** — "Enable SSML tags for custom pronunciation control" | Off by default |
+| Cartesia | Voice (searchable list) | — |
+| Cartesia | Speed | 0.6x–2.0x, Sonic 3 models only |
+
+For ElevenLabs and Cartesia, the voice list loads from the provider with the key in use. If the key is invalid, the list stays empty and the card shows the error. When you change provider, pick a voice again before you save ("Please select a voice for the new provider").
+
+### Transcriber
+
+**Transcriber Configuration** sets speech-to-text: **Provider**, **Model**, **Language** and **API Key** (same default/custom switch as above). New agents use Deepgram with the `nova-2` model and `en-US`.
+
+<Callout type='tip'>
+  Set **Language** to the language your callers actually speak. A mismatched transcriber language is the most common cause of garbled or empty transcripts.
+</Callout>
+
+## Configurations tab
+
+| Setting | What it does | Default |
+|---|---|---|
+| **Initial Message** | What the agent says when the call connects. | `Hello! How can I help you today?` |
+| **Allow Interruption** | Let the caller interrupt the initial message by speaking. | Off |
+| **Initial Message Delay (seconds)** | Wait this long after the call connects before speaking the initial message. | `0` |
+| Nudge text (under **Call Behavior**) | What the agent says when the caller goes quiet. | `Hey, are you there?` |
+| **Nudge Interval (seconds)** | Seconds of silence before each nudge. | `10` |
+| **Max Nudges** | How many nudges before the agent ends the call. | `4` |
+| **Call Duration** | Maximum call length, in seconds. The call ends when it is reached. | `3600` |
+| **Record Session** | Store an audio recording of each call. | Off |
+| **Tool Acknowledgement** | Speak a short phrase while a tool runs. | Off |
+| **Backchannel Filter** | Ignore filler words when the caller talks over the agent. | Off |
+
+Click **Publish Changes** after editing. The toast "Voice configuration saved" confirms it.
+
+<Callout type='warning'>
+  New agents start with a **Call Duration** of 3600 seconds (one hour). If the field is cleared, calls end after 300 seconds, so always keep a value that fits your longest calls.
+</Callout>
+
+### Silence and nudges
+
+After the agent finishes speaking, a silence timer starts. Each time **Nudge Interval** passes without the caller speaking, the agent says the nudge text. After **Max Nudges** nudges, the call ends with the reason `max_nudges`.
+
+With the defaults, a silent caller hears three nudges 15 seconds apart before the call ends — about a minute of silence in total.
+
+### Tool Acknowledgement
+
+Tool calls such as a booking lookup can take a few seconds. **Tool Acknowledgement** fills that gap with a short phrase so the caller doesn't think the line dropped.
+
+| Field | What it does |
+|---|---|
+| **Default Phrases (fallback)** | Comma-separated phrases, used for tools without their own override. For example `Hold on., Checking., One moment., Let me check.` |
+| **Global Delay (ms)** | Wait before speaking the phrase, 0–5000 ms. `0` speaks instantly. |
+| **Per-Tool Overrides** | Per-tool **Phrases (comma-separated)** and **Delay (ms)** that replace the global values for that tool. |
+
+Per-tool overrides list the tools configured on the agent. If a tool has no override, the global settings are used.
+
+<Callout type='tip'>
+  Set a **Global Delay** of 500–1000 ms so fast tools finish silently and only slow ones trigger a phrase. Give slow tools a specific phrase, such as `Let me check the calendar.` for a booking tool.
+</Callout>
+
+### Backchannel Filter
+
+Callers often say "hmm", "yeah" or "okay" while the agent is talking. Without a filter, those words can interrupt the agent and start a new turn. With **Backchannel Filter** on, the words in **Filter Words** are dropped when the caller says them while the agent is speaking: no interruption, no model call, no response.
+
+```text title="Filter Words"
+hmm, yes, yeah, ok, okay, mhm, right, sure, yep, ah, oh
+```
+
+Don't include words that are real answers in your flow. If your agent asks yes/no questions, a filtered "yes" spoken over the agent is ignored.
+
+### Recording
+
+With **Record Session** on, each call is stored as a dual-channel audio file, with the agent on the left channel and the caller on the right. Play recordings and read transcripts in [Voice sessions](/docs/monitor/voice-sessions).
+
+<Callout type='warning'>
+  Many regions require you to tell callers they are being recorded. Add a notice to the **Initial Message**, for example `This call may be recorded for quality purposes.`
+</Callout>
+
+## Test with Chat and Call
+
+- **Chat** opens a **Chat Assistant** panel. It starts with your **Initial Message** and lets you type turns to check the agent's answers quickly. **Clear** starts over.
+- **Call** asks for microphone access, then connects you to the agent in the browser. The panel shows a live **Call Transcript** and **Mute**, **Mute Speaker** and **End Call** controls.
+
+Both talk to the published agent. Publish the agent after changing its instructions, and click **Publish Changes** here after changing voice settings, before you test. The first time you use **Chat**, an API key is created for the app if it has none. You'll see it under [API keys](/docs/deploy/api-keys).
+
+If the browser blocks the microphone, you see **Microphone Access Denied**. Allow microphone access for the site in your browser settings and click **Call** again. Browsers only allow the microphone on HTTPS pages.
+
+## Call lifecycle and end reasons
+
+Every call ends with a reason, shown in [Voice sessions](/docs/monitor/voice-sessions):
+
+| End reason | Meaning |
+|---|---|
+| `user_disconnected` | The caller hung up or closed the browser call. |
+| `end_call` | The agent ended the call — its end-call tool, or the flow reached an ending. |
+| `max_duration` | **Call Duration** was reached. |
+| `max_nudges` | The caller stayed silent through **Max Nudges** nudges. |
+| `stt_closed` | The transcription stream closed. |
+| `cancelled` | The call was cancelled before it completed. |
+
+A call can also fail before it starts:
+
+| Setup failure | Meaning | Fix |
+|---|---|---|
+| `config_error` | The agent isn't published or has no usable configuration. | Publish the agent, then **Publish Changes** on the Voice screen. |
+| `insufficient_credit` | Not enough credit to start the call, for example `insufficient credit: $X available, $Y required to start a call`. | Add credit in [Billing](/docs/workspaces/billing). |
+| `pipeline_error` | A speech provider key is missing. | Install the provider key in the workspace or set a **Custom Key**. |
+| `room_connect_error`, `setup_failed` | The call couldn't be set up. | Try again. If it keeps happening, contact support. |
+
+On outbound calls, the agent waits until the callee answers before it speaks the initial message. Voicemail and answering machines are not detected: if a machine picks up, the agent talks to it.
+
+## Writing prompts for voice
+
+Voice replies are heard, not read. Add guidance like this to your agent's instructions:
+
+```text title="Instructions (voice section)"
+You are speaking on a phone call.
+- Keep each reply to one or two short sentences, then pause for the caller.
+- Ask one question at a time.
+- Never use lists, Markdown, emojis or URLs.
+- Say numbers the way people speak them: "two thirty PM", "five five five, one two three four".
+- Confirm names, dates and phone numbers by repeating them back.
+- If you need to look something up, say so briefly before you do.
+```
+
+More tips:
+
+- Keep the **Initial Message** short and end it with a question, such as `Thanks for calling Bright Dental, this is Ava. How can I help?`
+- If the agent also answers chat, branch on `channel.name` (`phone` or `voice`) so it only uses the spoken style on calls. See [Channels](/docs/channels#knowing-which-channel-a-message-came-from).
+- Use knowledge snippets written in plain sentences. Tables and bullet lists read badly aloud.
+
+## Troubleshooting
+
+- **The agent is silent when the call connects** → Check that the agent is published and voice settings were saved with **Publish Changes**. Check **Initial Message Delay** isn't set high.
+- **Calls end after five minutes** → Raise **Call Duration** (seconds) and click **Publish Changes**.
+- **Calls end while the caller is thinking** → Increase **Nudge Interval** or **Max Nudges**.
+- **The agent stops mid-sentence when the caller says "okay"** → Turn on **Backchannel Filter** and list the caller's filler words.
+- **Long silences while tools run** → Turn on **Tool Acknowledgement**.
+- **"No workspace key found"** → Install the provider key in the workspace, or switch **API Key** to **Custom Key** and enter one.
+- **The voice list is empty** → The ElevenLabs or Cartesia key in use is invalid or has no voices. Fix the key, then pick a voice.
+- **Transcripts are wrong or empty** → Set the transcriber **Language** to the caller's language.
+- **The agent reads out Markdown or links** → Add the voice instructions above, or branch on `channel.name`.
+
+For more, see [Voice troubleshooting](/docs/troubleshooting/voice).
+
+## Next steps
+
+<Cards>
+  <Card title='Phone numbers' href='/docs/channels/phone-numbers'>Give the agent a number people can call.</Card>
+  <Card title='Voice sessions' href='/docs/monitor/voice-sessions'>Recordings, transcripts and outcomes for every call.</Card>
+  <Card title='Voice widget' href='/docs/channels/web'>Let website visitors talk to the agent.</Card>
+  <Card title='Voice API' href='/docs/api/voice'>Start browser voice calls from your own code.</Card>
+</Cards>

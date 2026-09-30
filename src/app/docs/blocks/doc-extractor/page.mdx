@@ -1,0 +1,86 @@
+export const metadata = {
+  title: 'Doc Extractor',
+  description: 'Reference for the Doc Extractor block: supported file types, single-file and file-list input, the text output, and errors.',
+}
+
+# Doc Extractor
+
+The **Doc Extractor** block reads an uploaded file and turns it into plain text that a model can use. Put it between a file input and an [AI Model](/docs/blocks/ai-model) to summarize a contract, answer questions about a PDF, or pull fields from an invoice.
+
+## When to use it
+
+| Situation | Use |
+|---|---|
+| A user or API caller sends a file for this run only | **Doc Extractor**, then AI Model |
+| The same documents answer many questions over time | Upload them to a [knowledge base](/docs/knowledge) and use [Knowledge Search](/docs/blocks/knowledge-search) |
+| The file is an image and your model supports vision | Send it to the AI Model's **Vision** setting directly |
+
+## Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Input Variable** | A file variable (`File`) or file-list variable (`Array[File]`), for example a **Single File** or **File List** field on the Trigger, a Webhook Trigger body field of type file, or the `files` output of an HTTP Request. | Required |
+
+The block shows "Support file types: …" under the input with the document types you can upload. A few of those can't be extracted (see the warning below).
+
+## Supported file types
+
+| Kind | Extensions | How it's converted |
+|---|---|---|
+| Plain text and markup | `.txt`, `.md`, `.markdown`, `.html`, `.htm`, `.xml` | Text as-is |
+| Data | `.json`, `.yaml`, `.yml`, `.properties`, `.vtt` | Parsed and written out as text |
+| PDF | `.pdf` | Text layer extracted |
+| Word | `.docx` | Paragraphs and tables as text |
+| Spreadsheets | `.csv`, `.xlsx`, `.xls` | Each sheet as a Markdown table |
+| Presentations | `.pptx` | Slide text |
+| E-books and email | `.epub`, `.eml`, `.msg` | Body text |
+
+`.json`, `.yaml` and `.yml` aren't in the upload list, but they're extracted when a file of that type reaches the block another way, such as the `files` output of an HTTP Request.
+
+<Callout type='warning'>
+  The older binary formats `.doc` and `.ppt` can't be extracted, even though `.doc` can be uploaded. Save them as `.docx` or `.pptx` first. `.mdx` files can be uploaded but fail with "Unsupported Extension Type"; rename them to `.md`. Scanned PDFs have no text layer, so the output is empty or near-empty; run OCR before uploading, or send the pages as images to a vision model.
+</Callout>
+
+## Inputs and outputs
+
+**Reads:** the file variable.
+
+**Produces:**
+
+| Variable | Type | When |
+|---|---|---|
+| `text` | String | The input is a single file. |
+| `text` | Array[String] | The input is a file list. One entry per file, in the same order. |
+
+For a file list, either join the texts in a [Template](/docs/blocks/transform) (map an input variable `texts` to the Doc Extractor's `text`, then use `{{ texts | join('\n\n---\n\n') }}`) or process each file with [For Each](/docs/blocks/loops).
+
+## Example
+
+A contract-summary Workflow:
+
+1. **Trigger**: a **Single File** field `contract` that accepts **Document**.
+2. **Doc Extractor**: **Input Variable** `contract`.
+3. **AI Model**: USER message "Summarize the key obligations, dates and termination terms in this contract:" followed by the Doc Extractor's `text`.
+4. **End**: output `summary` = AI Model `text`.
+
+Called through the API with a file attachment, the workflow returns the summary. See [Workflow runs](/docs/api/runs) and [Files](/docs/api/classic/files).
+
+## Errors and limits
+
+| Message | Cause | Fix |
+|---|---|---|
+| "Assigned Variable is required" in the **Checklist** | No **Input Variable** is chosen. | Pick a file or file-list variable. |
+| "Unsupported Extension Type: …" or "Unsupported MIME type: …" | The file type isn't in the list above. | Convert the file, or restrict the Trigger field's file types. |
+| "Unable to determine file type: MIME type or file extension is missing" | The file has no extension or content type. | Upload files with a proper name, or set the content type when fetching by URL. |
+| "Failed to extract text from PDF: …" (or DOCX, Excel, PPTX…) | The file is corrupt, encrypted or password-protected. | Re-export the file without protection. |
+| "Error downloading file: …" | A file passed by URL couldn't be fetched. | Make sure the URL is public and still valid. |
+
+Uploaded files are limited to 50 MB each (the upload screen shows the limit), with up to 5 files per upload. This block has no **Error Handling** setting: an extraction error fails the run. Very long documents can exceed the next model's context window. Split them with a Custom Function or summarize in chunks with For Each.
+
+## Next steps
+
+<Cards>
+  <Card title='AI Model' href='/docs/blocks/ai-model'>Summarize or question the extracted text.</Card>
+  <Card title='For Each' href='/docs/blocks/loops'>Process several files one by one.</Card>
+  <Card title='Knowledge' href='/docs/knowledge'>Store documents for repeated search instead.</Card>
+</Cards>

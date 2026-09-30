@@ -1,0 +1,265 @@
+export const metadata = {
+  title: 'Troubleshooting',
+  description: 'How to debug an Xpectrum agent or workflow, and fixes for the most common API, build, publishing, channel and credit errors.',
+}
+
+# Troubleshooting
+
+Start here when an agent answers wrongly, a request fails or a channel stays silent. The first section shows where to look; the rest lists the errors people hit most often, grouped by area, each with its cause and fix.
+
+For topic-specific problems, see [Voice & phone](/docs/troubleshooting/voice), [Knowledge](/docs/troubleshooting/knowledge), [Limits](/docs/troubleshooting/limits) and the [FAQ](/docs/troubleshooting/faq).
+
+## How to debug
+
+Work from the outside in: find the failing run, find the failing step, then reproduce that step on its own.
+
+| Where to look | What it tells you | How to open it |
+|---|---|---|
+| **Logs** | Every conversation or run of one app, with inputs, the answer and any error | **Logs** button in the editor header. See [Logs](/docs/monitor/logs). |
+| **Run History** | Each run of an Agent Flow or Workflow draft, step by step, with each block's inputs, outputs, status and time | **Run History** tab in the canvas dock |
+| Single-step test | Whether one block works with the inputs you give it | **Run this step** / **Test & Preview** on the block |
+| **Preview** / **Run** | The whole draft, before you publish | Editor header. See [Testing](/docs/deploy/testing). |
+| Tracing | Full model-call traces in LangSmith, Langfuse, Opik or Weave | See [Tracing](/docs/integrations/tracing) |
+| **Monitoring & Analytics › Sessions** | Voice calls: outcome, recording, transcript, session timeline | See [Voice sessions](/docs/monitor/voice-sessions) |
+| **Logs › Audit Log / Activity Log / Auth Event** | Who changed what in the workspace, and sign-in events (Owner/Admin) | See [Governance](/docs/monitor/governance) |
+| The API error body | The exact error `code` and `message` | See below and [Errors](/docs/api/errors) |
+
+### Read the API error body
+
+Always log the response body, not just the status. The recommended API returns an OpenAI-style envelope; the [classic API](/docs/api/classic) returns a flat one.
+
+```json title="Recommended API (/chat/completions, /runs, /threads …)"
+{
+  "error": {
+    "message": "Thread does not exist.",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "thread_not_found"
+  }
+}
+```
+
+```json title="Classic API (/chat-messages, /workflows/run …)"
+{
+  "code": "invalid_param",
+  "message": "Arg user must be provided.",
+  "status": 400
+}
+```
+
+When you stream, an error that happens after the stream has started arrives as an event, not as an HTTP status: `data: {"error": {…}}` followed by `data: [DONE]` on the recommended API, or an `event: "error"` chunk on the classic API. Handle both. See [Streaming](/docs/api/streaming).
+
+### A debugging checklist
+
+1. Reproduce in **Preview** (chat apps) or **Run** (Workflow). If it works there but not over the API or a channel, you are probably calling an old published version: click **Publish Changes**.
+2. Open **Run History** and find the first block with a failed status. Read its inputs: a wrong or empty variable is the most common root cause.
+3. Re-run that block alone with **Run this step**, using the same inputs.
+4. For flaky external calls (HTTP Request, tools, models), set **Error Handling** and **Retry** on the block. See [Blocks](/docs/blocks).
+5. For an API call, compare your request with the [API reference](/docs/api) and check the key belongs to the right app.
+
+## API and authentication
+
+### Authorization header must be provided and start with Bearer
+
+**Cause:** The request has no `Authorization` header, or it isn't in the form `Bearer <key>`.
+
+**Fix:** Send `Authorization: Bearer xpectrum_xxxxxxxxxxxx` with exactly one space after `Bearer`. Voice endpoints also accept `x-api-key`. See [Authentication](/docs/api/authentication).
+
+### Access token is invalid
+
+**Cause:** The key doesn't exist, was deleted, or is the wrong kind for the endpoint. App keys only work on app routes and knowledge keys only on knowledge routes.
+
+**Fix:** Copy the key again from **API & Access** (app) or from whoever issued your knowledge key. Check you aren't sending a knowledge key to `/chat/completions` or an app key to `/knowledge/…`.
+
+### This API key belongs to an app that does not support chat completions
+
+**Cause:** HTTP 404 `model_not_found`. The key belongs to an app type that doesn't match the endpoint, for example a Workflow key sent to `/chat/completions`. The reverse (a chat key on `/runs`) returns the same code with "…does not support runs (only workflow apps do)."
+
+**Fix:** Use `/chat/completions` for AI Chatbot, Autonomous Agent and Agent Flow keys, and `/runs` for Workflow keys. On the classic API the equivalent errors are `not_chat_app` and `not_workflow_app` ("Please check if your app mode matches the right API route."). See [App types](/docs/getting-started/app-types).
+
+### The app's API service has been disabled, or The app no longer exists
+
+**Cause:** HTTP 403. The app was deleted, or its API access was switched off.
+
+**Fix:** Check the app still exists in your workspace, then publish it and create a fresh key in **API & Access**.
+
+### This client workspace has no admin yet
+
+**Cause:** HTTP 403. API calls in a client workspace run as that workspace's admin, and the designated admin hasn't accepted the invitation yet.
+
+**Fix:** Ask the admin to accept the invite, or use **Re-invite** or **Change Admin** on the client workspace row. See [Client workspaces](/docs/workspaces/clients).
+
+### Cannot create more than 10 API keys for this resource type
+
+**Cause:** HTTP 400 `max_keys_exceeded`. Each app and each knowledge base can have at most 10 keys.
+
+**Fix:** Delete keys you no longer use in **API & Access**, then create the new one.
+
+### Arg user must be provided
+
+**Cause:** HTTP 400 `invalid_param`. A classic route that requires `user` was called without it.
+
+**Fix:** Pass a stable end-user id in `user` (your own user id, or an anonymous id you store). Use the same `user` on later calls, because conversations are scoped to it.
+
+## Requests and conversations
+
+### Thread does not exist, or Conversation Not Exists
+
+**Cause:** HTTP 404. The `thread_id` (or classic `conversation_id`) belongs to another app, was deleted, or was created with a different `user`. Conversations are scoped to the app and the end user.
+
+**Fix:** Send the same `user` you used when the thread was created. To start over, omit `thread_id`. See [Threads](/docs/api/threads).
+
+### The thread has ended. Start a new one by omitting 'thread_id'
+
+**Cause:** HTTP 400. The conversation has been closed.
+
+**Fix:** Drop `thread_id` from the request to start a new thread, and store the new id from the response.
+
+### 'thread_id' must be a valid UUID
+
+**Cause:** HTTP 400. The `thread_id` isn't a UUID, often an empty string or a message id.
+
+**Fix:** Omit the field for a new thread, or pass the `thread_id` returned by a previous response.
+
+### 'messages' must be a non-empty array containing at least one user message
+
+**Cause:** HTTP 400. `messages` is missing, empty, or has no `role: "user"` item.
+
+**Fix:** Send at least one user message. Only the last user message is read; history comes from `thread_id`, so you never need to resend earlier turns. See [Chat completions](/docs/api/chat-completions).
+
+### Missing required variable
+
+**Cause:** HTTP 400. The app's **Trigger** defines a required variable that you didn't send in `variables` (classic: `inputs`). Related messages: "Variable 'X' must be a number." and "Variable 'X' must be an attachment."
+
+**Fix:** Send every required variable with the right type. `GET /models` or the classic `GET /parameters` lists the app's inputs. See [Variables](/docs/build/variables).
+
+### Agent apps only support streaming, or Agent Chat App does not support blocking mode
+
+**Cause:** HTTP 400. Autonomous Agent apps can't answer in blocking mode.
+
+**Fix:** Set `"stream": true` (classic: `"response_mode": "streaming"`), or use the SDK's `stream()`.
+
+### A blocking request times out or is cut off
+
+**Cause:** Long answers or runs can be cut off by the connection before they finish when you wait for the whole response in one request.
+
+**Fix:** Use streaming for anything that can take more than a few seconds. Streams send keep-alive pings, so they stay open. See [Limits](/docs/troubleshooting/limits#api-requests).
+
+### Invalid JSON payload received or JSON payload is empty
+
+**Cause:** HTTP 400. The body isn't valid JSON, or `Content-Type: application/json` is missing.
+
+**Fix:** Send `Content-Type: application/json` and validate the body. Watch for trailing commas and unescaped quotes.
+
+### Rate limited (429 rate_limit_exceeded)
+
+**Cause:** HTTP 429 with the code `rate_limit_exceeded` (classic API: `rate_limit_error`). Requests may be rate limited. The response has no `Retry-After` header.
+
+**Fix:** Retry with exponential backoff and cap concurrency on your side. A different 429, `insufficient_quota` ("Model provider quota exceeded."), means the model provider's quota ran out; see the next section.
+
+## Models and credits
+
+### No valid model provider credentials found, or provider_not_initialized
+
+**Cause:** The model the app uses has no working credentials in the workspace.
+
+**Fix:** Open **Integrations › Models**, expand the provider and check the key, or select a different model on the **AI Model** / **AI Agent** node. See [Models](/docs/integrations/models).
+
+### Model provider quota exceeded (insufficient_quota)
+
+**Cause:** HTTP 429 (classic: 400 `provider_quota_exceeded`). The model provider refused the call because the account's quota or spend limit is used up.
+
+**Fix:** Add a custom key with available quota in **Integrations › Models**, raise the limit with the provider, or switch model.
+
+### You're out of credits. Add credits to keep running
+
+**Cause:** HTTP 402 `insufficient_credit`. The workspace's credit balance is too low to start the run. The sidebar credit chip shows **Out of credits**. On some generation routes this can surface as a generic 500 instead.
+
+**Fix:** An Owner or Admin clicks **Add credit** in **Settings › Billing**. If requests start failing with 500s for no clear reason, check the credit balance first. See [Billing & credits](/docs/workspaces/billing).
+
+## Building and running
+
+### Max steps 500 reached, or Max execution time 1200s reached
+
+**Cause:** A run went past the step or time ceiling, usually because a **Repeat Until** or **For Each** loops far more than intended, or an external call hangs.
+
+**Fix:** Set a sensible **Maximum Loop Count**, check the **Loop Termination Condition**, and give HTTP Request blocks timeouts. See [Loops](/docs/blocks/loops).
+
+### Max workflow call depth 5 reached
+
+**Cause:** Workflows that call workflows (as tools) are nested more than five levels deep, often through a loop of workflows calling each other.
+
+**Fix:** Flatten the chain, and make sure a workflow doesn't end up calling itself.
+
+### A Custom Function block fails with Output x is missing, or must be a string
+
+**Cause:** The code didn't return a key you declared under **Output Variables**, or returned the wrong type.
+
+**Fix:** Return a dict (Python) or object (JavaScript) whose keys and types match the declared outputs exactly. See [Custom Function](/docs/blocks/custom-function).
+
+### A block's output is empty in the next block
+
+**Cause:** The next block references the wrong variable, or a branch that didn't run.
+
+**Fix:** In **Run History**, open the block and read its **inputs**. Re-insert the variable with **/** so it points at the right block. See [Variables](/docs/build/variables).
+
+## Publishing
+
+### Changes work in Preview but not over the API or a channel
+
+**Cause:** The API, channels and widgets always use the last published version. Edits stay in the draft until you publish.
+
+**Fix:** Click **Publish Changes** (<Kbd>Ctrl</Kbd> <Kbd>Shift</Kbd> <Kbd>P</Kbd>). You'll see "Changes published – The live version now matches this draft." See [Publishing](/docs/deploy/publishing).
+
+### Make sure all issues are resolved before publishing
+
+**Cause:** The checklist has open issues, such as a node that **Needs setup**, a missing model, or a canvas without a start node ("add a Trigger or a Webhook Trigger").
+
+**Fix:** Open the checklist, fix each item, then publish again.
+
+### This app has no published version yet
+
+**Cause:** HTTP 400. You're calling an app that has never been published.
+
+**Fix:** Publish the app once. **API & Access** only appears after the first publish.
+
+### Voice is disabled for this app, or History access is disabled for this app
+
+**Cause:** HTTP 403. The **Voice calls** or **Conversation history over API** toggle under **External API** was off when the app was last published.
+
+**Fix:** Turn the toggle on in the publish panel and publish again. Allow up to about a minute for the change to apply. See [Authentication](/docs/api/authentication).
+
+## Channels and triggers
+
+### Webhook trigger returns HTTP method mismatch or Content-type mismatch
+
+**Cause:** HTTP 400. The call doesn't match the **Webhook Trigger**'s configured **Method** or **Content-Type**, or it's missing a required header, query parameter or body field ("Required header missing: X").
+
+**Fix:** Match the method and `Content-Type` in the block settings, and send every required field. Use **Copy as cURL** to get a working request.
+
+### No active debug listener
+
+**Cause:** HTTP 409. You called the test URL, but no editor is listening.
+
+**Fix:** Click **Listen for test request** in the Webhook Trigger panel first. Listening stops after 2 minutes. For real traffic, use the production **Webhook URL** of a published workflow. See [Triggers](/docs/build/triggers).
+
+### Only workflow apps can be published as MCP tools
+
+**Cause:** MCP access is only available for published Workflow apps, not chat apps. A related error is "Publish the workflow before enabling MCP access."
+
+**Fix:** Build the capability as a Workflow, publish it, then **Enable MCP** in **API & Access**. See [MCP](/docs/integrations/mcp).
+
+### A channel receives messages but the agent never replies
+
+**Cause:** No agent is assigned to the number, address or WhatsApp number, or the agent has unpublished changes.
+
+**Fix:** Check the assignment on the channel page (**Assign agent** / **Assigned Agent**) and publish the agent. For voice problems, see [Voice & phone](/docs/troubleshooting/voice); for channel setup, see [Channels](/docs/channels).
+
+## Next steps
+
+<Cards>
+  <Card title='Voice & phone' href='/docs/troubleshooting/voice'>Calls that don't connect, silence, nudges and end reasons.</Card>
+  <Card title='Knowledge' href='/docs/troubleshooting/knowledge'>Stuck indexing, irrelevant answers and retrieval tuning.</Card>
+  <Card title='Limits' href='/docs/troubleshooting/limits'>Every public limit in one place.</Card>
+  <Card title='API errors' href='/docs/api/errors'>The full error code reference.</Card>
+</Cards>

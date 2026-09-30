@@ -1,0 +1,155 @@
+export const metadata = {
+  title: 'AI Model',
+  description: 'Reference for the AI Model block: model, context, prompt messages, memory, vision, structured output, outputs and errors.',
+}
+
+# AI Model
+
+The **AI Model** block (formerly LLM) sends a prompt to a language model and returns its reply. It's the core of most flows: answering a question from knowledge, summarizing a document, drafting an email, or turning free text into JSON.
+
+## When to use it
+
+| You want to… | Use |
+|---|---|
+| Generate or transform text with one model call | **AI Model** |
+| Let the model decide which tools to call, several times if needed | [Agent](/docs/blocks/agent) |
+| Route to different branches by what the user means | [Intent Classifier](/docs/blocks/intent-classifier) |
+| Pull a fixed set of fields out of text | [Parameter Extractor](/docs/blocks/parameter-extractor), or **AI Model** with structured output |
+| Reply to the user in an Agent Flow | **AI Model**, then an [Answer](/docs/blocks/output) block that shows its `text` |
+
+## Settings
+
+The block's settings are grouped into **Model & vision** (the model, its parameters and vision), **Prompt** (context, messages and memory) and **After it runs** (**Output Variables**, **Retry**, **Error Handling** and **Next Step**).
+
+### Model
+
+| Setting | Description | Default |
+|---|---|---|
+| Model | The model that answers. Only models from providers installed under [Models](/docs/integrations/models) are listed. | None: required |
+| Parameters | Temperature, maximum tokens and other options the provider supports. They differ by model. | Temperature 0.7; others use the provider's defaults |
+
+### Context
+
+| Setting | Description | Default |
+|---|---|---|
+| **Context** | A variable to use as reference material, usually the `result` of a [Knowledge Search](/docs/blocks/knowledge-search) block. "You can import Knowledge as context". | Empty |
+
+After choosing a context variable, insert **Context** into a prompt message where the reference material should go. Until you do, the block warns "To enable the context feature, please fill in the context variable in PROMPT."
+
+### Prompt
+
+| Setting | Description | Default |
+|---|---|---|
+| **SYSTEM** message | "Give high level instructions for the conversation": role, tone, rules, output format. | Empty (a new block starts with only this message) |
+| **USER** message | "Provide instructions, queries, or any text-based input to the model". | — |
+| **ASSISTANT** message | "The model's responses based on the user messages". Use it for example answers (few-shot). | — |
+| **Add Message** | Adds another user or assistant message. | — |
+
+Type `/` in a message to insert a variable, such as the user's question or an earlier block's output.
+
+### Memory (Agent Flow only)
+
+In an Agent Flow, **Memory** includes earlier turns of the conversation in the prompt, so the model can answer follow-ups like "and how much is that one?".
+
+| Setting | Description | Default |
+|---|---|---|
+| **Memory** | Turns chat history on or off. | Off |
+| **Window Size** | Limits history to the most recent messages, 1–100. | Off; 50 when turned on |
+| **Conversation Role Name** (**User prefix**, **Assistant prefix**) | Labels for each speaker. Shown only for completion-style models. | — |
+
+With memory on, a built-in **USER** message under **Memories** carries the user's current query (`thread.user_query`). If you edit it, keep the query in it. Otherwise the block shows "sys.query in user message is required".
+
+Workflows have no conversation, so they don't show memory.
+
+### Vision
+
+| Setting | Description | Default |
+|---|---|---|
+| Vision | Sends images from a file variable to the model. Only shown for models that accept images. | Off |
+| Variable | The file or file-list variable to send. | In an Agent Flow, the files attached to the user's message. In a Workflow, none: pick one. |
+| **Resolution** | **High** keeps detail (more tokens). **Low** is faster and cheaper. | **High** |
+
+### Structured output
+
+Turn on **Structured** under **Output Variables** to make the model reply with JSON that matches a schema. "Structured Outputs is a feature that ensures the model will always generate responses that adhere to your supplied JSON Schema".
+
+Build the schema in **Structured Output Schema**:
+
+- **Add Field** / **Add Child Field**: add fields by hand, with a type, description and **required** flag.
+- **Import from JSON**: paste a sample JSON object and the schema is inferred from it.
+- **Generate JSON Schema**: describe the fields in plain language ("Describe your JSON Schema...") and review the **Generated Result** before you **Apply** it.
+
+If the model doesn't support structured output natively, the block shows "Model not supported". It still works, but the schema is added to the prompt instead ("automatically downgraded to prompt injection"), so validate the result downstream.
+
+## Inputs and outputs
+
+**Reads:** any variables you insert into the prompt, the **Context** variable, and the vision file variable.
+
+**Produces:**
+
+| Variable | Type | Description |
+|---|---|---|
+| `text` | String | The model's full reply ("Generate content"). |
+| `structured_output` | Object | The parsed JSON, when **Structured** is on. Its fields can be selected one by one, for example `structured_output.priority`. |
+
+Token usage and the finish reason for each call are recorded in the block's output in the run log.
+
+In an Agent Flow, an **Answer** block that shows `text` streams the reply to the user as it's generated.
+
+## Example
+
+A support triage step in a Workflow. It uses a **Knowledge Search** block as context and returns structured fields.
+
+```text title="SYSTEM"
+You are a support triage assistant for Acme Cloud.
+Use only the reference material below. If it doesn't cover the question, say so.
+
+Reference material:
+[Context]
+```
+
+```text title="USER"
+Customer message:
+[Trigger › message]
+
+Classify the message and draft a short reply.
+```
+
+Structured output schema (via **Import from JSON**):
+
+```json
+{
+  "category": "billing",
+  "priority": "high",
+  "reply": "Thanks for reaching out — …"
+}
+```
+
+Later blocks can branch on `structured_output.priority` with a [Condition](/docs/blocks/condition), and send `structured_output.reply` with an [HTTP Request](/docs/blocks/http-request).
+
+<Callout type='tip'>
+  Keep instructions in the SYSTEM message and the changing input in the USER message. It makes prompts easier to test and reuse across runs.
+</Callout>
+
+## Errors and limits
+
+| Symptom or message | Cause | Fix |
+|---|---|---|
+| "No model selected" or **Needs setup** | No model chosen. | Pick a model under **Model**. |
+| "No valid model provider credentials found…" | The provider isn't set up in this workspace. | Add the provider under [Models](/docs/integrations/models). |
+| "… type is not supported by this model" | You sent a file type (for example a PDF or audio) the model can't read. | Use a model that supports it, or convert the file with [Doc Extractor](/docs/blocks/doc-extractor) first. |
+| "sys.query in user message is required" | Memory is on but the built-in memory USER message no longer includes the user's query. | Insert `thread.user_query` into that message. |
+| "Failed to parse structured output: …", or `structured_output` is missing | The reply wasn't a JSON object. | Simplify the schema, lower the temperature, or use a model with native structured output. |
+| Run fails with a timeout or rate-limit error | The provider was slow or throttled. | Turn on **Retry** and set **Error Handling** to **Default Value** or **Fail Branch**. See [error handling](/docs/blocks#error-handling). |
+| "You're out of credits. Add credits to keep running." | The workspace has no credits left. | Add credits. See [Billing](/docs/workspaces/billing). |
+
+The model's own context window and output-token limit apply. Set **max tokens** in the model parameters if replies are cut off.
+
+## Next steps
+
+<Cards>
+  <Card title='Knowledge Search' href='/docs/blocks/knowledge-search'>Fetch reference material for the Context setting.</Card>
+  <Card title='Instructions' href='/docs/build/instructions'>Write prompts that behave consistently.</Card>
+  <Card title='Models' href='/docs/integrations/models'>Install providers and use your own keys.</Card>
+  <Card title='Answer & End' href='/docs/blocks/output'>Send the model's reply to the user.</Card>
+</Cards>

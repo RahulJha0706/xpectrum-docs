@@ -1,0 +1,166 @@
+export const metadata = {
+  title: 'Knowledge',
+  description: 'Fix knowledge bases that are stuck indexing, retrieve nothing or the wrong thing, and website, YouTube, upload and Knowledge API errors.',
+}
+
+# Knowledge
+
+Fixes for knowledge base problems: documents that won't index, answers that ignore or misuse your content, sources that find nothing, and Knowledge API errors.
+
+## Where to look first
+
+- The **Documents** tab shows each document's status: **Queuing**, **Indexing**, **Paused**, **Error**, **Available**, **Disabled** or **Archived**.
+- The **Sources** tab shows website and YouTube syncs (**Syncing**, **Ready**, **Error**) and their run history.
+- **Retrieval Testing** runs a query against the knowledge base and shows the **Retrieved Chunks** with their scores. Use it before blaming the agent. See [Testing retrieval](/docs/knowledge/testing).
+- In an Agent Flow or Workflow, open **Run History** and check the **Knowledge Search** block's `result` output to see exactly what the model was given.
+
+## Indexing
+
+### A document is stuck in Queuing or Indexing
+
+**Cause:** Large files, many files at once, or an embedding model that's slow or rate-limited all make indexing take longer. New uploads can queue behind documents that are still processing.
+
+**Fix:** Give large PDFs a few minutes. If a document hasn't moved for a long time, check that the **Embedding Model** is still available in **Integrations › Models** and that its key works. A paused document shows **Paused**; resume it and it continues from where it stopped.
+
+### A document shows Error, or documents indexed failed
+
+**Cause:** Parsing or embedding failed. Common reasons are a scanned PDF with no text layer, a password-protected or corrupted file, or an embedding provider error (invalid key, quota).
+
+**Fix:** Click **Retry** on the failed-documents notice. If it fails again, open the file locally: if you can't select its text, run OCR on it first. Check the embedding model's key in **Integrations › Models**.
+
+### The knowledge base is still indexing. Please try again shortly
+
+**Cause:** HTTP 400 `knowledge_not_ready` from the Knowledge API (or `dataset_not_initialized` on the classic dataset routes). The knowledge base has no finished documents yet.
+
+**Fix:** Wait until at least one document shows **Available**, then retry. In code, poll the document's indexing status before searching.
+
+### Cannot delete document during indexing
+
+**Cause:** HTTP 400 `document_indexing`. The document is still being processed.
+
+**Fix:** Wait for indexing to finish (or fail), then delete it.
+
+### Custom segment length should be between 50 and 4000
+
+**Cause:** **Maximum chunk length** is outside the allowed range of 50 to 4,000 tokens.
+
+**Fix:** Pick a value in range. 500–1,000 tokens suits most help-center and policy content. In the app, the same check shows as "Maximum chunk length should be less than 4000". See [Indexing](/docs/knowledge/indexing).
+
+## Answers and retrieval
+
+### The agent ignores the knowledge base
+
+**Cause:** The knowledge base isn't attached to the app, or the app was changed but not published.
+
+**Fix:** For an AI Chatbot or Autonomous Agent, add it on the **Knowledge** node (**Select reference Knowledge**). The card should say "1 dataset(s)", not "No datasets". In an Agent Flow or Workflow, add a **Knowledge Search** block and pass its `result` into the **AI Model** block's **Context**. Then click **Publish Changes**. See [Retrieval](/docs/knowledge/retrieval).
+
+### Nothing is retrieved
+
+**Cause:** Usually **Score Threshold** is higher than your content's real scores, so every chunk is filtered out. Other causes: **Metadata Filtering** excludes every document; the document is **Disabled** or **Archived**; or an older **Economical** knowledge base is matching on keywords that the question doesn't contain.
+
+**Fix:** In **Retrieval Testing**, run a question you know is answered in a document and note the scores of the right chunks. Set **Score Threshold** below them, or switch it off. Check the metadata filter and the document status. For keyword misses on an Economical knowledge base, move the content into a new knowledge base (new ones are always High Quality).
+
+### Answers are irrelevant or miss the obvious chunk
+
+**Cause:** Chunks are too large (the relevant sentence is buried among others) or too small (the answer is split across chunks). Exact terms such as product codes, SKUs and names can also rank low when matching leans on meaning rather than keywords.
+
+**Fix:**
+- Lower **Maximum chunk length** and keep **Chunk overlap** at around 10–25% of it.
+- For long structured documents, use **Hierarchical** chunking: small chunks for matching, with the parent paragraph returned as context.
+- Retrieval uses hybrid search (meaning plus keywords). Under **Weighted Score**, shift the weight toward keywords for exact terms, or use a **Rerank Model** if you have one.
+- Improve your instructions: "Answer only from the provided context. If the context doesn't contain the answer, say you don't know."
+
+Re-test each change in **Retrieval Testing**.
+
+### The agent gets too much context, or answers are slow and expensive
+
+**Cause:** **Top K** is high and chunks are long, so every question sends thousands of tokens to the model. **Hierarchical** chunking with **Full Doc** parents returns whole documents (up to 10,000 tokens each).
+
+**Fix:** Lower **Top K** (3–5 is a good start), shorten chunks, or use **Paragraph** parents instead of **Full Doc**.
+
+### The answer is right but has no sources
+
+**Cause:** Citations are off.
+
+**Fix:** Turn on **Citations and Attributions** in **Agent Settings**. Over the API, citations come back in `citations` (recommended API) or `retriever_resources` (classic). See [Chat completions](/docs/api/chat-completions).
+
+### A retrieval test won't run with a long query
+
+**Cause:** The **Retrieval Testing** query box allows up to 200 characters (the counter shows `/200`); above that, the test can't be run. The Knowledge API accepts up to 250.
+
+**Fix:** Test with the kind of short question a user would ask, not a whole paragraph.
+
+## Economical vs High Quality
+
+Knowledge bases you create in the app are always **High Quality**. **Economical** only applies to older knowledge bases, or ones created over the API with `indexing_technique` set to `economy`.
+
+| | **High Quality** | **Economical** |
+|---|---|---|
+| How it matches | Hybrid search: embeddings (meaning) plus keywords | Keywords only (10 per chunk) |
+| Cost to index | Uses embedding-model tokens | No tokens |
+| Handles paraphrases ("cancel" vs "end my plan") | Yes | Poorly |
+| Chunking options | All | No **Hierarchical** or Q&A chunking |
+
+### Current operation only supports 'high-quality' datasets
+
+**Cause:** HTTP 400 `high_quality_dataset_only`. The action needs embeddings, and the knowledge base is **Economical**.
+
+**Fix:** Create a new knowledge base (it will be High Quality) and add the documents to it, then point your apps at the new one.
+
+## Sources and uploads
+
+### No URLs discovered. Try the other method or add URLs manually
+
+**Cause:** With **Sitemap**, the site has no sitemap at the usual location, or its sitemap lists other sites. With **Crawl**, the pages link to each other with JavaScript, so there are no links to follow, or **Max Depth** is too low. The site may also be blocking automated requests; the source's URL list then shows reasons such as **Access blocked** or **Site unreachable**.
+
+**Fix:** Switch **Discovery Method** (Sitemap to Crawl or back). Raise **Max Depth** (up to 10). Start from a page that links to the content, such as `/docs` or `/help`, not a marketing home page. As a last resort, choose **Add URLs manually** and paste the pages.
+
+### Website discovery finds too many pages
+
+**Cause:** The sitemap covers the whole site, including blog, careers and legal pages.
+
+**Fix:** Start discovery from a narrower base URL, lower **Max Pages**, and remove the pages you don't want in the **Review & Create** step. Sitemap discovery lists up to 1,500 URLs; for a crawl, **Max Pages** goes up to 5,000.
+
+### Please enter a channel ID, or the YouTube source finds no videos
+
+**Cause:** **Channel ID** needs the channel's ID, a string that starts with `UC`, such as `UCxxxxxxxxxxxxxxxxxxxxxx`. A handle (`@yourbrand`) or a channel URL doesn't work. A **Video Date Filter** that is too narrow can also exclude every video; by default it includes all videos.
+
+**Fix:** On YouTube, open the channel's **About** panel, choose **Share channel › Copy channel ID**, and paste it. Widen the date filter, and turn on **Include transcripts** so the spoken content is indexed.
+
+### A source stopped updating
+
+**Cause:** **Sync Schedule** is **Manual**, **Enable Sync** is off ("When disabled, scheduled syncs will be skipped"), or the last run failed (**Sync Error**).
+
+**Fix:** In **Sources**, edit the source and set **Sync Schedule** to **Auto** (every 1–720 hours, default 24), make sure **Enable Sync** is on, and use **Run Now**. For failed pages, use **Retry Failed**.
+
+### The file is too large or its type isn't supported
+
+**Cause:** Each document can be up to 50 MB. The upload screen lists the accepted types and shows the size limit.
+
+**Fix:** Split large files, or convert them to PDF, DOCX, Markdown or plain text. Supported types include TXT, Markdown, PDF, HTML, XLSX, XLS, DOCX, CSV, EML, MSG, PPTX, XML and EPUB. Convert images of text to searchable PDFs first.
+
+## Knowledge API errors
+
+The Knowledge API uses a knowledge API key, which is workspace-scoped. See [Knowledge API](/docs/api/knowledge).
+
+| Status | Message or code | Cause | Fix |
+|---|---|---|---|
+| 401 | Access token is invalid | An app key was used, or the key was deleted | Use a knowledge API key, not an app key |
+| 403 | You do not have permission to access this dataset. | The knowledge base belongs to a different workspace than the key, or its access is restricted | Use a knowledge API key from the workspace that owns the knowledge base |
+| 404 | Knowledge base does not exist. | Wrong id, or it was deleted | Copy the id from the knowledge base URL |
+| 400 | Query is required and cannot exceed 250 characters | Empty or long `query` | Send 1–250 characters |
+| 400 | `knowledge_not_ready` | Still indexing | Wait, then retry |
+| 400 | indexing_technique is required. / process_rule is required. | First document created without indexing or chunking settings | Send `indexing_technique` and `process_rule` |
+| 400 | `invalid_param`, sometimes with an empty message | A file upload was rejected for its type or size | Check the file type and size |
+| 403 | The archived document is not editable. | The document is archived | Unarchive it first |
+| 409 | The dataset name already exists. Please modify your dataset name. | Duplicate name | Choose a unique name (1–40 characters) |
+| 409 | The dataset is being used by some apps. Please remove the dataset from the apps before deleting it. | Deleting a knowledge base that apps still use | Remove it from those apps first |
+
+## Next steps
+
+<Cards>
+  <Card title='Indexing' href='/docs/knowledge/indexing'>Chunking, index methods and embedding models.</Card>
+  <Card title='Retrieval' href='/docs/knowledge/retrieval'>Search modes, Top K, thresholds and reranking.</Card>
+  <Card title='Test retrieval' href='/docs/knowledge/testing'>Check what a question retrieves before you ship.</Card>
+  <Card title='Limits' href='/docs/troubleshooting/limits#knowledge'>Every knowledge limit in one table.</Card>
+</Cards>

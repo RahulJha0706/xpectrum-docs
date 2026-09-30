@@ -1,0 +1,103 @@
+export const metadata = {
+  title: 'Retrieval',
+  description: 'Configure hybrid search, weighted scores and reranking, Top K, score thresholds, multi-path retrieval, metadata filtering and citations.',
+}
+
+# Retrieval
+
+Retrieval is the search that runs on every question. It decides which chunks the model sees. You set a default for each knowledge base, and each app sets how it searches across all of its knowledge bases.
+
+## How search works
+
+A knowledge base's **Retrieval Setting** is in its **Settings** tab. The app offers one search method, hybrid search. It runs two searches for each query and merges the results:
+
+| Search | How it matches | Strong at | Weak at |
+|---|---|---|---|
+| Semantic (vector) | Embeds the query and finds the chunks closest in meaning. | Paraphrases and synonyms ("cancel my plan" finds "end your subscription"). | Exact codes, SKUs, names, error numbers. |
+| Keyword (full-text) | Finds chunks that contain the query's words. | Exact terms, IDs, product names. | Questions phrased differently from the source. |
+
+Older **Economical** knowledge bases use keyword search only, so they have no merge setting or score threshold.
+
+## Merging the results
+
+Choose how the two result lists are ranked:
+
+| Option | How it ranks | When to use it |
+|---|---|---|
+| **Weighted Score** | Blends the semantic and keyword scores by weight. Drag the Semantic / Keyword bar, or use the **+** and **−** buttons, in steps of 0.1 between 0.1 and 0.9. Knowledge bases created by uploading files start at 0.7 semantic and 0.3 keyword. | Fast, and costs nothing extra. A good default. |
+| **Rerank Model** | A dedicated rerank model re-scores each candidate chunk against the query. Pick the model from the list. | When accuracy matters most, or results look plausible but miss the best passage. It adds a model call per query. |
+
+Weight toward keyword for content full of part numbers, plan names or legal clause IDs. Weight toward semantic for conversational FAQs.
+
+## Top K and score threshold
+
+| Setting | What it does | Tuning |
+|---|---|---|
+| **Top K** | The maximum number of chunks returned. The system may lower it to fit the selected model's context window. | Raise it if answers miss information spread across several chunks. Lower it if answers pick up irrelevant or contradictory text. Chunks of 500–1000 tokens usually need a Top K of 3–6. |
+| **Score Threshold** | When turned on, drops chunks that score below the value (0 to 1). | Turn it on when the agent should say "I don't know" instead of answering from weak matches. Raise it in small steps and re-test, because too high returns nothing. |
+
+<Callout type='tip'>
+  Tune these with [Retrieval Test](/docs/knowledge/testing). Run 10–20 real questions, note the scores of good and bad chunks, and set the threshold just below the lowest good score.
+</Callout>
+
+## Multi-path retrieval
+
+When an app uses several knowledge bases, the app's own **Retrieval settings** decide how they're searched together. You'll find them on the **Knowledge** node of an Autonomous Agent or AI Chatbot, or on a **Knowledge Search** block.
+
+**Multi-path retrieval** is the default. It searches every attached knowledge base, merges the results, and re-ranks them with the app's **Top K**, **Score Threshold** and either a **Weighted Score** or a **Rerank Model**.
+
+A rerank model is required when:
+
+- the app mixes **High Quality** and **Economical** knowledge bases,
+- the knowledge bases use different embedding models, or
+- the app mixes internal and [external](/docs/knowledge/external) knowledge.
+
+If none is configured, you see "A configured Rerank Model is required".
+
+<Callout type='warning'>
+  **N-to-1 retrieval** is deprecated. It picks one knowledge base per query from the descriptions. Switch existing apps to **Multi-path retrieval**.
+</Callout>
+
+## Metadata filtering
+
+The [Knowledge Search](/docs/blocks/knowledge-search) block can narrow the search to documents whose [metadata](/docs/knowledge#metadata) matches. Set **Metadata Filtering** to one of:
+
+| Mode | Behavior |
+|---|---|
+| **Disabled** | No filtering (default). |
+| **Automatic** | Generates filter conditions from the **Query Variable**, for example "pricing in Germany" filters on `region`. |
+| **Manual** | You add conditions under **Metadata Filter Conditions** with **Add Condition**. Values can be fixed or come from variables. |
+
+Operators depend on the field type:
+
+| Type | Operators |
+|---|---|
+| String | is, is not, contains, not contains, start with, end with, is empty, is not empty |
+| Number | =, ≠, &gt;, &lt;, ≥, ≤, is empty, is not empty |
+| Time | is, before, after, is empty, is not empty |
+
+Example: a support agent serving several products has a string field `product` on every document. In a Manual filter, `product` **is** the `product` variable collected at the start of the conversation. Answers then only come from that product's documents.
+
+<Callout>
+  A filter only matches documents that have a value for the field. Label every document before you turn on filtering, or unlabeled documents can drop out of results.
+</Callout>
+
+## Citations
+
+To show the sources behind an answer, turn on **Citations and Attributions** in **Agent Settings**. Each answer then lists the documents its retrieved chunks came from. Over the API, the same information is returned as `citations` on [Chat Completions](/docs/api/chat-completions) responses, and as `retriever_resources` on the [classic chat API](/docs/api/classic/chat-messages).
+
+In Agent Flows and Workflows, the Knowledge Search `result` variable carries each chunk's `content`, `title`, `url` and `metadata`. You can reference these in your prompt, for example "cite the title of each source you use".
+
+## Troubleshooting
+
+- **The right chunk is retrieved but ranked too low to be included.** Raise **Top K**, add a rerank model, or change the Weighted Score toward the kind of match that works.
+- **Nothing is retrieved.** Lower or turn off **Score Threshold**, check that documents are **Available** and enabled, and check that metadata filters aren't excluding everything.
+- **"The dataset is still being initialized or indexing. Please wait a moment."** Wait until indexing finishes.
+- **Searches for product codes miss.** Move the **Weighted Score** balance toward keyword, or add a rerank model.
+
+## Next steps
+
+<Cards>
+  <Card title='Test retrieval' href='/docs/knowledge/testing'>Measure the effect of each setting.</Card>
+  <Card title='Knowledge Search block' href='/docs/blocks/knowledge-search'>Use retrieval inside flows and workflows.</Card>
+</Cards>

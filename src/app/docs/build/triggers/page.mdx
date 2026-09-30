@@ -1,0 +1,184 @@
+export const metadata = {
+  title: 'Triggers',
+  description: 'Start workflows from inputs, webhooks, events in other apps, or a schedule — and test them before going live.',
+}
+
+# Triggers
+
+A trigger decides how a run starts. Every Workflow begins with one start block — a **Trigger**, a **Webhook Trigger** or a **Custom App Trigger** — and you can run workflows on a timer with **Scheduled Tasks**. This page explains each option, how to configure and test it, and the restrictions that come with it.
+
+## Choose a trigger
+
+| Trigger | Starts a run when… | Inputs come from | Use it for |
+|---|---|---|---|
+| **Trigger** (Start) | You click **Run**, call the [Runs API](/docs/api/runs), or an agent calls the workflow as a tool | Input variables you define | Reusable tools, API-driven jobs |
+| **Webhook Trigger** | An HTTP request arrives at the block's URL | The request's headers, query parameters and body | Forms, CRMs, payment events, any system that can send a webhook |
+| **Custom App Trigger** | A connected app sends an event | The event payload | Reacting to events in a supported app |
+| **Scheduled Tasks** | A schedule fires and calls a webhook URL | A body template you define | Nightly reports, periodic syncs, reminders |
+
+<Callout type='warning'>
+  A workflow that starts from a **Webhook Trigger** or **Custom App Trigger** has no user inputs, so it can't be used as a tool. Publishing a tool workflow with one of these triggers removes it from the tool list, and any app or agent already using it stops working. In the editor, **Run** asks for the payload the trigger would have received instead of an input form.
+</Callout>
+
+## Trigger (Start)
+
+The default start block. Define input variables — **Short Text**, **Paragraph**, **Select**, **Number**, **Single File**, **File List** — and they become the workflow's inputs everywhere:
+
+- In **Run**, as a form.
+- In the API, as keys of the `variables` object.
+- As a tool, as the tool's parameters.
+- As an MCP server, as the tool's input schema.
+
+See [Variables](/docs/build/variables#input-variables).
+
+## Webhook Trigger
+
+Starts the workflow when an HTTP request arrives at a generated URL.
+
+### Configure it
+
+| Setting | What it does | Default |
+|---|---|---|
+| **Webhook URL** | The production URL, in the form `https://cloud.xpectrum.dev/triggers/webhook/<webhook_id>`. **Generated after the workflow is saved** — copy the exact URL from the block. | — |
+| **Test URL** | A separate URL used only while testing the draft. | — |
+| **Method** | The HTTP method the webhook accepts: GET, POST, PUT, DELETE, PATCH or HEAD. | POST |
+| **Content-Type** | The body format: `application/json`, `multipart/form-data`, `application/x-www-form-urlencoded`, `text/plain` or `application/octet-stream`. | `application/json` |
+| **Headers** | Headers to read (**Add header**). Mark as **Required** to reject requests without them. | None |
+| **Query Parameters** | Query parameters to read (**Add parameter**), with a **Type**. | None |
+| **Body** | Body fields to read (**Add body parameter**), with a **Type**. | None |
+| **Response** › **Status Code** | The HTTP status returned to the caller. | 200 |
+| **Response** › **Response Body** | Optional JSON or text returned to the caller. Text is returned as `{ "message": "<your text>" }`. | — |
+
+### Outputs
+
+Every header, query parameter and body field you declare becomes an output variable that later blocks can reference with `/`. Dashes in header names become underscores — `X-Request-Id` becomes `X_Request_Id`. The `raw` variable holds the full request payload (method, headers, query and body).
+
+### How the caller is answered
+
+The webhook responds straight away with your **Status Code** and **Response Body**, and the workflow runs in the background. If you don't set a response body, the caller receives:
+
+```json
+{ "status": "success", "message": "Webhook processed successfully" }
+```
+
+The workflow's outputs aren't returned to the webhook caller. To send results somewhere, end the workflow with an **HTTP Request** to your system.
+
+### Test a webhook
+
+1. Save the workflow so the **Test URL** is generated (**Save the workflow once to generate a test URL.**).
+2. Click **Listen for test request**. The block shows **Listening… send your request now**.
+3. Send a request to the **Test URL** — **Copy as cURL** gives you a ready-made command.
+4. The draft runs with that request and shows the **Outputs** and the **Run**.
+
+Listening stops after two minutes without a request (**Stopped listening after 2 minutes without a request.**), or when you click **Stop listening**. Requests to the Test URL when nobody is listening are rejected.
+
+```bash title="Terminal"
+curl -X POST "<your Test URL>" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "sam@example.com", "plan": "pro" }'
+```
+
+<Callout type='warning'>
+  If the Test URL points at a local or private address, external services can't reach it. Test from your own machine instead.
+</Callout>
+
+### Security
+
+The webhook URL is the only credential — anyone who has it can start the workflow. Keep it secret and avoid putting it in browser code or public repositories. **Required** only checks that a header is present, not its value: if your sender includes a shared-secret header, mark it **Required** and compare its value with a **Condition** block before doing any work.
+
+### Errors the caller can receive
+
+| Status | Message | Cause |
+|---|---|---|
+| 400 | `HTTP method mismatch. Expected POST, got GET` | Wrong method. |
+| 400 | `Content-type mismatch. Expected application/json, got text/plain` | Wrong `Content-Type`. |
+| 400 | `Required header missing: X` | A required header wasn't sent. |
+| 400 | `Required parameter missing: X` / `Required body parameter missing: X` | A required field wasn't sent. |
+| 400 | `Invalid JSON body: …` | The body isn't valid JSON. |
+| 404 | `Webhook not found: X` / `Webhook trigger is disabled for webhook X` | Wrong URL, or the workflow isn't published with this trigger. |
+| 413 | — | The request body is too large. |
+
+## Custom App Trigger
+
+Starts the workflow when an event arrives from another app.
+
+1. **Choose an app** — the provider that sends events.
+2. **Choose an event** — the event that starts this workflow.
+3. **Choose a connection**, or **Add new connection** and follow the **Setup instructions** — typically registering the **Endpoint URL** in the other app.
+4. Click **Verify** and send a test event from the app. The connection becomes active when the first event arrives (**Verified. This connection is now active and will start workflows.**).
+
+Connections show a status of **Pending**, **Active**, **Disabled** or **Expired**. Only **Active** connections start workflows.
+
+<Callout>
+  Generic webhook connections expect each request body to be signed with HMAC-SHA256 using the connection's signing secret, with the signature in the `X-Signature-256` header by default (a `sha256=` prefix is optional). Requests that fail the check are rejected with `401`. Event endpoints (`https://cloud.xpectrum.dev/triggers/event/<endpoint_id>`) may be rate limited: they answer `429 Too many trigger requests` with a `Retry-After` header — wait that long and retry with backoff.
+</Callout>
+
+## Scheduled Tasks
+
+**Automation Apps › Triggers** opens **Scheduled Tasks**, where you run things on a timer. A schedule calls a **Webhook URL** — usually the URL of a workflow's **Webhook Trigger** — at the times you choose.
+
+<Steps>
+<Step title='Create the workflow'>
+
+Build a workflow that starts with a **Webhook Trigger** and publish it. Copy its **Webhook URL**.
+
+</Step>
+<Step title='Create the schedule'>
+
+In **Scheduled Tasks**, click **Create Schedule** and fill in **Schedule Name** and an optional **Description**.
+
+Choose a **Schedule Type**:
+
+- **Interval Based** — "Run every X minutes". Set **Check Interval (minutes)** (at least 1).
+- **Specific Date/Time** — "Run at specific date/time(s)". Pick the **Timezone** first, then add times with **Add Date/Time**.
+
+</Step>
+<Step title='Configure the webhook call'>
+
+Under **Webhook Configuration**, paste the **Webhook URL** and set the **Method** and **Headers** (JSON). Write a **Webhook Body Template** in JSON. You can use the template variables `{{schedule_name}}`, `{{timestamp}}` (the time the schedule fired, in UTC) and `{{check_response}}`:
+
+```json title="Webhook Body Template"
+{
+  "schedule": "{{schedule_name}}",
+  "fired_at": "{{timestamp}}"
+}
+```
+
+The template must be valid JSON, and it must still be valid JSON after the variables are filled in — otherwise the schedule sends a default body instead. `{{check_response}}` inserts the Check API's response (see the next step).
+
+</Step>
+<Step title='Optionally check an API first'>
+
+Turn on **Enable Check API** under **Check API Configuration (Optional)** and set an **API URL to Check**. The webhook is called only when the check returns a `2xx` status, and the check's response is available as `{{check_response}}` in the body template. Without it, the schedule is a **Direct trigger** and calls the webhook straight away.
+
+</Step>
+<Step title='Test and enable'>
+
+Click **Test Now** to fire the schedule once. Set **Status** to **Enabled**. Each schedule shows **Last Check**, **Success** and **Failures** counts and the **Last Error**.
+
+</Step>
+</Steps>
+
+<Callout>
+  Schedules are checked once a minute, so a run can start up to about a minute after its scheduled time. Don't rely on them for second-precise timing.
+</Callout>
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **Webhook URL** is empty | Save the workflow once; the URL is **Generated after the workflow is saved.** |
+| The production URL returns 404 | Publish the workflow with **Publish Changes** — the Test URL only runs the draft. |
+| `No active debug listener` / Test URL rejects requests | Click **Listen for test request** first, then send within two minutes. |
+| The workflow disappeared from an agent's tools | You switched its start block to a Webhook or Custom App Trigger. Use a **Trigger** for tool workflows. |
+| A Custom App Trigger never fires | Check the connection is **Active**; click **Verify** and send a test event. |
+| A schedule shows failures | Open it and read **Last Error**; use **Test Now** after fixing the URL, headers or body template. |
+
+## Next steps
+
+<Cards>
+  <Card title='Workflows' href='/docs/build/workflows'>Build what the trigger starts.</Card>
+  <Card title='Trigger block' href='/docs/blocks/trigger'>Block reference for all start blocks.</Card>
+  <Card title='Variables' href='/docs/build/variables'>Use webhook data in later blocks.</Card>
+  <Card title='Triggers & MCP API' href='/docs/api/triggers-mcp'>Call webhooks and MCP servers from code.</Card>
+</Cards>

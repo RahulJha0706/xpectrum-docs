@@ -1,0 +1,166 @@
+export const metadata = {
+  title: 'MCP',
+  description: 'Publish a workflow as a Model Context Protocol (MCP) server, group several workflows behind one URL, and connect MCP clients such as Cursor.',
+}
+
+# MCP
+
+You can publish any Workflow as an MCP (Model Context Protocol) server. Then AI assistants and IDEs that support MCP, such as Cursor, can call it as a tool. The workflow's Trigger variables become the tool's inputs, and its output is the tool's result.
+
+## How it works
+
+- Each MCP-enabled workflow gets its own URL of the form `https://cloud.xpectrum.dev/mcp/<server-code>`. An **MCP group** combines several workflows behind one URL of the form `https://cloud.xpectrum.dev/mcp/groups/<server-code>`. Always copy the exact URL from the app.
+- The secret `<server-code>` in the URL is the credential. There's no separate API key or header.
+- A client call runs the published version of the workflow and returns its outputs.
+
+<Callout type='danger'>
+  "Anyone with this URL can run the workflow. Share it like a password." Don't put MCP URLs in public repositories, shared screenshots or client-side code. If a URL leaks, click **Rotate URL** right away.
+</Callout>
+
+## Enable MCP on a workflow
+
+<Steps>
+<Step title='Publish the workflow'>
+
+Only **Workflow** apps can be MCP servers (not Agent Flows or chat apps), and only after they're published. Click **Publish Changes** first.
+
+</Step>
+<Step title='Open API & Access'>
+
+Hover over the workflow's name in the editor header to open **API & Access**. In the **MCP server** section, click **Enable MCP**.
+
+</Step>
+<Step title='Describe the tool'>
+
+In **Enable MCP server**, fill in the **Tool description** and a description for each input. "AI assistants read these descriptions to decide when to call this workflow and what to pass in." Then click **Enable MCP**.
+
+</Step>
+<Step title='Copy the URL'>
+
+Copy the **MCP server URL** from **API &amp; Access** into your MCP client.
+
+</Step>
+</Steps>
+
+| Field | Required | Notes |
+|---|---|---|
+| **Tool name** | — | Set automatically from the workflow's name, made unique in the workspace. You can change it afterwards in **MCP server settings**: letters, numbers, `_` or `-`, starting with a letter, up to 64 characters, and unique in the workspace. Example: `lookup_order`. |
+| **Tool description** | Yes | What the workflow does and when an assistant should use it. |
+| **Inputs** | Yes, one per input | A description of each Trigger variable: what it means and any constraints. |
+| **Accepting calls** | — | In **MCP server settings**. Turn it off to pause the server ("Paused — calls to this URL are rejected."). Calls are rejected until you turn it back on. |
+
+Trigger variable types map to tool input types:
+
+| Trigger variable | MCP input type |
+|---|---|
+| Short Text, Paragraph, Select | `string` |
+| Number | `number` |
+| Single File | `object` |
+| File List | `array` |
+
+Unknown arguments are rejected. The assistant must send only the inputs you defined.
+
+### Manage the server
+
+From **API & Access**, open the MCP section and click **Edit** to change it:
+
+- **Rotate URL** issues a new URL. "The current URL stops working immediately. Every assistant using it must be updated with the new URL."
+- **Remove MCP access** deletes the URL and removes the workflow from every MCP group.
+
+After you publish a new version of the workflow, MCP calls use it right away, and the URL stays the same.
+
+## MCP groups
+
+A group exposes several workflows as one server with one URL. The assistant sees all of them in a single tool list. Use groups to give an assistant a toolkit, for example "Customer operations" with `lookup_order`, `create_return` and `update_address`.
+
+1. Go to **Resources › Integrations** and select **MCP**. **MCP-enabled workflows** lists every workflow with MCP turned on.
+2. Under **MCP groups**, click **Create group** and enter a **Group name**. Tick the workflows to include in the **MCP-enabled workflows** list, then click **Create group** again to save. Only workflows that are accepting calls can be added.
+3. Copy the group URL.
+
+Each group has **Edit**, **Rotate URL** and **Delete**. Deleting a group stops its URL from working, but "The workflows keep their own MCP URLs."
+
+## Connect an MCP client
+
+The server uses the Streamable HTTP transport, and answers `POST` requests with plain JSON (no SSE stream). Most clients only need the URL. The exact config format depends on the client. A typical entry looks like this:
+
+```json title="mcp.json"
+{
+  "mcpServers": {
+    "acme-order-tools": {
+      "url": "https://cloud.xpectrum.dev/mcp/<server-code>"
+    }
+  }
+}
+```
+
+Replace the URL with the **MCP server URL** you copied from the app. Always use the exact URL from the app. Some clients also need a transport type, such as `"type": "http"`. Check your client's documentation.
+
+### Test with cURL
+
+List the tools:
+
+```bash title="Terminal"
+curl -X POST "https://cloud.xpectrum.dev/mcp/<server-code>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Call one:
+
+```bash title="Terminal"
+curl -X POST "https://cloud.xpectrum.dev/mcp/<server-code>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"lookup_order","arguments":{"order_id":"A-10293"}}}'
+```
+
+```json title="Response"
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [{ "type": "text", "text": "Order A-10293 shipped on 12 May…" }],
+    "structuredContent": { "result": "Order A-10293 shipped on 12 May…" },
+    "isError": false
+  }
+}
+```
+
+`structuredContent` holds the workflow's output variables. Its keys match the outputs of your workflow's Output block.
+
+### Protocol details
+
+| Item | Value |
+|---|---|
+| Methods | `initialize`, `ping`, `tools/list`, `tools/call`. Notifications get `202`. |
+| Protocol versions | `2025-11-25`, `2025-06-18`, `2025-03-26` (default), `2024-11-05` |
+| Rate limit | `tools/call` requests to each URL are rate limited. See [Errors](#errors). |
+| Billing | Each call is a workflow run and uses credits like any other run. |
+
+## Errors
+
+| Code | HTTP | Message | Fix |
+|---|---|---|---|
+| -32001 | 404 | Unknown MCP server. | The URL was rotated or removed, or **Accepting calls** is off. |
+| -32000 | 429 | Rate limit exceeded; try again in a minute. | Wait, then retry with backoff. No `Retry-After` header is sent. Spread calls over time. |
+| -32602 | 200 | Unknown tool: … | Call `tools/list` and use an exact tool name. |
+| -32601 | 200 | Method not found: … | The server only implements tool methods. |
+| -32700 / -32600 | 400 | Request body must be JSON. / Expected a single JSON-RPC 2.0 request. | Send one JSON-RPC object per request (no batches). |
+| — | 405 | This MCP server accepts POST only; no SSE stream is offered. | You sent `GET`. Use `POST`. |
+| -32603 | 503 | MCP is temporarily unavailable. | Retry with backoff. |
+
+A tool can also fail at run time. The result then has `isError: true` and a message such as "Missing required argument(s): …", "Unknown argument(s): … Allowed: …" or "The workflow run failed: …". The assistant sees the message and can retry with corrected arguments.
+
+When enabling MCP you may see "Only workflow apps can be published as MCP tools." or "Publish the workflow before enabling MCP access."
+
+## Connecting external MCP servers
+
+<Callout type='warning'>
+  Adding external MCP servers (for example, a vendor's hosted MCP server) as tools inside Xpectrum agents isn't available. To call an external service, use a Library [tool](/docs/integrations/tools), a [custom tool](/docs/integrations/custom-tools) or the [HTTP Request](/docs/blocks/http-request) block.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='Workflows' href='/docs/build/workflows'>Build the workflow you want to expose.</Card>
+  <Card title='Triggers & MCP API' href='/docs/api/triggers-mcp'>Webhook triggers and the MCP endpoint reference.</Card>
+</Cards>

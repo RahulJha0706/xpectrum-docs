@@ -1,0 +1,4569 @@
+[
+  {
+    "href": "/docs",
+    "headings": [
+      {
+        "text": "What you can build",
+        "id": "what-you-can-build"
+      },
+      {
+        "text": "How the docs are organised",
+        "id": "how-the-docs-are-organised"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api",
+    "headings": [
+      {
+        "text": "Base URL",
+        "id": "base-url"
+      },
+      {
+        "text": "Two API generations",
+        "id": "two-api-generations"
+      },
+      {
+        "text": "Which endpoint to call",
+        "id": "which-endpoint-to-call"
+      },
+      {
+        "text": "Request and response conventions",
+        "id": "request-and-response-conventions"
+      },
+      {
+        "text": "JSON and headers",
+        "id": "json-and-headers"
+      },
+      {
+        "text": "Streaming",
+        "id": "streaming"
+      },
+      {
+        "text": "Pagination",
+        "id": "pagination"
+      },
+      {
+        "text": "The user identifier",
+        "id": "the-user-identifier"
+      },
+      {
+        "text": "Limits that affect clients",
+        "id": "limits-that-affect-clients"
+      },
+      {
+        "text": "Your first request",
+        "id": "your-first-request"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/agent-info",
+    "headings": [
+      {
+        "text": "Get agent info",
+        "id": "get-agent-info"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Get follow-up suggestions",
+        "id": "get-follow-up-suggestions"
+      },
+      {
+        "text": "Response",
+        "id": "response-1"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples-1"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/authentication",
+    "headings": [
+      {
+        "text": "Key types",
+        "id": "key-types"
+      },
+      {
+        "text": "Create an app API key",
+        "id": "create-an-app-api-key"
+      },
+      {
+        "text": "Create a knowledge API key",
+        "id": "create-a-knowledge-api-key"
+      },
+      {
+        "text": "Send the key",
+        "id": "send-the-key"
+      },
+      {
+        "text": "Control what an app key can do",
+        "id": "control-what-an-app-key-can-do"
+      },
+      {
+        "text": "Keep keys on your server",
+        "id": "keep-keys-on-your-server"
+      },
+      {
+        "text": "Authentication errors",
+        "id": "authentication-errors"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/chat-completions",
+    "headings": [
+      {
+        "text": "Create a chat completion",
+        "id": "create-a-chat-completion"
+      },
+      {
+        "text": "Request body",
+        "id": "request-body"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Streaming format",
+        "id": "streaming-format"
+      },
+      {
+        "text": "Step chunks",
+        "id": "step-chunks"
+      },
+      {
+        "text": "Citations",
+        "id": "citations"
+      },
+      {
+        "text": "Continue a conversation",
+        "id": "continue-a-conversation"
+      },
+      {
+        "text": "App-specific behavior",
+        "id": "app-specific-behavior"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic",
+    "headings": [
+      {
+        "text": "How it relates to the recommended API",
+        "id": "how-it-relates-to-the-recommended-api"
+      },
+      {
+        "text": "When to use the classic API",
+        "id": "when-to-use-the-classic-api"
+      },
+      {
+        "text": "Endpoints by app type",
+        "id": "endpoints-by-app-type"
+      },
+      {
+        "text": "Authentication",
+        "id": "authentication"
+      },
+      {
+        "text": "The user parameter",
+        "id": "the-user-parameter"
+      },
+      {
+        "text": "Response modes",
+        "id": "response-modes"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Classic and recommended names",
+        "id": "classic-and-recommended-names"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/annotations",
+    "headings": [
+      {
+        "text": "The annotation object",
+        "id": "the-annotation-object"
+      },
+      {
+        "text": "List annotations",
+        "id": "list-annotations"
+      },
+      {
+        "text": "Create an annotation",
+        "id": "create-an-annotation"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Update an annotation",
+        "id": "update-an-annotation"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Delete an annotation",
+        "id": "delete-an-annotation"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-2"
+      },
+      {
+        "text": "Enable or disable annotation reply",
+        "id": "enable-or-disable-annotation-reply"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-3"
+      },
+      {
+        "text": "Get the annotation reply job status",
+        "id": "get-the-annotation-reply-job-status"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-4"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/app",
+    "headings": [
+      {
+        "text": "Send message feedback",
+        "id": "send-message-feedback"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "List app feedback",
+        "id": "list-app-feedback"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Audio to text",
+        "id": "audio-to-text"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-2"
+      },
+      {
+        "text": "Text to audio",
+        "id": "text-to-audio"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-3"
+      },
+      {
+        "text": "Get app parameters",
+        "id": "get-app-parameters"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-4"
+      },
+      {
+        "text": "Get app info",
+        "id": "get-app-info"
+      },
+      {
+        "text": "Get app meta",
+        "id": "get-app-meta"
+      },
+      {
+        "text": "Get site settings",
+        "id": "get-site-settings"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-5"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/chat-messages",
+    "headings": [
+      {
+        "text": "Send a chat message",
+        "id": "send-a-chat-message"
+      },
+      {
+        "text": "Request body",
+        "id": "request-body"
+      },
+      {
+        "text": "File objects",
+        "id": "file-objects"
+      },
+      {
+        "text": "Request",
+        "id": "request"
+      },
+      {
+        "text": "Blocking response",
+        "id": "blocking-response"
+      },
+      {
+        "text": "Streaming response",
+        "id": "streaming-response"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Stop a chat response",
+        "id": "stop-a-chat-response"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/completion-messages",
+    "headings": [
+      {
+        "text": "Create a completion message",
+        "id": "create-a-completion-message"
+      },
+      {
+        "text": "Request body",
+        "id": "request-body"
+      },
+      {
+        "text": "Request",
+        "id": "request"
+      },
+      {
+        "text": "Blocking response",
+        "id": "blocking-response"
+      },
+      {
+        "text": "Streaming response",
+        "id": "streaming-response"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Stop a completion",
+        "id": "stop-a-completion"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/conversations",
+    "headings": [
+      {
+        "text": "List conversations",
+        "id": "list-conversations"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Delete a conversation",
+        "id": "delete-a-conversation"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Rename a conversation",
+        "id": "rename-a-conversation"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-2"
+      },
+      {
+        "text": "Get conversation variables",
+        "id": "get-conversation-variables"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-3"
+      },
+      {
+        "text": "List messages",
+        "id": "list-messages"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-4"
+      },
+      {
+        "text": "Get suggested questions",
+        "id": "get-suggested-questions"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-5"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/files",
+    "headings": [
+      {
+        "text": "Upload a file",
+        "id": "upload-a-file"
+      },
+      {
+        "text": "Request body",
+        "id": "request-body"
+      },
+      {
+        "text": "Supported file types",
+        "id": "supported-file-types"
+      },
+      {
+        "text": "Size limits",
+        "id": "size-limits"
+      },
+      {
+        "text": "Request",
+        "id": "request"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Reference an uploaded file",
+        "id": "reference-an-uploaded-file"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/classic/workflows",
+    "headings": [
+      {
+        "text": "Run a workflow",
+        "id": "run-a-workflow"
+      },
+      {
+        "text": "Request body",
+        "id": "request-body"
+      },
+      {
+        "text": "Request",
+        "id": "request"
+      },
+      {
+        "text": "Blocking response",
+        "id": "blocking-response"
+      },
+      {
+        "text": "Streaming response",
+        "id": "streaming-response"
+      },
+      {
+        "text": "Pass files as inputs",
+        "id": "pass-files-as-inputs"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Get a workflow run",
+        "id": "get-a-workflow-run"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Stop a workflow run",
+        "id": "stop-a-workflow-run"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-2"
+      },
+      {
+        "text": "List workflow logs",
+        "id": "list-workflow-logs"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-3"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/errors",
+    "headings": [
+      {
+        "text": "Error formats",
+        "id": "error-formats"
+      },
+      {
+        "text": "Recommended API",
+        "id": "recommended-api"
+      },
+      {
+        "text": "Classic envelope",
+        "id": "classic-envelope"
+      },
+      {
+        "text": "Errors inside a stream",
+        "id": "errors-inside-a-stream"
+      },
+      {
+        "text": "Handle both",
+        "id": "handle-both"
+      },
+      {
+        "text": "Authentication and access",
+        "id": "authentication-and-access"
+      },
+      {
+        "text": "Request validation",
+        "id": "request-validation"
+      },
+      {
+        "text": "Not found and wrong endpoint",
+        "id": "not-found-and-wrong-endpoint"
+      },
+      {
+        "text": "App configuration",
+        "id": "app-configuration"
+      },
+      {
+        "text": "Model provider",
+        "id": "model-provider"
+      },
+      {
+        "text": "Rate limits and quota",
+        "id": "rate-limits-and-quota"
+      },
+      {
+        "text": "Files and audio",
+        "id": "files-and-audio"
+      },
+      {
+        "text": "Knowledge",
+        "id": "knowledge"
+      },
+      {
+        "text": "Workflows",
+        "id": "workflows"
+      },
+      {
+        "text": "Voice",
+        "id": "voice"
+      },
+      {
+        "text": "Server errors",
+        "id": "server-errors"
+      },
+      {
+        "text": "Retries",
+        "id": "retries"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/javascript-sdk",
+    "headings": [
+      {
+        "text": "Install",
+        "id": "install"
+      },
+      {
+        "text": "Imports",
+        "id": "imports"
+      },
+      {
+        "text": "XpectrumChat",
+        "id": "xpectrumchat"
+      },
+      {
+        "text": "Options",
+        "id": "options"
+      },
+      {
+        "text": "Methods",
+        "id": "methods"
+      },
+      {
+        "text": "Prompt and per-call options",
+        "id": "prompt-and-per-call-options"
+      },
+      {
+        "text": "ChatResult",
+        "id": "chatresult"
+      },
+      {
+        "text": "XpectrumWorkflow",
+        "id": "xpectrumworkflow"
+      },
+      {
+        "text": "XpectrumKnowledge",
+        "id": "xpectrumknowledge"
+      },
+      {
+        "text": "XpectrumVoice",
+        "id": "xpectrumvoice"
+      },
+      {
+        "text": "Methods",
+        "id": "methods-1"
+      },
+      {
+        "text": "Events",
+        "id": "events"
+      },
+      {
+        "text": "Widgets",
+        "id": "widgets"
+      },
+      {
+        "text": "Error handling",
+        "id": "error-handling"
+      },
+      {
+        "text": "Anonymous users",
+        "id": "anonymous-users"
+      },
+      {
+        "text": "Server proxy pattern",
+        "id": "server-proxy-pattern"
+      },
+      {
+        "text": "Migrating from @xpectrum/sdk",
+        "id": "migrating-from-xpectrumsdk"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/knowledge",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "Search a knowledge base",
+        "id": "search-a-knowledge-base"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Knowledge bases",
+        "id": "knowledge-bases"
+      },
+      {
+        "text": "List knowledge bases",
+        "id": "list-knowledge-bases"
+      },
+      {
+        "text": "Create a knowledge base",
+        "id": "create-a-knowledge-base"
+      },
+      {
+        "text": "Get a knowledge base",
+        "id": "get-a-knowledge-base"
+      },
+      {
+        "text": "Update a knowledge base",
+        "id": "update-a-knowledge-base"
+      },
+      {
+        "text": "Delete a knowledge base",
+        "id": "delete-a-knowledge-base"
+      },
+      {
+        "text": "Knowledge base object",
+        "id": "knowledge-base-object"
+      },
+      {
+        "text": "Knowledge base errors",
+        "id": "knowledge-base-errors"
+      },
+      {
+        "text": "Documents",
+        "id": "documents"
+      },
+      {
+        "text": "Create a document from text",
+        "id": "create-a-document-from-text"
+      },
+      {
+        "text": "Response",
+        "id": "response-1"
+      },
+      {
+        "text": "Create a document from a file",
+        "id": "create-a-document-from-a-file"
+      },
+      {
+        "text": "Update a document",
+        "id": "update-a-document"
+      },
+      {
+        "text": "List documents",
+        "id": "list-documents"
+      },
+      {
+        "text": "Delete a document",
+        "id": "delete-a-document"
+      },
+      {
+        "text": "Get indexing status",
+        "id": "get-indexing-status"
+      },
+      {
+        "text": "Get a document's source file",
+        "id": "get-a-documents-source-file"
+      },
+      {
+        "text": "Document object",
+        "id": "document-object"
+      },
+      {
+        "text": "Document errors",
+        "id": "document-errors"
+      },
+      {
+        "text": "Process rule object",
+        "id": "process-rule-object"
+      },
+      {
+        "text": "Retrieval model object",
+        "id": "retrieval-model-object"
+      },
+      {
+        "text": "Chunks",
+        "id": "chunks"
+      },
+      {
+        "text": "Retrieve (test retrieval)",
+        "id": "retrieve-test-retrieval"
+      },
+      {
+        "text": "Metadata",
+        "id": "metadata"
+      },
+      {
+        "text": "Tags",
+        "id": "tags"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/runs",
+    "headings": [
+      {
+        "text": "Run a workflow",
+        "id": "run-a-workflow"
+      },
+      {
+        "text": "Request body",
+        "id": "request-body"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Streaming a run",
+        "id": "streaming-a-run"
+      },
+      {
+        "text": "Run limits",
+        "id": "run-limits"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Cancel a run",
+        "id": "cancel-a-run"
+      },
+      {
+        "text": "Response",
+        "id": "response-1"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples-1"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/streaming",
+    "headings": [
+      {
+        "text": "SSE basics",
+        "id": "sse-basics"
+      },
+      {
+        "text": "Chat completion stream",
+        "id": "chat-completion-stream"
+      },
+      {
+        "text": "Workflow run stream",
+        "id": "workflow-run-stream"
+      },
+      {
+        "text": "Parse a stream in JavaScript",
+        "id": "parse-a-stream-in-javascript"
+      },
+      {
+        "text": "Cancellation and reconnection",
+        "id": "cancellation-and-reconnection"
+      },
+      {
+        "text": "Classic API events",
+        "id": "classic-api-events"
+      },
+      {
+        "text": "Message events",
+        "id": "message-events"
+      },
+      {
+        "text": "Workflow events",
+        "id": "workflow-events"
+      },
+      {
+        "text": "Error and ping events",
+        "id": "error-and-ping-events"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/threads",
+    "headings": [
+      {
+        "text": "How threads are scoped",
+        "id": "how-threads-are-scoped"
+      },
+      {
+        "text": "List threads",
+        "id": "list-threads"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "List messages in a thread",
+        "id": "list-messages-in-a-thread"
+      },
+      {
+        "text": "Response",
+        "id": "response-1"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples-1"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/triggers-mcp",
+    "headings": [
+      {
+        "text": "Webhook triggers",
+        "id": "webhook-triggers"
+      },
+      {
+        "text": "What is checked",
+        "id": "what-is-checked"
+      },
+      {
+        "text": "What the workflow receives",
+        "id": "what-the-workflow-receives"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Test with the debug URL",
+        "id": "test-with-the-debug-url"
+      },
+      {
+        "text": "Event trigger endpoints",
+        "id": "event-trigger-endpoints"
+      },
+      {
+        "text": "Responses",
+        "id": "responses"
+      },
+      {
+        "text": "MCP servers",
+        "id": "mcp-servers"
+      },
+      {
+        "text": "Requirements",
+        "id": "requirements"
+      },
+      {
+        "text": "Transport",
+        "id": "transport"
+      },
+      {
+        "text": "Connect a client",
+        "id": "connect-a-client"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/api/voice",
+    "headings": [
+      {
+        "text": "How a call works",
+        "id": "how-a-call-works"
+      },
+      {
+        "text": "Browser requirements",
+        "id": "browser-requirements"
+      },
+      {
+        "text": "Generate a session token",
+        "id": "generate-a-session-token"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "End a call",
+        "id": "end-a-call"
+      },
+      {
+        "text": "Response",
+        "id": "response-1"
+      },
+      {
+        "text": "Request samples",
+        "id": "request-samples-1"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Keep the key off the page",
+        "id": "keep-the-key-off-the-page"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks",
+    "headings": [
+      {
+        "text": "Add a step",
+        "id": "add-a-step"
+      },
+      {
+        "text": "All blocks",
+        "id": "all-blocks"
+      },
+      {
+        "text": "Connect and branch",
+        "id": "connect-and-branch"
+      },
+      {
+        "text": "Error handling",
+        "id": "error-handling"
+      },
+      {
+        "text": "Retry",
+        "id": "retry"
+      },
+      {
+        "text": "Test a single step",
+        "id": "test-a-single-step"
+      },
+      {
+        "text": "Client workspaces",
+        "id": "client-workspaces"
+      },
+      {
+        "text": "Workflow limits",
+        "id": "workflow-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/agent",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/ai-model",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Model",
+        "id": "model"
+      },
+      {
+        "text": "Context",
+        "id": "context"
+      },
+      {
+        "text": "Prompt",
+        "id": "prompt"
+      },
+      {
+        "text": "Memory (Agent Flow only)",
+        "id": "memory-agent-flow-only"
+      },
+      {
+        "text": "Vision",
+        "id": "vision"
+      },
+      {
+        "text": "Structured output",
+        "id": "structured-output"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/condition",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Operators by variable type",
+        "id": "operators-by-variable-type"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/custom-function",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "The main() function",
+        "id": "the-main-function"
+      },
+      {
+        "text": "Output types",
+        "id": "output-types"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Examples",
+        "id": "examples"
+      },
+      {
+        "text": "Parse a JSON API response",
+        "id": "parse-a-json-api-response"
+      },
+      {
+        "text": "Normalize user input",
+        "id": "normalize-user-input"
+      },
+      {
+        "text": "Dependencies",
+        "id": "dependencies"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/doc-extractor",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Supported file types",
+        "id": "supported-file-types"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/http-request",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Authorization",
+        "id": "authorization"
+      },
+      {
+        "text": "Body types",
+        "id": "body-types"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Error responses",
+        "id": "error-responses"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Import from cURL",
+        "id": "import-from-curl"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/intent-classifier",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/knowledge-search",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Retrieval setting",
+        "id": "retrieval-setting"
+      },
+      {
+        "text": "Metadata filtering",
+        "id": "metadata-filtering"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/loops",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "For Each",
+        "id": "for-each"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Repeat Until",
+        "id": "repeat-until"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-1"
+      },
+      {
+        "text": "How it runs",
+        "id": "how-it-runs"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs-1"
+      },
+      {
+        "text": "Example",
+        "id": "example-1"
+      },
+      {
+        "text": "Exit Loop",
+        "id": "exit-loop"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/output",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Answer",
+        "id": "answer"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "How it behaves",
+        "id": "how-it-behaves"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "End",
+        "id": "end"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-1"
+      },
+      {
+        "text": "Outputs",
+        "id": "outputs"
+      },
+      {
+        "text": "Hand off",
+        "id": "hand-off"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-2"
+      },
+      {
+        "text": "Example",
+        "id": "example-1"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/parameter-extractor",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/transform",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Template",
+        "id": "template"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Outputs",
+        "id": "outputs"
+      },
+      {
+        "text": "Examples",
+        "id": "examples"
+      },
+      {
+        "text": "Errors and limits",
+        "id": "errors-and-limits"
+      },
+      {
+        "text": "Variable Aggregator",
+        "id": "variable-aggregator"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-1"
+      },
+      {
+        "text": "Outputs",
+        "id": "outputs-1"
+      },
+      {
+        "text": "Variable Assigner",
+        "id": "variable-assigner"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-2"
+      },
+      {
+        "text": "Operations",
+        "id": "operations"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "List Operator",
+        "id": "list-operator"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-3"
+      },
+      {
+        "text": "Outputs",
+        "id": "outputs-2"
+      },
+      {
+        "text": "Errors",
+        "id": "errors-1"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/blocks/trigger",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Trigger",
+        "id": "trigger"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs"
+      },
+      {
+        "text": "Example",
+        "id": "example"
+      },
+      {
+        "text": "Webhook Trigger",
+        "id": "webhook-trigger"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-1"
+      },
+      {
+        "text": "Inputs and outputs",
+        "id": "inputs-and-outputs-1"
+      },
+      {
+        "text": "Response to the caller",
+        "id": "response-to-the-caller"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Custom App Trigger",
+        "id": "custom-app-trigger"
+      },
+      {
+        "text": "Settings",
+        "id": "settings-2"
+      },
+      {
+        "text": "Connection status",
+        "id": "connection-status"
+      },
+      {
+        "text": "Outputs",
+        "id": "outputs"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/agent-flow",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "The canvas",
+        "id": "the-canvas"
+      },
+      {
+        "text": "Add a step",
+        "id": "add-a-step"
+      },
+      {
+        "text": "A typical flow",
+        "id": "a-typical-flow"
+      },
+      {
+        "text": "Preview",
+        "id": "preview"
+      },
+      {
+        "text": "Dock tabs",
+        "id": "dock-tabs"
+      },
+      {
+        "text": "Conversation variables and constants",
+        "id": "conversation-variables-and-constants"
+      },
+      {
+        "text": "Conversation variables",
+        "id": "conversation-variables"
+      },
+      {
+        "text": "Constants",
+        "id": "constants"
+      },
+      {
+        "text": "Checklist",
+        "id": "checklist"
+      },
+      {
+        "text": "Versions",
+        "id": "versions"
+      },
+      {
+        "text": "Publish",
+        "id": "publish"
+      },
+      {
+        "text": "Agent Flow vs Autonomous Agent",
+        "id": "agent-flow-vs-autonomous-agent"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/autonomous-agent",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "The editor",
+        "id": "the-editor"
+      },
+      {
+        "text": "The dock",
+        "id": "the-dock"
+      },
+      {
+        "text": "Trigger",
+        "id": "trigger"
+      },
+      {
+        "text": "Instructions",
+        "id": "instructions"
+      },
+      {
+        "text": "Knowledge",
+        "id": "knowledge"
+      },
+      {
+        "text": "Tools",
+        "id": "tools"
+      },
+      {
+        "text": "Vision",
+        "id": "vision"
+      },
+      {
+        "text": "AI Agent",
+        "id": "ai-agent"
+      },
+      {
+        "text": "Output",
+        "id": "output"
+      },
+      {
+        "text": "Agent Settings",
+        "id": "agent-settings"
+      },
+      {
+        "text": "Preview",
+        "id": "preview"
+      },
+      {
+        "text": "Publish",
+        "id": "publish"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/chatbot",
+    "headings": [
+      {
+        "text": "When to use it",
+        "id": "when-to-use-it"
+      },
+      {
+        "text": "Create a chatbot",
+        "id": "create-a-chatbot"
+      },
+      {
+        "text": "Configure it",
+        "id": "configure-it"
+      },
+      {
+        "text": "Feature cards",
+        "id": "feature-cards"
+      },
+      {
+        "text": "Example instructions",
+        "id": "example-instructions"
+      },
+      {
+        "text": "Test and publish",
+        "id": "test-and-publish"
+      },
+      {
+        "text": "Switch to Workflow Orchestrate",
+        "id": "switch-to-workflow-orchestrate"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/instructions",
+    "headings": [
+      {
+        "text": "Where instructions live",
+        "id": "where-instructions-live"
+      },
+      {
+        "text": "A structure that works",
+        "id": "a-structure-that-works"
+      },
+      {
+        "text": "Persona",
+        "id": "persona"
+      },
+      {
+        "text": "Goal and success",
+        "id": "goal-and-success"
+      },
+      {
+        "text": "Guardrails",
+        "id": "guardrails"
+      },
+      {
+        "text": "Use variables",
+        "id": "use-variables"
+      },
+      {
+        "text": "Autonomous Agent and AI Chatbot",
+        "id": "autonomous-agent-and-ai-chatbot"
+      },
+      {
+        "text": "Agent Flow and Workflow",
+        "id": "agent-flow-and-workflow"
+      },
+      {
+        "text": "Knowledge prompt and tool prompt",
+        "id": "knowledge-prompt-and-tool-prompt"
+      },
+      {
+        "text": "Voice agents",
+        "id": "voice-agents"
+      },
+      {
+        "text": "Examples",
+        "id": "examples"
+      },
+      {
+        "text": "Customer support agent",
+        "id": "customer-support-agent"
+      },
+      {
+        "text": "Receptionist (voice)",
+        "id": "receptionist-voice"
+      },
+      {
+        "text": "Common mistakes",
+        "id": "common-mistakes"
+      },
+      {
+        "text": "Test your instructions",
+        "id": "test-your-instructions"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/multi-prompt-agent",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "Blocks",
+        "id": "blocks"
+      },
+      {
+        "text": "Conversation steps",
+        "id": "conversation-steps"
+      },
+      {
+        "text": "Tool steps",
+        "id": "tool-steps"
+      },
+      {
+        "text": "Hand off",
+        "id": "hand-off"
+      },
+      {
+        "text": "Flow state panel",
+        "id": "flow-state-panel"
+      },
+      {
+        "text": "Who this agent is",
+        "id": "who-this-agent-is"
+      },
+      {
+        "text": "What it remembers",
+        "id": "what-it-remembers"
+      },
+      {
+        "text": "How calls end",
+        "id": "how-calls-end"
+      },
+      {
+        "text": "Going off-script",
+        "id": "going-off-script"
+      },
+      {
+        "text": "Example: dental receptionist",
+        "id": "example-dental-receptionist"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/triggers",
+    "headings": [
+      {
+        "text": "Choose a trigger",
+        "id": "choose-a-trigger"
+      },
+      {
+        "text": "Trigger (Start)",
+        "id": "trigger-start"
+      },
+      {
+        "text": "Webhook Trigger",
+        "id": "webhook-trigger"
+      },
+      {
+        "text": "Configure it",
+        "id": "configure-it"
+      },
+      {
+        "text": "Outputs",
+        "id": "outputs"
+      },
+      {
+        "text": "How the caller is answered",
+        "id": "how-the-caller-is-answered"
+      },
+      {
+        "text": "Test a webhook",
+        "id": "test-a-webhook"
+      },
+      {
+        "text": "Security",
+        "id": "security"
+      },
+      {
+        "text": "Errors the caller can receive",
+        "id": "errors-the-caller-can-receive"
+      },
+      {
+        "text": "Custom App Trigger",
+        "id": "custom-app-trigger"
+      },
+      {
+        "text": "Scheduled Tasks",
+        "id": "scheduled-tasks"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/variables",
+    "headings": [
+      {
+        "text": "Kinds of variables",
+        "id": "kinds-of-variables"
+      },
+      {
+        "text": "Input variables",
+        "id": "input-variables"
+      },
+      {
+        "text": "System variables",
+        "id": "system-variables"
+      },
+      {
+        "text": "Channel values",
+        "id": "channel-values"
+      },
+      {
+        "text": "Reference block outputs",
+        "id": "reference-block-outputs"
+      },
+      {
+        "text": "Insert with /",
+        "id": "insert-with-"
+      },
+      {
+        "text": "Reference syntax",
+        "id": "reference-syntax"
+      },
+      {
+        "text": "In Autonomous Agent and AI Chatbot instructions",
+        "id": "in-autonomous-agent-and-ai-chatbot-instructions"
+      },
+      {
+        "text": "In code",
+        "id": "in-code"
+      },
+      {
+        "text": "Constants",
+        "id": "constants"
+      },
+      {
+        "text": "Conversation variables",
+        "id": "conversation-variables"
+      },
+      {
+        "text": "Pass variables through the API",
+        "id": "pass-variables-through-the-api"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/build/workflows",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "Build a workflow",
+        "id": "build-a-workflow"
+      },
+      {
+        "text": "The Output block",
+        "id": "the-output-block"
+      },
+      {
+        "text": "Run and test",
+        "id": "run-and-test"
+      },
+      {
+        "text": "Test a single step",
+        "id": "test-a-single-step"
+      },
+      {
+        "text": "Run history",
+        "id": "run-history"
+      },
+      {
+        "text": "Error handling and retry",
+        "id": "error-handling-and-retry"
+      },
+      {
+        "text": "Use a workflow as a tool",
+        "id": "use-a-workflow-as-a-tool"
+      },
+      {
+        "text": "Use a workflow as an MCP server",
+        "id": "use-a-workflow-as-an-mcp-server"
+      },
+      {
+        "text": "Call a workflow from the API",
+        "id": "call-a-workflow-from-the-api"
+      },
+      {
+        "text": "Versions and publishing",
+        "id": "versions-and-publishing"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels",
+    "headings": [
+      {
+        "text": "Channel overview",
+        "id": "channel-overview"
+      },
+      {
+        "text": "Which agents can go on a channel",
+        "id": "which-agents-can-go-on-a-channel"
+      },
+      {
+        "text": "How an agent is mapped to a channel",
+        "id": "how-an-agent-is-mapped-to-a-channel"
+      },
+      {
+        "text": "Knowing which channel a message came from",
+        "id": "knowing-which-channel-a-message-came-from"
+      },
+      {
+        "text": "Example: change behavior per channel",
+        "id": "example-change-behavior-per-channel"
+      },
+      {
+        "text": "One agent on many channels",
+        "id": "one-agent-on-many-channels"
+      },
+      {
+        "text": "Conversation continuity",
+        "id": "conversation-continuity"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/batch-calls",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "CSV format",
+        "id": "csv-format"
+      },
+      {
+        "text": "Create a batch",
+        "id": "create-a-batch"
+      },
+      {
+        "text": "Scheduling modes",
+        "id": "scheduling-modes"
+      },
+      {
+        "text": "Retries",
+        "id": "retries"
+      },
+      {
+        "text": "Track a batch",
+        "id": "track-a-batch"
+      },
+      {
+        "text": "Tips",
+        "id": "tips"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/email",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "Add an email address",
+        "id": "add-an-email-address"
+      },
+      {
+        "text": "Conversation expiry",
+        "id": "conversation-expiry"
+      },
+      {
+        "text": "Send a test email",
+        "id": "send-a-test-email"
+      },
+      {
+        "text": "The Email page",
+        "id": "the-email-page"
+      },
+      {
+        "text": "Overview",
+        "id": "overview"
+      },
+      {
+        "text": "Email Addresses",
+        "id": "email-addresses"
+      },
+      {
+        "text": "Conversations",
+        "id": "conversations"
+      },
+      {
+        "text": "Writing for email",
+        "id": "writing-for-email"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/phone-numbers",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "The Phone Number page",
+        "id": "the-phone-number-page"
+      },
+      {
+        "text": "Capability badges",
+        "id": "capability-badges"
+      },
+      {
+        "text": "Buy a number",
+        "id": "buy-a-number"
+      },
+      {
+        "text": "Assign or change the agent",
+        "id": "assign-or-change-the-agent"
+      },
+      {
+        "text": "Place an outbound call",
+        "id": "place-an-outbound-call"
+      },
+      {
+        "text": "E.164 format",
+        "id": "e164-format"
+      },
+      {
+        "text": "Rename, copy or remove a number",
+        "id": "rename-copy-or-remove-a-number"
+      },
+      {
+        "text": "Roles",
+        "id": "roles"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/sms",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "The SMS page",
+        "id": "the-sms-page"
+      },
+      {
+        "text": "Enable SMS on a number",
+        "id": "enable-sms-on-a-number"
+      },
+      {
+        "text": "Inbound conversation modes",
+        "id": "inbound-conversation-modes"
+      },
+      {
+        "text": "Send an SMS",
+        "id": "send-an-sms"
+      },
+      {
+        "text": "E.164 format",
+        "id": "e164-format"
+      },
+      {
+        "text": "Disable SMS",
+        "id": "disable-sms"
+      },
+      {
+        "text": "Tips",
+        "id": "tips"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/voice",
+    "headings": [
+      {
+        "text": "How a call works",
+        "id": "how-a-call-works"
+      },
+      {
+        "text": "Open the Voice screen",
+        "id": "open-the-voice-screen"
+      },
+      {
+        "text": "Voice & Transcriber tab",
+        "id": "voice--transcriber-tab"
+      },
+      {
+        "text": "Text-to-speech provider",
+        "id": "text-to-speech-provider"
+      },
+      {
+        "text": "Transcriber",
+        "id": "transcriber"
+      },
+      {
+        "text": "Configurations tab",
+        "id": "configurations-tab"
+      },
+      {
+        "text": "Silence and nudges",
+        "id": "silence-and-nudges"
+      },
+      {
+        "text": "Tool Acknowledgement",
+        "id": "tool-acknowledgement"
+      },
+      {
+        "text": "Backchannel Filter",
+        "id": "backchannel-filter"
+      },
+      {
+        "text": "Recording",
+        "id": "recording"
+      },
+      {
+        "text": "Test with Chat and Call",
+        "id": "test-with-chat-and-call"
+      },
+      {
+        "text": "Call lifecycle and end reasons",
+        "id": "call-lifecycle-and-end-reasons"
+      },
+      {
+        "text": "Writing prompts for voice",
+        "id": "writing-prompts-for-voice"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/web",
+    "headings": [
+      {
+        "text": "Choose a widget",
+        "id": "choose-a-widget"
+      },
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "Add chat with a script tag",
+        "id": "add-chat-with-a-script-tag"
+      },
+      {
+        "text": "Add voice to your site",
+        "id": "add-voice-to-your-site"
+      },
+      {
+        "text": "Add widgets from npm",
+        "id": "add-widgets-from-npm"
+      },
+      {
+        "text": "ChatWidget options",
+        "id": "chatwidget-options"
+      },
+      {
+        "text": "VoiceWidget options",
+        "id": "voicewidget-options"
+      },
+      {
+        "text": "OmnichannelWidget options",
+        "id": "omnichannelwidget-options"
+      },
+      {
+        "text": "Theming",
+        "id": "theming"
+      },
+      {
+        "text": "Keeping keys safe",
+        "id": "keeping-keys-safe"
+      },
+      {
+        "text": "Proxy pattern",
+        "id": "proxy-pattern"
+      },
+      {
+        "text": "HTTPS, microphone and CSP",
+        "id": "https-microphone-and-csp"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/channels/whatsapp",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "Key terms",
+        "id": "key-terms"
+      },
+      {
+        "text": "Connect an account",
+        "id": "connect-an-account"
+      },
+      {
+        "text": "The WhatsApp page",
+        "id": "the-whatsapp-page"
+      },
+      {
+        "text": "Overview",
+        "id": "overview"
+      },
+      {
+        "text": "Business Accounts",
+        "id": "business-accounts"
+      },
+      {
+        "text": "Phone Numbers",
+        "id": "phone-numbers"
+      },
+      {
+        "text": "Registration statuses",
+        "id": "registration-statuses"
+      },
+      {
+        "text": "Routing",
+        "id": "routing"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/deploy/api-keys",
+    "headings": [
+      {
+        "text": "Key types",
+        "id": "key-types"
+      },
+      {
+        "text": "Create a key",
+        "id": "create-a-key"
+      },
+      {
+        "text": "The key list",
+        "id": "the-key-list"
+      },
+      {
+        "text": "Delete a key",
+        "id": "delete-a-key"
+      },
+      {
+        "text": "Who can manage keys",
+        "id": "who-can-manage-keys"
+      },
+      {
+        "text": "Limits",
+        "id": "limits"
+      },
+      {
+        "text": "Rotate a key",
+        "id": "rotate-a-key"
+      },
+      {
+        "text": "Keep keys out of the browser",
+        "id": "keep-keys-out-of-the-browser"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/deploy/publishing",
+    "headings": [
+      {
+        "text": "Draft vs live",
+        "id": "draft-vs-live"
+      },
+      {
+        "text": "Publish your changes",
+        "id": "publish-your-changes"
+      },
+      {
+        "text": "External API toggles",
+        "id": "external-api-toggles"
+      },
+      {
+        "text": "What publishing updates",
+        "id": "what-publishing-updates"
+      },
+      {
+        "text": "Versions and restore",
+        "id": "versions-and-restore"
+      },
+      {
+        "text": "Name a version",
+        "id": "name-a-version"
+      },
+      {
+        "text": "Restore a version",
+        "id": "restore-a-version"
+      },
+      {
+        "text": "API & Access",
+        "id": "api--access"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/deploy/testing",
+    "headings": [
+      {
+        "text": "What each test runs against",
+        "id": "what-each-test-runs-against"
+      },
+      {
+        "text": "Preview a conversational app",
+        "id": "preview-a-conversational-app"
+      },
+      {
+        "text": "Run a workflow",
+        "id": "run-a-workflow"
+      },
+      {
+        "text": "Test a single block",
+        "id": "test-a-single-block"
+      },
+      {
+        "text": "Compare models side by side",
+        "id": "compare-models-side-by-side"
+      },
+      {
+        "text": "Test voice",
+        "id": "test-voice"
+      },
+      {
+        "text": "Run history and logs",
+        "id": "run-history-and-logs"
+      },
+      {
+        "text": "The checklist",
+        "id": "the-checklist"
+      },
+      {
+        "text": "Pre-publish checklist",
+        "id": "pre-publish-checklist"
+      },
+      {
+        "text": "Best practices",
+        "id": "best-practices"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/getting-started/app-types",
+    "headings": [
+      {
+        "text": "Compare app types",
+        "id": "compare-app-types"
+      },
+      {
+        "text": "Which type should I use?",
+        "id": "which-type-should-i-use"
+      },
+      {
+        "text": "Availability",
+        "id": "availability"
+      },
+      {
+        "text": "Create an app",
+        "id": "create-an-app"
+      },
+      {
+        "text": "Where each type opens",
+        "id": "where-each-type-opens"
+      },
+      {
+        "text": "Manage apps",
+        "id": "manage-apps"
+      },
+      {
+        "text": "Switch to Workflow Orchestrate",
+        "id": "switch-to-workflow-orchestrate"
+      },
+      {
+        "text": "Text Generator (legacy)",
+        "id": "text-generator-legacy"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/getting-started/concepts",
+    "headings": [
+      {
+        "text": "How it fits together",
+        "id": "how-it-fits-together"
+      },
+      {
+        "text": "Workspaces",
+        "id": "workspaces"
+      },
+      {
+        "text": "Members and roles",
+        "id": "members-and-roles"
+      },
+      {
+        "text": "Apps and app types",
+        "id": "apps-and-app-types"
+      },
+      {
+        "text": "Blocks and the canvas",
+        "id": "blocks-and-the-canvas"
+      },
+      {
+        "text": "Variables",
+        "id": "variables"
+      },
+      {
+        "text": "Knowledge",
+        "id": "knowledge"
+      },
+      {
+        "text": "Tools and integrations",
+        "id": "tools-and-integrations"
+      },
+      {
+        "text": "Channels",
+        "id": "channels"
+      },
+      {
+        "text": "Publishing and versions",
+        "id": "publishing-and-versions"
+      },
+      {
+        "text": "Threads, runs and sessions",
+        "id": "threads-runs-and-sessions"
+      },
+      {
+        "text": "Executions and credits",
+        "id": "executions-and-credits"
+      },
+      {
+        "text": "Glossary",
+        "id": "glossary"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/getting-started/quickstart",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "Build your first agent",
+        "id": "build-your-first-agent"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/getting-started/workspaces",
+    "headings": [
+      {
+        "text": "Sidebar navigation",
+        "id": "sidebar-navigation"
+      },
+      {
+        "text": "Switch workspaces",
+        "id": "switch-workspaces"
+      },
+      {
+        "text": "Members and invites",
+        "id": "members-and-invites"
+      },
+      {
+        "text": "Roles",
+        "id": "roles"
+      },
+      {
+        "text": "Client workspaces",
+        "id": "client-workspaces"
+      },
+      {
+        "text": "Multi-factor authentication",
+        "id": "multi-factor-authentication"
+      },
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Time zone",
+        "id": "time-zone"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/guides/agency",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "How agencies are organized",
+        "id": "how-agencies-are-organized"
+      },
+      {
+        "text": "Set up your first client",
+        "id": "set-up-your-first-client"
+      },
+      {
+        "text": "Monitor every client",
+        "id": "monitor-every-client"
+      },
+      {
+        "text": "Manage the lifecycle",
+        "id": "manage-the-lifecycle"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/guides/ai-receptionist",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "How it fits together",
+        "id": "how-it-fits-together"
+      },
+      {
+        "text": "Build the receptionist",
+        "id": "build-the-receptionist"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/guides/outbound-campaign",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "How outbound calls work",
+        "id": "how-outbound-calls-work"
+      },
+      {
+        "text": "Set up the campaign",
+        "id": "set-up-the-campaign"
+      },
+      {
+        "text": "Follow the batch",
+        "id": "follow-the-batch"
+      },
+      {
+        "text": "Review outcomes in Sessions",
+        "id": "review-outcomes-in-sessions"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/guides/support-agent",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "What you'll build",
+        "id": "what-youll-build"
+      },
+      {
+        "text": "Build the agent",
+        "id": "build-the-agent"
+      },
+      {
+        "text": "Put it on email and WhatsApp",
+        "id": "put-it-on-email-and-whatsapp"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/guides/website-chat",
+    "headings": [
+      {
+        "text": "Before you begin",
+        "id": "before-you-begin"
+      },
+      {
+        "text": "Choose an approach",
+        "id": "choose-an-approach"
+      },
+      {
+        "text": "Add the chat widget",
+        "id": "add-the-chat-widget"
+      },
+      {
+        "text": "Script embed (no build step)",
+        "id": "script-embed-no-build-step"
+      },
+      {
+        "text": "Widget options",
+        "id": "widget-options"
+      },
+      {
+        "text": "Test it",
+        "id": "test-it"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/integrations/custom-tools",
+    "headings": [
+      {
+        "text": "When to use a custom tool",
+        "id": "when-to-use-a-custom-tool"
+      },
+      {
+        "text": "Create a custom tool",
+        "id": "create-a-custom-tool"
+      },
+      {
+        "text": "Schema requirements",
+        "id": "schema-requirements"
+      },
+      {
+        "text": "Example: order lookup API",
+        "id": "example-order-lookup-api"
+      },
+      {
+        "text": "Authorization",
+        "id": "authorization"
+      },
+      {
+        "text": "Design tips",
+        "id": "design-tips"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/integrations/mcp",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "Enable MCP on a workflow",
+        "id": "enable-mcp-on-a-workflow"
+      },
+      {
+        "text": "Manage the server",
+        "id": "manage-the-server"
+      },
+      {
+        "text": "MCP groups",
+        "id": "mcp-groups"
+      },
+      {
+        "text": "Connect an MCP client",
+        "id": "connect-an-mcp-client"
+      },
+      {
+        "text": "Test with cURL",
+        "id": "test-with-curl"
+      },
+      {
+        "text": "Protocol details",
+        "id": "protocol-details"
+      },
+      {
+        "text": "Errors",
+        "id": "errors"
+      },
+      {
+        "text": "Connecting external MCP servers",
+        "id": "connecting-external-mcp-servers"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/integrations/models",
+    "headings": [
+      {
+        "text": "The Models tab",
+        "id": "the-models-tab"
+      },
+      {
+        "text": "Provider keys",
+        "id": "provider-keys"
+      },
+      {
+        "text": "Default quota or your own key?",
+        "id": "default-quota-or-your-own-key"
+      },
+      {
+        "text": "Choose a model per step",
+        "id": "choose-a-model-per-step"
+      },
+      {
+        "text": "Model parameters",
+        "id": "model-parameters"
+      },
+      {
+        "text": "Debug as Multiple Models",
+        "id": "debug-as-multiple-models"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/integrations/plugins",
+    "headings": [
+      {
+        "text": "Plugin types",
+        "id": "plugin-types"
+      },
+      {
+        "text": "Install from the Xpectrum Library",
+        "id": "install-from-the-xpectrum-library"
+      },
+      {
+        "text": "Manage and uninstall",
+        "id": "manage-and-uninstall"
+      },
+      {
+        "text": "Agent strategies",
+        "id": "agent-strategies"
+      },
+      {
+        "text": "Availability",
+        "id": "availability"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/integrations/tools",
+    "headings": [
+      {
+        "text": "Kinds of tools",
+        "id": "kinds-of-tools"
+      },
+      {
+        "text": "Install a tool",
+        "id": "install-a-tool"
+      },
+      {
+        "text": "Configure credentials",
+        "id": "configure-credentials"
+      },
+      {
+        "text": "Add tools to an Autonomous Agent",
+        "id": "add-tools-to-an-autonomous-agent"
+      },
+      {
+        "text": "Add tools to flows and workflows",
+        "id": "add-tools-to-flows-and-workflows"
+      },
+      {
+        "text": "Workflows as tools",
+        "id": "workflows-as-tools"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/integrations/tracing",
+    "headings": [
+      {
+        "text": "What gets traced",
+        "id": "what-gets-traced"
+      },
+      {
+        "text": "Providers and fields",
+        "id": "providers-and-fields"
+      },
+      {
+        "text": "LangSmith",
+        "id": "langsmith"
+      },
+      {
+        "text": "Langfuse",
+        "id": "langfuse"
+      },
+      {
+        "text": "Opik",
+        "id": "opik"
+      },
+      {
+        "text": "Weave",
+        "id": "weave"
+      },
+      {
+        "text": "Turn tracing on",
+        "id": "turn-tracing-on"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/knowledge",
+    "headings": [
+      {
+        "text": "How RAG works in Xpectrum",
+        "id": "how-rag-works-in-xpectrum"
+      },
+      {
+        "text": "Create a knowledge base",
+        "id": "create-a-knowledge-base"
+      },
+      {
+        "text": "Inside a knowledge base",
+        "id": "inside-a-knowledge-base"
+      },
+      {
+        "text": "Settings and permissions",
+        "id": "settings-and-permissions"
+      },
+      {
+        "text": "Metadata",
+        "id": "metadata"
+      },
+      {
+        "text": "Attach knowledge to an app",
+        "id": "attach-knowledge-to-an-app"
+      },
+      {
+        "text": "Use knowledge from the API",
+        "id": "use-knowledge-from-the-api"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/knowledge/external",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "The retrieval endpoint",
+        "id": "the-retrieval-endpoint"
+      },
+      {
+        "text": "Response",
+        "id": "response"
+      },
+      {
+        "text": "Use it in apps",
+        "id": "use-it-in-apps"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/knowledge/indexing",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "Chunk modes",
+        "id": "chunk-modes"
+      },
+      {
+        "text": "Recursive Character Splitting",
+        "id": "recursive-character-splitting"
+      },
+      {
+        "text": "Hierarchical",
+        "id": "hierarchical"
+      },
+      {
+        "text": "Q&A format",
+        "id": "qa-format"
+      },
+      {
+        "text": "Recommended settings by content",
+        "id": "recommended-settings-by-content"
+      },
+      {
+        "text": "Text pre-processing rules",
+        "id": "text-pre-processing-rules"
+      },
+      {
+        "text": "Index method",
+        "id": "index-method"
+      },
+      {
+        "text": "Embedding model",
+        "id": "embedding-model"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/knowledge/retrieval",
+    "headings": [
+      {
+        "text": "How search works",
+        "id": "how-search-works"
+      },
+      {
+        "text": "Merging the results",
+        "id": "merging-the-results"
+      },
+      {
+        "text": "Top K and score threshold",
+        "id": "top-k-and-score-threshold"
+      },
+      {
+        "text": "Multi-path retrieval",
+        "id": "multi-path-retrieval"
+      },
+      {
+        "text": "Metadata filtering",
+        "id": "metadata-filtering"
+      },
+      {
+        "text": "Citations",
+        "id": "citations"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/knowledge/sources",
+    "headings": [
+      {
+        "text": "Upload files",
+        "id": "upload-files"
+      },
+      {
+        "text": "Supported file types",
+        "id": "supported-file-types"
+      },
+      {
+        "text": "Upload limits",
+        "id": "upload-limits"
+      },
+      {
+        "text": "From Website",
+        "id": "from-website"
+      },
+      {
+        "text": "Step 1: Find the pages",
+        "id": "step-1-find-the-pages"
+      },
+      {
+        "text": "Step 2: Review & Create",
+        "id": "step-2-review--create"
+      },
+      {
+        "text": "From YouTube",
+        "id": "from-youtube"
+      },
+      {
+        "text": "Sync schedules",
+        "id": "sync-schedules"
+      },
+      {
+        "text": "Add sources later",
+        "id": "add-sources-later"
+      },
+      {
+        "text": "Why a URL fails",
+        "id": "why-a-url-fails"
+      },
+      {
+        "text": "Document statuses",
+        "id": "document-statuses"
+      },
+      {
+        "text": "Re-process a document",
+        "id": "re-process-a-document"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/knowledge/testing",
+    "headings": [
+      {
+        "text": "Run a test",
+        "id": "run-a-test"
+      },
+      {
+        "text": "Read the results",
+        "id": "read-the-results"
+      },
+      {
+        "text": "Diagnose a bad answer",
+        "id": "diagnose-a-bad-answer"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/monitor/analytics",
+    "headings": [
+      {
+        "text": "Metrics",
+        "id": "metrics"
+      },
+      {
+        "text": "Chart definitions",
+        "id": "chart-definitions"
+      },
+      {
+        "text": "Reading the charts",
+        "id": "reading-the-charts"
+      },
+      {
+        "text": "Tokens",
+        "id": "tokens"
+      },
+      {
+        "text": "Overview and Execution",
+        "id": "overview-and-execution"
+      },
+      {
+        "text": "Analytics app",
+        "id": "analytics-app"
+      },
+      {
+        "text": "Create it",
+        "id": "create-it"
+      },
+      {
+        "text": "Trigger: when conversations are analysed",
+        "id": "trigger-when-conversations-are-analysed"
+      },
+      {
+        "text": "Analyzer: what's recorded",
+        "id": "analyzer-whats-recorded"
+      },
+      {
+        "text": "Assistant: ask questions",
+        "id": "assistant-ask-questions"
+      },
+      {
+        "text": "Publish, logs and versions",
+        "id": "publish-logs-and-versions"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/monitor/governance",
+    "headings": [
+      {
+        "text": "Filters",
+        "id": "filters"
+      },
+      {
+        "text": "Overview dashboard",
+        "id": "overview-dashboard"
+      },
+      {
+        "text": "Health banner",
+        "id": "health-banner"
+      },
+      {
+        "text": "KPIs and charts",
+        "id": "kpis-and-charts"
+      },
+      {
+        "text": "Execution",
+        "id": "execution"
+      },
+      {
+        "text": "Audit logs",
+        "id": "audit-logs"
+      },
+      {
+        "text": "Common audit tasks",
+        "id": "common-audit-tasks"
+      },
+      {
+        "text": "Compliance and guardrails",
+        "id": "compliance-and-guardrails"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/monitor/logs",
+    "headings": [
+      {
+        "text": "App logs",
+        "id": "app-logs"
+      },
+      {
+        "text": "Conversational apps",
+        "id": "conversational-apps"
+      },
+      {
+        "text": "Workflows",
+        "id": "workflows"
+      },
+      {
+        "text": "Run History",
+        "id": "run-history"
+      },
+      {
+        "text": "Annotations",
+        "id": "annotations"
+      },
+      {
+        "text": "Workspace logs",
+        "id": "workspace-logs"
+      },
+      {
+        "text": "Columns",
+        "id": "columns"
+      },
+      {
+        "text": "Time ranges",
+        "id": "time-ranges"
+      },
+      {
+        "text": "Export CSV",
+        "id": "export-csv"
+      },
+      {
+        "text": "Retention",
+        "id": "retention"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/monitor/voice-sessions",
+    "headings": [
+      {
+        "text": "Filters and time range",
+        "id": "filters-and-time-range"
+      },
+      {
+        "text": "Summary tiles",
+        "id": "summary-tiles"
+      },
+      {
+        "text": "Charts",
+        "id": "charts"
+      },
+      {
+        "text": "Sessions table",
+        "id": "sessions-table"
+      },
+      {
+        "text": "Outcome badges",
+        "id": "outcome-badges"
+      },
+      {
+        "text": "Session detail",
+        "id": "session-detail"
+      },
+      {
+        "text": "AI Summary states",
+        "id": "ai-summary-states"
+      },
+      {
+        "text": "Recordings",
+        "id": "recordings"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/troubleshooting",
+    "headings": [
+      {
+        "text": "How to debug",
+        "id": "how-to-debug"
+      },
+      {
+        "text": "Read the API error body",
+        "id": "read-the-api-error-body"
+      },
+      {
+        "text": "A debugging checklist",
+        "id": "a-debugging-checklist"
+      },
+      {
+        "text": "API and authentication",
+        "id": "api-and-authentication"
+      },
+      {
+        "text": "Authorization header must be provided and start with Bearer",
+        "id": "authorization-header-must-be-provided-and-start-with-bearer"
+      },
+      {
+        "text": "Access token is invalid",
+        "id": "access-token-is-invalid"
+      },
+      {
+        "text": "This API key belongs to an app that does not support chat completions",
+        "id": "this-api-key-belongs-to-an-app-that-does-not-support-chat-completions"
+      },
+      {
+        "text": "The app's API service has been disabled, or The app no longer exists",
+        "id": "the-apps-api-service-has-been-disabled-or-the-app-no-longer-exists"
+      },
+      {
+        "text": "This client workspace has no admin yet",
+        "id": "this-client-workspace-has-no-admin-yet"
+      },
+      {
+        "text": "Cannot create more than 10 API keys for this resource type",
+        "id": "cannot-create-more-than-10-api-keys-for-this-resource-type"
+      },
+      {
+        "text": "Arg user must be provided",
+        "id": "arg-user-must-be-provided"
+      },
+      {
+        "text": "Requests and conversations",
+        "id": "requests-and-conversations"
+      },
+      {
+        "text": "Thread does not exist, or Conversation Not Exists",
+        "id": "thread-does-not-exist-or-conversation-not-exists"
+      },
+      {
+        "text": "The thread has ended. Start a new one by omitting 'thread_id'",
+        "id": "the-thread-has-ended-start-a-new-one-by-omitting-thread_id"
+      },
+      {
+        "text": "'thread_id' must be a valid UUID",
+        "id": "thread_id-must-be-a-valid-uuid"
+      },
+      {
+        "text": "'messages' must be a non-empty array containing at least one user message",
+        "id": "messages-must-be-a-non-empty-array-containing-at-least-one-user-message"
+      },
+      {
+        "text": "Missing required variable",
+        "id": "missing-required-variable"
+      },
+      {
+        "text": "Agent apps only support streaming, or Agent Chat App does not support blocking mode",
+        "id": "agent-apps-only-support-streaming-or-agent-chat-app-does-not-support-blocking-mode"
+      },
+      {
+        "text": "A blocking request times out or is cut off",
+        "id": "a-blocking-request-times-out-or-is-cut-off"
+      },
+      {
+        "text": "Invalid JSON payload received or JSON payload is empty",
+        "id": "invalid-json-payload-received-or-json-payload-is-empty"
+      },
+      {
+        "text": "Rate limited (429 rate_limit_exceeded)",
+        "id": "rate-limited-429-rate_limit_exceeded"
+      },
+      {
+        "text": "Models and credits",
+        "id": "models-and-credits"
+      },
+      {
+        "text": "No valid model provider credentials found, or provider_not_initialized",
+        "id": "no-valid-model-provider-credentials-found-or-provider_not_initialized"
+      },
+      {
+        "text": "Model provider quota exceeded (insufficient_quota)",
+        "id": "model-provider-quota-exceeded-insufficient_quota"
+      },
+      {
+        "text": "You're out of credits. Add credits to keep running",
+        "id": "youre-out-of-credits-add-credits-to-keep-running"
+      },
+      {
+        "text": "Building and running",
+        "id": "building-and-running"
+      },
+      {
+        "text": "Max steps 500 reached, or Max execution time 1200s reached",
+        "id": "max-steps-500-reached-or-max-execution-time-1200s-reached"
+      },
+      {
+        "text": "Max workflow call depth 5 reached",
+        "id": "max-workflow-call-depth-5-reached"
+      },
+      {
+        "text": "A Custom Function block fails with Output x is missing, or must be a string",
+        "id": "a-custom-function-block-fails-with-output-x-is-missing-or-must-be-a-string"
+      },
+      {
+        "text": "A block's output is empty in the next block",
+        "id": "a-blocks-output-is-empty-in-the-next-block"
+      },
+      {
+        "text": "Publishing",
+        "id": "publishing"
+      },
+      {
+        "text": "Changes work in Preview but not over the API or a channel",
+        "id": "changes-work-in-preview-but-not-over-the-api-or-a-channel"
+      },
+      {
+        "text": "Make sure all issues are resolved before publishing",
+        "id": "make-sure-all-issues-are-resolved-before-publishing"
+      },
+      {
+        "text": "This app has no published version yet",
+        "id": "this-app-has-no-published-version-yet"
+      },
+      {
+        "text": "Voice is disabled for this app, or History access is disabled for this app",
+        "id": "voice-is-disabled-for-this-app-or-history-access-is-disabled-for-this-app"
+      },
+      {
+        "text": "Channels and triggers",
+        "id": "channels-and-triggers"
+      },
+      {
+        "text": "Webhook trigger returns HTTP method mismatch or Content-type mismatch",
+        "id": "webhook-trigger-returns-http-method-mismatch-or-content-type-mismatch"
+      },
+      {
+        "text": "No active debug listener",
+        "id": "no-active-debug-listener"
+      },
+      {
+        "text": "Only workflow apps can be published as MCP tools",
+        "id": "only-workflow-apps-can-be-published-as-mcp-tools"
+      },
+      {
+        "text": "A channel receives messages but the agent never replies",
+        "id": "a-channel-receives-messages-but-the-agent-never-replies"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/troubleshooting/faq",
+    "headings": [
+      {
+        "text": "Getting started",
+        "id": "getting-started"
+      },
+      {
+        "text": "Which app type should I use?",
+        "id": "which-app-type-should-i-use"
+      },
+      {
+        "text": "What's the difference between an Agent Flow and a Workflow?",
+        "id": "whats-the-difference-between-an-agent-flow-and-a-workflow"
+      },
+      {
+        "text": "Why don't my changes show up over the API or on my phone number?",
+        "id": "why-dont-my-changes-show-up-over-the-api-or-on-my-phone-number"
+      },
+      {
+        "text": "Can I roll back to an earlier version?",
+        "id": "can-i-roll-back-to-an-earlier-version"
+      },
+      {
+        "text": "Pricing and credits",
+        "id": "pricing-and-credits"
+      },
+      {
+        "text": "How does pricing work?",
+        "id": "how-does-pricing-work"
+      },
+      {
+        "text": "What happens when I run out of credits?",
+        "id": "what-happens-when-i-run-out-of-credits"
+      },
+      {
+        "text": "Can I use my own model or speech provider keys?",
+        "id": "can-i-use-my-own-model-or-speech-provider-keys"
+      },
+      {
+        "text": "API and security",
+        "id": "api-and-security"
+      },
+      {
+        "text": "Is it safe to put my API key in the browser?",
+        "id": "is-it-safe-to-put-my-api-key-in-the-browser"
+      },
+      {
+        "text": "Should I use the recommended API or the classic API?",
+        "id": "should-i-use-the-recommended-api-or-the-classic-api"
+      },
+      {
+        "text": "How does the agent remember a conversation over the API?",
+        "id": "how-does-the-agent-remember-a-conversation-over-the-api"
+      },
+      {
+        "text": "Can I stop a reply that's being generated?",
+        "id": "can-i-stop-a-reply-thats-being-generated"
+      },
+      {
+        "text": "Does Xpectrum send webhooks when a conversation or run finishes?",
+        "id": "does-xpectrum-send-webhooks-when-a-conversation-or-run-finishes"
+      },
+      {
+        "text": "How do I start a workflow from another system?",
+        "id": "how-do-i-start-a-workflow-from-another-system"
+      },
+      {
+        "text": "Integrations and MCP",
+        "id": "integrations-and-mcp"
+      },
+      {
+        "text": "Can I use my workflows in Cursor or another MCP client?",
+        "id": "can-i-use-my-workflows-in-cursor-or-another-mcp-client"
+      },
+      {
+        "text": "Can my agent call my own API?",
+        "id": "can-my-agent-call-my-own-api"
+      },
+      {
+        "text": "Can I trace model calls in my own observability tool?",
+        "id": "can-i-trace-model-calls-in-my-own-observability-tool"
+      },
+      {
+        "text": "Voice and channels",
+        "id": "voice-and-channels"
+      },
+      {
+        "text": "Which languages can a voice agent speak?",
+        "id": "which-languages-can-a-voice-agent-speak"
+      },
+      {
+        "text": "Can I use a custom or cloned voice?",
+        "id": "can-i-use-a-custom-or-cloned-voice"
+      },
+      {
+        "text": "Can the agent transfer a call to a person?",
+        "id": "can-the-agent-transfer-a-call-to-a-person"
+      },
+      {
+        "text": "Does the agent detect voicemail on outbound calls?",
+        "id": "does-the-agent-detect-voicemail-on-outbound-calls"
+      },
+      {
+        "text": "Where do I find call recordings and transcripts?",
+        "id": "where-do-i-find-call-recordings-and-transcripts"
+      },
+      {
+        "text": "How do I put an agent on my website?",
+        "id": "how-do-i-put-an-agent-on-my-website"
+      },
+      {
+        "text": "Which channels are supported?",
+        "id": "which-channels-are-supported"
+      },
+      {
+        "text": "Workspaces and agencies",
+        "id": "workspaces-and-agencies"
+      },
+      {
+        "text": "Can I build agents for my clients?",
+        "id": "can-i-build-agents-for-my-clients"
+      },
+      {
+        "text": "Can I remove the Powered by Xpectrum AI badge?",
+        "id": "can-i-remove-the-powered-by-xpectrum-ai-badge"
+      },
+      {
+        "text": "How many owners and admins can a workspace have?",
+        "id": "how-many-owners-and-admins-can-a-workspace-have"
+      },
+      {
+        "text": "Can I turn on two-factor authentication?",
+        "id": "can-i-turn-on-two-factor-authentication"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/troubleshooting/knowledge",
+    "headings": [
+      {
+        "text": "Where to look first",
+        "id": "where-to-look-first"
+      },
+      {
+        "text": "Indexing",
+        "id": "indexing"
+      },
+      {
+        "text": "A document is stuck in Queuing or Indexing",
+        "id": "a-document-is-stuck-in-queuing-or-indexing"
+      },
+      {
+        "text": "A document shows Error, or documents indexed failed",
+        "id": "a-document-shows-error-or-documents-indexed-failed"
+      },
+      {
+        "text": "The knowledge base is still indexing. Please try again shortly",
+        "id": "the-knowledge-base-is-still-indexing-please-try-again-shortly"
+      },
+      {
+        "text": "Cannot delete document during indexing",
+        "id": "cannot-delete-document-during-indexing"
+      },
+      {
+        "text": "Custom segment length should be between 50 and 4000",
+        "id": "custom-segment-length-should-be-between-50-and-4000"
+      },
+      {
+        "text": "Answers and retrieval",
+        "id": "answers-and-retrieval"
+      },
+      {
+        "text": "The agent ignores the knowledge base",
+        "id": "the-agent-ignores-the-knowledge-base"
+      },
+      {
+        "text": "Nothing is retrieved",
+        "id": "nothing-is-retrieved"
+      },
+      {
+        "text": "Answers are irrelevant or miss the obvious chunk",
+        "id": "answers-are-irrelevant-or-miss-the-obvious-chunk"
+      },
+      {
+        "text": "The agent gets too much context, or answers are slow and expensive",
+        "id": "the-agent-gets-too-much-context-or-answers-are-slow-and-expensive"
+      },
+      {
+        "text": "The answer is right but has no sources",
+        "id": "the-answer-is-right-but-has-no-sources"
+      },
+      {
+        "text": "A retrieval test won't run with a long query",
+        "id": "a-retrieval-test-wont-run-with-a-long-query"
+      },
+      {
+        "text": "Economical vs High Quality",
+        "id": "economical-vs-high-quality"
+      },
+      {
+        "text": "Current operation only supports 'high-quality' datasets",
+        "id": "current-operation-only-supports-high-quality-datasets"
+      },
+      {
+        "text": "Sources and uploads",
+        "id": "sources-and-uploads"
+      },
+      {
+        "text": "No URLs discovered. Try the other method or add URLs manually",
+        "id": "no-urls-discovered-try-the-other-method-or-add-urls-manually"
+      },
+      {
+        "text": "Website discovery finds too many pages",
+        "id": "website-discovery-finds-too-many-pages"
+      },
+      {
+        "text": "Please enter a channel ID, or the YouTube source finds no videos",
+        "id": "please-enter-a-channel-id-or-the-youtube-source-finds-no-videos"
+      },
+      {
+        "text": "A source stopped updating",
+        "id": "a-source-stopped-updating"
+      },
+      {
+        "text": "The file is too large or its type isn't supported",
+        "id": "the-file-is-too-large-or-its-type-isnt-supported"
+      },
+      {
+        "text": "Knowledge API errors",
+        "id": "knowledge-api-errors"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/troubleshooting/limits",
+    "headings": [
+      {
+        "text": "API requests",
+        "id": "api-requests"
+      },
+      {
+        "text": "Files",
+        "id": "files"
+      },
+      {
+        "text": "Workflows and blocks",
+        "id": "workflows-and-blocks"
+      },
+      {
+        "text": "Agents",
+        "id": "agents"
+      },
+      {
+        "text": "Knowledge",
+        "id": "knowledge"
+      },
+      {
+        "text": "Voice and phone",
+        "id": "voice-and-phone"
+      },
+      {
+        "text": "Batch calls",
+        "id": "batch-calls"
+      },
+      {
+        "text": "Messaging channels",
+        "id": "messaging-channels"
+      },
+      {
+        "text": "Triggers and MCP",
+        "id": "triggers-and-mcp"
+      },
+      {
+        "text": "Workspaces, roles and billing",
+        "id": "workspaces-roles-and-billing"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/troubleshooting/voice",
+    "headings": [
+      {
+        "text": "Where to look first",
+        "id": "where-to-look-first"
+      },
+      {
+        "text": "Calls that don't connect",
+        "id": "calls-that-dont-connect"
+      },
+      {
+        "text": "The call connects, then drops immediately with no greeting",
+        "id": "the-call-connects-then-drops-immediately-with-no-greeting"
+      },
+      {
+        "text": "insufficient credit: $X available, $Y required to start a call",
+        "id": "insufficient-credit-x-available-y-required-to-start-a-call"
+      },
+      {
+        "text": "Voice is disabled for this app. Enable it in the app settings and publish",
+        "id": "voice-is-disabled-for-this-app-enable-it-in-the-app-settings-and-publish"
+      },
+      {
+        "text": "Voice server is unreachable",
+        "id": "voice-server-is-unreachable"
+      },
+      {
+        "text": "Room does not belong to this app",
+        "id": "room-does-not-belong-to-this-app"
+      },
+      {
+        "text": "Already connected or connecting. Call disconnect() first",
+        "id": "already-connected-or-connecting-call-disconnect-first"
+      },
+      {
+        "text": "livekit-client is required for voice calls",
+        "id": "livekit-client-is-required-for-voice-calls"
+      },
+      {
+        "text": "Microphone and browser",
+        "id": "microphone-and-browser"
+      },
+      {
+        "text": "Microphone Access Required, or Microphone Access Denied",
+        "id": "microphone-access-required-or-microphone-access-denied"
+      },
+      {
+        "text": "The voice widget works locally but not on my website",
+        "id": "the-voice-widget-works-locally-but-not-on-my-website"
+      },
+      {
+        "text": "The widget shows the call as connected but nothing is heard",
+        "id": "the-widget-shows-the-call-as-connected-but-nothing-is-heard"
+      },
+      {
+        "text": "Silence and talking over",
+        "id": "silence-and-talking-over"
+      },
+      {
+        "text": "The agent says nothing at the start of the call",
+        "id": "the-agent-says-nothing-at-the-start-of-the-call"
+      },
+      {
+        "text": "The agent goes silent after the caller speaks",
+        "id": "the-agent-goes-silent-after-the-caller-speaks"
+      },
+      {
+        "text": "The agent talks over the caller, or stops when the caller says uh-huh",
+        "id": "the-agent-talks-over-the-caller-or-stops-when-the-caller-says-uh-huh"
+      },
+      {
+        "text": "The caller can't interrupt the greeting",
+        "id": "the-caller-cant-interrupt-the-greeting"
+      },
+      {
+        "text": "The agent answers before the caller has finished",
+        "id": "the-agent-answers-before-the-caller-has-finished"
+      },
+      {
+        "text": "Calls ending",
+        "id": "calls-ending"
+      },
+      {
+        "text": "The call is cut off after a fixed time",
+        "id": "the-call-is-cut-off-after-a-fixed-time"
+      },
+      {
+        "text": "The agent keeps asking if the caller is still there, then hangs up",
+        "id": "the-agent-keeps-asking-if-the-caller-is-still-there-then-hangs-up"
+      },
+      {
+        "text": "The call ends when the agent says goodbye",
+        "id": "the-call-ends-when-the-agent-says-goodbye"
+      },
+      {
+        "text": "TTS or STT provider key problems",
+        "id": "tts-or-stt-provider-key-problems"
+      },
+      {
+        "text": "Phone numbers and outbound calls",
+        "id": "phone-numbers-and-outbound-calls"
+      },
+      {
+        "text": "Inbound calls to my number don't reach the agent",
+        "id": "inbound-calls-to-my-number-dont-reach-the-agent"
+      },
+      {
+        "text": "My number isn't offered as the caller number",
+        "id": "my-number-isnt-offered-as-the-caller-number"
+      },
+      {
+        "text": "Enter the phone number in E.164 format",
+        "id": "enter-the-phone-number-in-e164-format"
+      },
+      {
+        "text": "The number is currently busy, No answer, or This number appears to be unreachable or switched off",
+        "id": "the-number-is-currently-busy-no-answer-or-this-number-appears-to-be-unreachable-or-switched-off"
+      },
+      {
+        "text": "An outbound call reaches voicemail and the agent talks to it",
+        "id": "an-outbound-call-reaches-voicemail-and-the-agent-talks-to-it"
+      },
+      {
+        "text": "Batch calls",
+        "id": "batch-calls"
+      },
+      {
+        "text": "Invalid format — must be E.164 (+1234567890)",
+        "id": "invalid-format--must-be-e164-1234567890"
+      },
+      {
+        "text": "Only the first 30 numbers will be used",
+        "id": "only-the-first-30-numbers-will-be-used"
+      },
+      {
+        "text": "Some numbers in a batch were never called back",
+        "id": "some-numbers-in-a-batch-were-never-called-back"
+      },
+      {
+        "text": "Recordings and transcripts",
+        "id": "recordings-and-transcripts"
+      },
+      {
+        "text": "There is no recording for a call",
+        "id": "there-is-no-recording-for-a-call"
+      },
+      {
+        "text": "The greeting is missing from the live transcript",
+        "id": "the-greeting-is-missing-from-the-live-transcript"
+      },
+      {
+        "text": "End reasons",
+        "id": "end-reasons"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/workspaces/billing",
+    "headings": [
+      {
+        "text": "How pricing works",
+        "id": "how-pricing-works"
+      },
+      {
+        "text": "What counts as one execution",
+        "id": "what-counts-as-one-execution"
+      },
+      {
+        "text": "The Billings page",
+        "id": "the-billings-page"
+      },
+      {
+        "text": "Add credit",
+        "id": "add-credit"
+      },
+      {
+        "text": "Payment method",
+        "id": "payment-method"
+      },
+      {
+        "text": "Phone number charges",
+        "id": "phone-number-charges"
+      },
+      {
+        "text": "Usage history",
+        "id": "usage-history"
+      },
+      {
+        "text": "Tokens",
+        "id": "tokens"
+      },
+      {
+        "text": "Low and empty balance",
+        "id": "low-and-empty-balance"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/workspaces/branding",
+    "headings": [
+      {
+        "text": "Settings",
+        "id": "settings"
+      },
+      {
+        "text": "Logo requirements",
+        "id": "logo-requirements"
+      },
+      {
+        "text": "Change the logo",
+        "id": "change-the-logo"
+      },
+      {
+        "text": "Where branding appears",
+        "id": "where-branding-appears"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  },
+  {
+    "href": "/docs/workspaces/clients",
+    "headings": [
+      {
+        "text": "How it works",
+        "id": "how-it-works"
+      },
+      {
+        "text": "Create a client workspace",
+        "id": "create-a-client-workspace"
+      },
+      {
+        "text": "Provisioning modes",
+        "id": "provisioning-modes"
+      },
+      {
+        "text": "Statuses and actions",
+        "id": "statuses-and-actions"
+      },
+      {
+        "text": "The clients table",
+        "id": "the-clients-table"
+      },
+      {
+        "text": "Client credit overview",
+        "id": "client-credit-overview"
+      },
+      {
+        "text": "Client detail",
+        "id": "client-detail"
+      },
+      {
+        "text": "Credit detail (self-serve)",
+        "id": "credit-detail-self-serve"
+      },
+      {
+        "text": "Admins in a client workspace",
+        "id": "admins-in-a-client-workspace"
+      },
+      {
+        "text": "Troubleshooting",
+        "id": "troubleshooting"
+      },
+      {
+        "text": "Next steps",
+        "id": "next-steps"
+      }
+    ]
+  }
+]

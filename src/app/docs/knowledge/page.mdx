@@ -1,0 +1,101 @@
+export const metadata = {
+  title: 'Knowledge',
+  description: 'Ground your agents in your own documents, websites and videos with knowledge bases and retrieval-augmented generation (RAG).',
+}
+
+# Knowledge
+
+A knowledge base is a searchable collection of your content: files, website pages or YouTube transcripts. Attach one to an agent and it answers from your material instead of only from what the model already knows.
+
+## How RAG works in Xpectrum
+
+Retrieval-augmented generation (RAG) runs in two phases. The first happens once, when you add content. The second happens on every question.
+
+| Stage | What happens | Where you control it |
+|---|---|---|
+| **Ingest** | Files are uploaded, or pages and transcripts are fetched from a website or YouTube channel. | [Sources](/docs/knowledge/sources) |
+| **Chunk** | Each document is cleaned and split into chunks (short passages). | [Chunking and indexing](/docs/knowledge/indexing) |
+| **Index** | Each chunk is embedded as a vector by the knowledge base's **Embedding Model** and indexed for keyword search. | [Chunking and indexing](/docs/knowledge/indexing) |
+| **Retrieve** | At question time, the query is matched against the index and the best chunks are returned. | [Retrieval](/docs/knowledge/retrieval) |
+| **Cite** | The chunks go to the model as context. With citations turned on, the answer lists the documents it used. | [Citations](/docs/knowledge/retrieval#citations) |
+
+Retrieval quality depends mostly on the first three stages. If answers are wrong, first use [Retrieval Test](/docs/knowledge/testing) to check which chunks come back, before you change the prompt.
+
+## Create a knowledge base
+
+Open **Resources › Knowledge Base** and click **Create Knowledge**. The dialog asks you to **Choose how you want to add content to your Knowledge Base**:
+
+| Option | Use it for | Keeps itself up to date |
+|---|---|---|
+| **Upload Files** | PDFs, Word files, spreadsheets, Markdown, HTML and other documents on your computer. | No. Upload a new version when the file changes. |
+| **From Website** | A help center, docs site or marketing site. Pages are found from the sitemap, by crawling, or from a list of URLs. | Yes, with a **Sync Schedule** |
+| **From YouTube** | Transcripts of a channel's videos. | Yes, with a **Sync Schedule** |
+
+Each path then asks how to chunk the content and which **Embedding Model** to use. The defaults are a good starting point. See [Sources](/docs/knowledge/sources) for each path step by step.
+
+<Callout>
+  You can mix source types in one knowledge base. Create it with one path, then add websites or YouTube channels later from the **Sources** tab with **Add Source**.
+</Callout>
+
+## Inside a knowledge base
+
+Open a knowledge base to see five tabs:
+
+| Tab | What it's for |
+|---|---|
+| **Documents** | Every document with its chunking strategy, word count, retrieval count, upload time and status. Open a document to view, edit or add chunks, or to change its **Chunking Settings**. |
+| **Sources** | **Auto-Sync Sources**: the websites and YouTube channels that feed this knowledge base, their sync schedules and sync history. |
+| **Retrieval Testing** | Run test queries and see which chunks are returned and how they score. See [Testing retrieval](/docs/knowledge/testing). |
+| **Settings** | Name, description, embedding model and retrieval setting. |
+| **Logs** | Recent queries against this knowledge base, from Retrieval Testing and from apps, with their source and time. Click one to run it again in Retrieval Testing. |
+
+## Settings and permissions
+
+| Setting | What it does |
+|---|---|
+| **Knowledge Name** | The display name. 1 to 40 characters, and unique in the workspace. |
+| **Knowledge Description** | A plain description of what the knowledge base contains. When an agent has several knowledge bases, it uses the descriptions to choose between them, so make them specific. |
+| **Embedding Model** | The model that turns chunks and queries into vectors. |
+| **Retrieval Setting** | How keyword and semantic results are merged, how many chunks come back (Top K) and the score threshold. See [Retrieval](/docs/knowledge/retrieval). |
+
+Knowledge bases are shared with all team members in the workspace.
+
+<Callout type='tip'>
+  Members with the **Knowledge Admin** role can manage knowledge bases but can't build apps. It's a good fit for content owners who keep the documentation current.
+</Callout>
+
+## Metadata
+
+Metadata is a set of fields on each document, such as `product`, `region` or `valid_until`. The **Knowledge Search** block can use it to filter results. To work with metadata, select one or more documents in **Documents** and click **Metadata** in the action bar. This opens **Edit Metadata**. Click **Manage** there to see the fields for the whole knowledge base:
+
+- **Add Metadata** creates a field. Names use lowercase letters, numbers and underscores, and must start with a lowercase letter. Types are string, number and time.
+- **Built-in** fields are filled in automatically: `document_name`, `uploader`, `upload_date`, `last_update_date` and `source`. You must enable them before use, and you can't edit them.
+- To label documents, set the values in **Edit Metadata**. Turn on **Apply to all selected documents** to add the fields to documents that don't have them yet.
+
+To filter by metadata at question time, see [Metadata filtering](/docs/knowledge/retrieval#metadata-filtering).
+
+## Attach knowledge to an app
+
+| App type | Where to attach | How it's used |
+|---|---|---|
+| Autonomous Agent, AI Chatbot | **Knowledge** node › **Select reference Knowledge** › **Add** | An AI Chatbot searches on every turn. An Autonomous Agent searches the knowledge as a tool when it decides it needs to, and **Knowledge Prompt** in the Instructions node guides how it searches. |
+| Agent Flow, Workflow | A [Knowledge Search](/docs/blocks/knowledge-search) block | Returns chunks as the `result` variable. Pass it to an AI Model block as context. |
+
+Then turn on **Citations and Attributions** in **Agent Settings** if you want answers to show their sources.
+
+<Callout type='warning'>
+  Deleting a knowledge base can't be undone. If apps still use it, the confirmation says "The knowledge is being used by some apps", and after the delete those apps can no longer retrieve from it. Remove it from those apps first.
+</Callout>
+
+## Use knowledge from the API
+
+The Knowledge API lets you create knowledge bases, add documents from text or files, check indexing status and run retrieval from your own code. It uses a knowledge API key, which is separate from app keys. See the [Knowledge API reference](/docs/api/knowledge).
+
+## Next steps
+
+<Cards>
+  <Card title='Add sources' href='/docs/knowledge/sources'>Upload files, crawl a website or import YouTube transcripts.</Card>
+  <Card title='Chunking and indexing' href='/docs/knowledge/indexing'>Choose chunk sizes and an embedding model for your content.</Card>
+  <Card title='Retrieval' href='/docs/knowledge/retrieval'>Hybrid search, weighting and reranking, and Top K.</Card>
+  <Card title='Test retrieval' href='/docs/knowledge/testing'>Check which chunks a question returns before you ship.</Card>
+</Cards>

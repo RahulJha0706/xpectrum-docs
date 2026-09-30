@@ -1,0 +1,94 @@
+export const metadata = {
+  title: 'External knowledge',
+  description: 'Connect a knowledge base hosted outside Xpectrum through an External Knowledge API, and the retrieval endpoint it must implement.',
+}
+
+# External knowledge
+
+An external knowledge base keeps your content in your own search system, such as an existing vector database or enterprise search. Xpectrum calls your retrieval endpoint at question time and treats the results like chunks from any other knowledge base.
+
+<Callout type='warning' title='Limited availability'>
+  Connecting an external knowledge base isn't offered in the **Create Knowledge** menu, and it may not be enabled on every workspace. Contact support if you need it. Only retrieval is supported: documents stay in your system and can't be managed from Xpectrum.
+</Callout>
+
+## How it works
+
+1. You register an **External Knowledge API** with a **Name**, an **API Endpoint** (your base URL) and an **API Key**.
+2. You connect a knowledge base to it with an **External Knowledge ID**, the identifier of the collection in your system. You also set its own Top K and score threshold.
+3. When an agent searches that knowledge base, Xpectrum sends `POST {API Endpoint}/retrieval` and uses the records you return.
+
+When you save the API, Xpectrum sends a test request to `{API Endpoint}/retrieval` with your key. Saving fails if the endpoint can't be reached or answers `404`, `403` or `502`.
+
+An external knowledge base has only the **Retrieval Testing**, **Settings** and **Logs** tabs. Its **Settings** show the linked **External Knowledge API** and **External Knowledge ID**, and let you change its **Retrieval Setting** (Top K and score threshold).
+
+## The retrieval endpoint
+
+Your service must implement one endpoint.
+
+<Endpoint method='POST' path='/retrieval' />
+
+Xpectrum sends your **API Key** as `Authorization: Bearer <API Key>` and a JSON body.
+
+<Params title='Request body'>
+  <Param name='knowledge_id' type='string' required>The **External Knowledge ID** configured on the knowledge base. Use it to pick the collection to search.</Param>
+  <Param name='query' type='string' required>The user's query.</Param>
+  <Param name='retrieval_setting.top_k' type='integer' required>The maximum number of records to return.</Param>
+  <Param name='retrieval_setting.score_threshold' type='number' required>The minimum score. It's `0` when the knowledge base's score threshold is turned off.</Param>
+  <Param name='metadata_condition' type='object | null'>A metadata filter from the app, or `null`. It contains `logical_operator` (`and` or `or`) and `conditions[]`, each with `name`, `comparison_operator` and `value`.</Param>
+</Params>
+
+```json title="Request"
+{
+  "knowledge_id": "support-articles",
+  "query": "How do I reset my password?",
+  "retrieval_setting": { "top_k": 4, "score_threshold": 0.5 },
+  "metadata_condition": null
+}
+```
+
+### Response
+
+Return HTTP `200` with a `records` array. Any other status is treated as no results.
+
+<Params title='Response body'>
+  <Param name='records[].content' type='string' required>The chunk text passed to the model.</Param>
+  <Param name='records[].score' type='number'>The relevance score, used for ranking and thresholds.</Param>
+  <Param name='records[].title' type='string'>The source title, shown in citations.</Param>
+  <Param name='records[].metadata' type='object'>Any extra fields you want to keep with the record.</Param>
+</Params>
+
+```json title="Response"
+{
+  "records": [
+    {
+      "content": "To reset your password, open Settings › Security and choose Reset password…",
+      "score": 0.87,
+      "title": "Resetting your password",
+      "metadata": { "url": "https://help.example.com/reset-password" }
+    }
+  ]
+}
+```
+
+<Callout>
+  Return a `metadata` object for every record, even an empty `{}`. Xpectrum adds the score, title and knowledge base name to it.
+</Callout>
+
+## Use it in apps
+
+An external knowledge base attaches to apps like any other. See [Attach knowledge to an app](/docs/knowledge#attach-knowledge-to-an-app). If an app combines external and internal knowledge bases, it needs a rerank model. See [Multi-path retrieval](/docs/knowledge/retrieval#multi-path-retrieval).
+
+## Troubleshooting
+
+- **"Not Found: failed to connect to the endpoint".** Your service has no `POST /retrieval` under the base URL. Enter the base URL without `/retrieval`.
+- **"Forbidden: Authorization failed with api_key".** Your service rejected the key. Check how it validates the `Authorization` header.
+- **"invalid endpoint: … must start with http:// or https://".** Enter the full base URL, including the scheme.
+- **"failed to connect to the endpoint"** or **"Bad Gateway: failed to connect to the endpoint".** Xpectrum couldn't reach your service. Make sure it's reachable from the internet.
+- **Agents never get results.** Make sure the endpoint returns `200` with a `records` array. Test it with the request above.
+
+## Next steps
+
+<Cards>
+  <Card title='Retrieval' href='/docs/knowledge/retrieval'>How results from several knowledge bases are merged.</Card>
+  <Card title='Knowledge API' href='/docs/api/knowledge'>Manage built-in knowledge bases from code.</Card>
+</Cards>

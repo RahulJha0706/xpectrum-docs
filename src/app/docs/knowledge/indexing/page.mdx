@@ -1,0 +1,111 @@
+export const metadata = {
+  title: 'Chunking & indexing',
+  description: 'Choose a chunk mode, chunk length, overlap, pre-processing rules and embedding model so your knowledge base retrieves the right passages.',
+}
+
+# Chunking & indexing
+
+Before content is searchable, it's split into chunks and indexed. These settings decide what a single search hit contains, so they matter more for answer quality than any prompt.
+
+## How it works
+
+1. **Clean.** Pre-processing rules remove noise such as extra whitespace, URLs and email addresses.
+2. **Split.** Text is split into chunks by a delimiter, up to the **Maximum chunk length**. Neighboring chunks share a **Chunk overlap**.
+3. **Index.** Each chunk is embedded as a vector by the **Embedding Model**.
+
+When you upload files, you first pick a chunking strategy. The settings page then shows **Delimiter** and **Embedding Model** up front and the rest under **Advanced**. The **Preview** panel shows the chunks your settings produce and updates as you edit, so you can check them before you click **Save & Process**.
+
+## Chunk modes
+
+| Mode | How it splits | What's retrieved | Best for |
+|---|---|---|---|
+| **Recursive Character Splitting** | Splits text on your delimiter(s), recursively, until each chunk fits the maximum length. | The same chunk that matched. | FAQs, short articles, product pages, anything where one passage answers one question. |
+| **Hierarchical** | Creates large parent chunks, then splits each into small child chunks. | A child chunk matches the query. Its whole parent is returned as context. | Long manuals, contracts, policies: precise matching with enough surrounding context to answer well. |
+
+### Recursive Character Splitting
+
+| Setting | Default | Notes |
+|---|---|---|
+| **Delimiter** | `\n\n` (paragraphs) | Use `\n` for lines. Several delimiters separated by commas (`\n\n,\n`) split by paragraph first, then by line when a paragraph is too long. Custom delimiters such as `***` work too. |
+| **Maximum chunk length** | 4000 tokens | Between 50 and 4000 tokens. Under **Advanced**. |
+| **Chunk overlap** | 50 tokens | 10–25% of the chunk length is recommended. It can't be larger than the chunk length. Under **Advanced**. |
+| **Chunk using Q&A format in** | Off | Under **Advanced**. See [Q&A format](#qa-format). |
+
+### Hierarchical
+
+| Setting | Default | Notes |
+|---|---|---|
+| **Split by** | **Paragraph** | **Paragraph** splits the document into parents by delimiter and length. **Full Doc** uses the whole document as one parent. It's truncated at 10,000 tokens. |
+| **Parent-chunk for Context**: **Delimiter** / **Maximum chunk length** | `\n\n`, 1024 tokens | Large sections. Shown for **Paragraph** only. |
+| **Child-chunk for Retrieval**: **Delimiter** / **Maximum chunk length** | `\n`, 512 tokens | Small, precise units that are matched against the query. |
+
+The pre-processing rules for Hierarchical are under **Advanced**.
+
+Use **Full Doc** only for short documents, such as one-page product sheets, where the entire document is useful context. Longer documents lose everything past the truncation point.
+
+### Q&A format
+
+**Chunk using Q&A format in** has the model rewrite each chunk into question and answer pairs, in the language you pick. Retrieval then matches user questions against generated questions, which works well for FAQ-style content.
+
+<Callout type='warning'>
+  Q&A format consumes extra model tokens while indexing. It's only offered with **Recursive Character Splitting**, and you choose it when you create the knowledge base. You can't switch it on or off when you add files to an existing knowledge base.
+</Callout>
+
+## Recommended settings by content
+
+Start with these values, then check them with [Retrieval Test](/docs/knowledge/testing).
+
+| Content | Chunk mode | Delimiter | Chunk length | Overlap |
+|---|---|---|---|---|
+| FAQ pages, one Q&A per paragraph | Recursive (or Q&A format) | `\n\n` | 300–500 | 0–50 |
+| Help center or docs articles | Recursive | `\n\n` | 500–1000 | 50–150 |
+| Long manuals, policies, contracts | Hierarchical, **Paragraph** | parent `\n\n`, child `\n` | parent 1024, child 256–512 | — |
+| Short product or spec sheets | Hierarchical, **Full Doc** | child `\n` | child 256–512 | — |
+| Spreadsheets and CSV (one row per record) | Recursive | `\n` | 200–500 | 0 |
+| Transcripts (calls, YouTube) | Recursive | `\n` | 500–1000 | 100–200 |
+| Website pages | Recursive | `\n\n` | 500–1000 | 50–100 |
+
+Rules of thumb:
+
+- **Smaller chunks** are more precise but can cut an answer in half. **Larger chunks** hold more context but dilute the match and use more of the model's context window.
+- If answers are cut off mid-list or mid-table, raise the chunk length or switch to **Hierarchical**.
+- If a search returns the right document but the wrong part of it, lower the chunk length.
+- Keep overlap at 10–25% of the chunk length. More overlap mostly duplicates content.
+
+## Text pre-processing rules
+
+Under **Text Pre-processing Rules**:
+
+| Rule | When to turn it on |
+|---|---|
+| **Replace consecutive spaces, newlines and tabs** | Almost always. It tidies text extracted from PDFs and web pages. Turn it off if your delimiter relies on blank lines that this would collapse. |
+| **Delete all URLs and email addresses** | When links and addresses are noise. Leave it off if agents must quote support emails, booking links or URLs. |
+
+## Index method
+
+New knowledge bases always use the **High Quality** index method: the **Embedding Model** embeds each chunk as a vector, which uses embedding tokens when indexing and for each query. There's no index method to choose.
+
+Some older knowledge bases use **Economical**, which indexes 10 keywords per chunk, uses no tokens, and supports keyword search only. Their index method can't be changed from the app.
+
+### Embedding model
+
+The **Embedding Model** converts chunks and queries into vectors, and both must use the same model. The list shows the embedding models your workspace can use. See [Models](/docs/integrations/models) to add a provider key. You can change it later in the knowledge base's **Settings** tab.
+
+- Pick the model once and keep it. Changing it means re-embedding everything.
+- If a knowledge base shows **Unavailable** or "Embedding model is unavailable.", its embedding model's provider isn't configured anymore. Restore the provider's key in **Integrations › Models**.
+- If an app combines knowledge bases that use different embedding models, it needs a rerank model. See [Retrieval](/docs/knowledge/retrieval#multi-path-retrieval).
+
+## Troubleshooting
+
+- **"Maximum chunk length should be less than 4000"** or **"Custom segment length should be between 50 and 4000."** Set **Maximum chunk length** in that range.
+- **"chunk overlap should not bigger than maximum chunk length"**. Lower the overlap.
+- **The preview shows one huge chunk.** Your delimiter doesn't occur in the text. Try `\n` instead of `\n\n`, or add a custom delimiter.
+- **Answers miss details that are in the document.** Chunks may be too large and diluted. Reduce the length, or switch to **Hierarchical**.
+- **Q&A format can't be turned on.** It's only available with **Recursive Character Splitting** when you create a knowledge base, not when you add files to an existing one.
+
+## Next steps
+
+<Cards>
+  <Card title='Retrieval' href='/docs/knowledge/retrieval'>Choose how results are merged, Top K and a score threshold.</Card>
+  <Card title='Test retrieval' href='/docs/knowledge/testing'>Compare chunk settings on real questions.</Card>
+</Cards>

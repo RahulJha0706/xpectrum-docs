@@ -1,0 +1,555 @@
+export const metadata = {
+  title: 'Conversations & messages',
+  description: 'List, rename and delete conversations, read conversation variables and message history, and get suggested follow-up questions with the classic API.',
+}
+
+# Conversations & messages
+
+Manage the conversations your end users have with a conversational app: list them, rename or delete them, read their conversation variables, page through the message history, and fetch suggested follow-up questions.
+
+All endpoints on this page work with the conversations of one end user, identified by `user`. A conversation created with one `user` value is not visible with another. See [The user parameter](/docs/api/classic#the-user-parameter).
+
+**Supported app types (whole page):** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='violet'>Multi-prompt Agent</Tag>
+
+Calling these endpoints with a Workflow or Text Generator key returns `400 not_chat_app`.
+
+## List conversations
+
+<Endpoint method='GET' path='/v1/conversations' />
+
+Returns the end user's conversations, most recently updated first by default. Page through them with `last_id`.
+
+<Params title='Query parameters'>
+  <Param name='user' type='string'>The end user whose conversations to list. If omitted, the shared `DEFAULT-USER` is used.</Param>
+  <Param name='last_id' type='string'>The `id` of the last conversation on the previous page. Omit it for the first page.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page, 1–100.</Param>
+  <Param name='sort_by' type='string' def='-updated_at'>`created_at`, `-created_at`, `updated_at` or `-updated_at`. A leading `-` sorts in descending order.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='limit' type='integer'>Items per page.</Param>
+  <Param name='has_more' type='boolean'>Whether there is another page.</Param>
+  <Param name='data[].id' type='string'>The conversation id.</Param>
+  <Param name='data[].name' type='string'>The conversation title.</Param>
+  <Param name='data[].inputs' type='object'>The input variable values the conversation started with.</Param>
+  <Param name='data[].status' type='string'>The conversation status, for example `normal`.</Param>
+  <Param name='data[].introduction' type='string'>The opening statement shown at the start of the conversation.</Param>
+  <Param name='data[].created_at' type='integer'>Unix timestamp in seconds.</Param>
+  <Param name='data[].updated_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/conversations?user=customer-1042&limit=20' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/conversations",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"user": "customer-1042", "limit": 20},
+)
+for c in resp.json()["data"]:
+    print(c["id"], c["name"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const params = new URLSearchParams({ user: 'customer-1042', limit: '20' })
+const res = await fetch(`https://cloud.xpectrum.dev/v1/conversations?${params}`, {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { data, has_more } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "limit": 20,
+  "has_more": false,
+  "data": [
+    {
+      "id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+      "name": "Saturday opening hours",
+      "inputs": {},
+      "status": "normal",
+      "introduction": "Hi! How can I help you today?",
+      "created_at": 1705407629,
+      "updated_at": 1705407655
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `last_id` is not a valid UUID, `limit` is out of range, or `sort_by` is not an allowed value. |
+| 400 | `not_chat_app` | The key doesn't belong to a conversational app. |
+| 404 | `not_found` | "Last Conversation Not Exists." The `last_id` doesn't exist for this `user`. |
+
+<Callout type='tip' title='Recommended alternative'>
+  [`GET /v1/threads`](/docs/api/threads) lists the same conversations as threads.
+</Callout>
+
+## Delete a conversation
+
+<Endpoint method='DELETE' path='/v1/conversations/{conversation_id}' />
+
+Deletes a conversation. It no longer appears in the list and can't be continued.
+
+<Params title='Path parameters'>
+  <Param name='conversation_id' type='string' required>The conversation id.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='user' type='string'>The end user who owns the conversation.</Param>
+</Params>
+
+A successful delete returns `204 No Content` with an empty body.
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X DELETE 'https://cloud.xpectrum.dev/v1/conversations/45701982-8118-4bc5-8e9b-64562b4555f2' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"user": "customer-1042"}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+conversation_id = "45701982-8118-4bc5-8e9b-64562b4555f2"
+resp = requests.delete(
+    f"https://cloud.xpectrum.dev/v1/conversations/{conversation_id}",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"user": "customer-1042"},
+)
+assert resp.status_code == 204
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const conversationId = '45701982-8118-4bc5-8e9b-64562b4555f2'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/conversations/${conversationId}`, {
+  method: 'DELETE',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ user: 'customer-1042' }),
+})
+console.log(res.status) // 204
+```
+
+  </Tab>
+</Tabs>
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `not_chat_app` | The key doesn't belong to a conversational app. |
+| 404 | `not_found` | "Conversation Not Exists." The id doesn't exist, is already deleted, or belongs to a different `user`. |
+
+## Rename a conversation
+
+<Endpoint method='POST' path='/v1/conversations/{conversation_id}/name' />
+
+Sets a conversation's title, or asks the app to generate one from the conversation. Useful when you send messages with `auto_generate_name: false`.
+
+<Params title='Path parameters'>
+  <Param name='conversation_id' type='string' required>The conversation id.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='name' type='string'>The new title. Leave it out when `auto_generate` is `true`.</Param>
+  <Param name='auto_generate' type='boolean' def='false'>Generate the title automatically instead of using `name`.</Param>
+  <Param name='user' type='string'>The end user who owns the conversation.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='id' type='string'>The conversation id.</Param>
+  <Param name='name' type='string'>The new title.</Param>
+  <Param name='inputs' type='object'>The conversation's input variable values.</Param>
+  <Param name='status' type='string'>The conversation status.</Param>
+  <Param name='introduction' type='string'>The opening statement.</Param>
+  <Param name='created_at' type='integer'>Unix timestamp in seconds.</Param>
+  <Param name='updated_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/conversations/45701982-8118-4bc5-8e9b-64562b4555f2/name' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "Weekend hours question", "user": "customer-1042"}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+conversation_id = "45701982-8118-4bc5-8e9b-64562b4555f2"
+resp = requests.post(
+    f"https://cloud.xpectrum.dev/v1/conversations/{conversation_id}/name",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"name": "Weekend hours question", "user": "customer-1042"},
+)
+print(resp.json()["name"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const conversationId = '45701982-8118-4bc5-8e9b-64562b4555f2'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/conversations/${conversationId}/name`, {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ name: 'Weekend hours question', user: 'customer-1042' }),
+})
+const conversation = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+  "name": "Weekend hours question",
+  "inputs": {},
+  "status": "normal",
+  "introduction": "Hi! How can I help you today?",
+  "created_at": 1705407629,
+  "updated_at": 1705407700
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `not_chat_app` | The key doesn't belong to a conversational app. |
+| 404 | `not_found` | "Conversation Not Exists." |
+
+## Get conversation variables
+
+<Endpoint method='GET' path='/v1/conversations/{conversation_id}/variables' />
+
+Returns the current values of the conversation variables in a conversation, for example details an Agent Flow has collected from the end user so far.
+
+<Params title='Path parameters'>
+  <Param name='conversation_id' type='string' required>The conversation id.</Param>
+</Params>
+
+<Params title='Query parameters'>
+  <Param name='user' type='string'>The end user who owns the conversation.</Param>
+  <Param name='last_id' type='string'>The `id` of the last variable on the previous page. Omit it for the first page.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page, 1–100.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='limit' type='integer'>Items per page.</Param>
+  <Param name='has_more' type='boolean'>Whether there is another page.</Param>
+  <Param name='data[].id' type='string'>The variable id.</Param>
+  <Param name='data[].name' type='string'>The variable name.</Param>
+  <Param name='data[].value_type' type='string'>The variable type, for example `string`, `number` or `object`.</Param>
+  <Param name='data[].value' type='string'>The current value, as a string.</Param>
+  <Param name='data[].description' type='string'>The variable's description.</Param>
+  <Param name='data[].created_at' type='integer'>Unix timestamp in seconds.</Param>
+  <Param name='data[].updated_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/conversations/45701982-8118-4bc5-8e9b-64562b4555f2/variables?user=customer-1042' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+conversation_id = "45701982-8118-4bc5-8e9b-64562b4555f2"
+resp = requests.get(
+    f"https://cloud.xpectrum.dev/v1/conversations/{conversation_id}/variables",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"user": "customer-1042"},
+)
+variables = {v["name"]: v["value"] for v in resp.json()["data"]}
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const conversationId = '45701982-8118-4bc5-8e9b-64562b4555f2'
+const res = await fetch(
+  `https://cloud.xpectrum.dev/v1/conversations/${conversationId}/variables?user=customer-1042`,
+  { headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' } },
+)
+const { data } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "limit": 20,
+  "has_more": false,
+  "data": [
+    {
+      "id": "cd0b3f5e-8d3a-4f6c-9b1e-2a7c4d5e6f70",
+      "name": "customer_name",
+      "value_type": "string",
+      "value": "Jane Doe",
+      "description": "The customer's full name",
+      "created_at": 1705407629,
+      "updated_at": 1705407655
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `not_chat_app` | The key doesn't belong to a conversational app. |
+| 404 | `not_found` | "Conversation Not Exists." |
+
+## List messages
+
+<Endpoint method='GET' path='/v1/messages' />
+
+Returns the message history of one conversation, one page at a time. The first page holds the most recent messages; to load older ones, pass the `id` of the oldest message you already have as `first_id`. Each message is one exchange: the end user's `query` and the app's `answer`.
+
+<Params title='Query parameters'>
+  <Param name='conversation_id' type='string' required>The conversation id.</Param>
+  <Param name='user' type='string'>The end user who owns the conversation.</Param>
+  <Param name='first_id' type='string'>The `id` of the oldest message on the previous page. Omit it for the first page.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page, 1–100.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='limit' type='integer'>Items per page.</Param>
+  <Param name='has_more' type='boolean'>Whether older messages exist.</Param>
+  <Param name='data[].id' type='string'>The message id.</Param>
+  <Param name='data[].conversation_id' type='string'>The conversation id.</Param>
+  <Param name='data[].parent_message_id' type='string'>The previous message in the conversation, or `null`.</Param>
+  <Param name='data[].inputs' type='object'>The input variable values used for this message.</Param>
+  <Param name='data[].query' type='string'>The end user's message.</Param>
+  <Param name='data[].answer' type='string'>The app's answer.</Param>
+  <Param name='data[].message_files' type='array'>Files attached to the message: `id`, `filename`, `type`, `url`, `mime_type`, `size`, `transfer_method`, `belongs_to` (`user` or `assistant`), `upload_file_id`.</Param>
+  <Param name='data[].feedback' type='object'>The end user's feedback as `{"rating": "like" | "dislike"}`, or `null`.</Param>
+  <Param name='data[].retriever_resources' type='array'>Knowledge citations used for the answer.</Param>
+  <Param name='data[].agent_thoughts' type='array'>Autonomous Agent only: the reasoning and tool steps, each with `id`, `position`, `thought`, `tool`, `tool_input`, `observation`, `files`, `created_at`.</Param>
+  <Param name='data[].status' type='string'>`normal`, or `error` if the answer failed.</Param>
+  <Param name='data[].error' type='string'>The error message when `status` is `error`.</Param>
+  <Param name='data[].created_at' type='integer'>Unix timestamp in seconds.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/messages?conversation_id=45701982-8118-4bc5-8e9b-64562b4555f2&user=customer-1042&limit=20' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/messages",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={
+        "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+        "user": "customer-1042",
+        "limit": 20,
+    },
+)
+for m in resp.json()["data"]:
+    print("User:", m["query"])
+    print("Agent:", m["answer"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const params = new URLSearchParams({
+  conversation_id: '45701982-8118-4bc5-8e9b-64562b4555f2',
+  user: 'customer-1042',
+  limit: '20',
+})
+const res = await fetch(`https://cloud.xpectrum.dev/v1/messages?${params}`, {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { data, has_more } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "limit": 20,
+  "has_more": false,
+  "data": [
+    {
+      "id": "9da23599-e713-473b-982c-4328d4f5c78a",
+      "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+      "parent_message_id": null,
+      "inputs": {},
+      "query": "What are your opening hours on Saturday?",
+      "answer": "We're open from 9 am to 5 pm on Saturdays.",
+      "message_files": [],
+      "feedback": { "rating": "like" },
+      "retriever_resources": [],
+      "agent_thoughts": [],
+      "status": "normal",
+      "error": null,
+      "created_at": 1705407629
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `conversation_id` is missing or not a valid UUID, or `limit` is out of range. |
+| 400 | `not_chat_app` | The key doesn't belong to a conversational app. |
+| 404 | `not_found` | "Conversation Not Exists." or "First Message Not Exists." |
+
+<Callout type='tip' title='Recommended alternative'>
+  [`GET /v1/threads/{thread_id}/messages`](/docs/api/threads) returns the same history with the user and assistant turns as separate messages.
+</Callout>
+
+## Get suggested questions
+
+<Endpoint method='GET' path='/v1/messages/{message_id}/suggested' />
+
+Returns follow-up questions the end user might ask next, based on a message's answer. The app must have suggested questions after answer turned on.
+
+<Params title='Path parameters'>
+  <Param name='message_id' type='string' required>The message id, from `message_id` in the chat response.</Param>
+</Params>
+
+<Params title='Query parameters'>
+  <Param name='user' type='string' required>The end user who owns the conversation.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='result' type='string'>Always `success`.</Param>
+  <Param name='data' type='string[]'>The suggested questions.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/messages/9da23599-e713-473b-982c-4328d4f5c78a/suggested?user=customer-1042' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+message_id = "9da23599-e713-473b-982c-4328d4f5c78a"
+resp = requests.get(
+    f"https://cloud.xpectrum.dev/v1/messages/{message_id}/suggested",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"user": "customer-1042"},
+)
+print(resp.json()["data"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const messageId = '9da23599-e713-473b-982c-4328d4f5c78a'
+const res = await fetch(
+  `https://cloud.xpectrum.dev/v1/messages/${messageId}/suggested?user=customer-1042`,
+  { headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' } },
+)
+const { data } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "result": "success",
+  "data": [
+    "Are you open on Sundays?",
+    "Do I need an appointment?",
+    "Where can I park?"
+  ]
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "Arg user must be provided." |
+| 400 | `bad_request` | "Suggested Questions Is Disabled." Turn on suggested questions in the app and publish. |
+| 400 | `not_chat_app` | The key doesn't belong to a conversational app. |
+| 404 | `not_found` | "Message Not Exists." |
+
+<Callout type='tip' title='Recommended alternative'>
+  [`GET /v1/messages/{message_id}/suggestions`](/docs/api/agent-info) returns the same suggestions in the recommended API's format.
+</Callout>
+
+## Next steps
+
+<Cards>
+  <Card title='Chat messages' href='/docs/api/classic/chat-messages'>Send messages and continue conversations.</Card>
+  <Card title='Feedback, audio & app info' href='/docs/api/classic/app'>Rate answers and read the app's settings.</Card>
+  <Card title='Threads' href='/docs/api/threads'>The recommended API for conversation history.</Card>
+</Cards>

@@ -1,0 +1,651 @@
+export const metadata = {
+  title: 'Feedback, audio & app info',
+  description: 'Send and list message feedback, convert speech to text and text to speech, and read an app’s parameters, info, meta and site settings with the classic API.',
+}
+
+# Feedback, audio & app info
+
+Collect end-user ratings on answers, convert between speech and text, and read an app's configuration so your client can render the right input form, limits and branding.
+
+## Send message feedback
+
+<Endpoint method='POST' path='/v1/messages/{message_id}/feedbacks' />
+
+Records an end user's like or dislike on an answer, with an optional comment. Sending feedback again for the same message replaces the earlier rating; send `rating: null` to remove it. You can read it back with [List app feedback](#list-app-feedback).
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Path parameters'>
+  <Param name='message_id' type='string' required>The message id, from `message_id` in the chat or completion response.</Param>
+</Params>
+
+<Params title='Request body'>
+  <Param name='rating' type='string'>`like`, `dislike`, or `null` to remove the rating.</Param>
+  <Param name='user' type='string' required>The end user giving the feedback.</Param>
+  <Param name='content' type='string'>An optional comment explaining the rating.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='result' type='string'>Always `success`.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/messages/9da23599-e713-473b-982c-4328d4f5c78a/feedbacks' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"rating": "like", "user": "customer-1042", "content": "Quick and accurate."}'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+message_id = "9da23599-e713-473b-982c-4328d4f5c78a"
+resp = requests.post(
+    f"https://cloud.xpectrum.dev/v1/messages/{message_id}/feedbacks",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"rating": "like", "user": "customer-1042", "content": "Quick and accurate."},
+)
+print(resp.json())  # {"result": "success"}
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const messageId = '9da23599-e713-473b-982c-4328d4f5c78a'
+const res = await fetch(`https://cloud.xpectrum.dev/v1/messages/${messageId}/feedbacks`, {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ rating: 'like', user: 'customer-1042', content: 'Quick and accurate.' }),
+})
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{ "result": "success" }
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `rating` is not `like`, `dislike` or `null`, or `user` is missing ("Arg user must be provided."). |
+| 400 | `invalid_param` | "rating cannot be None when feedback not exists": you sent `rating: null` for a message that has no feedback. |
+| 404 | `not_found` | "Message Not Exists." The message doesn't exist for this app and `user`. |
+
+## List app feedback
+
+<Endpoint method='GET' path='/v1/app/feedbacks' />
+
+Returns all feedback left on the app's messages, newest first, across every end user.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Query parameters'>
+  <Param name='page' type='integer' def='1'>Page number.</Param>
+  <Param name='limit' type='integer' def='20'>Items per page, up to 101.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='data[].id' type='string'>The feedback id.</Param>
+  <Param name='data[].app_id' type='string'>The app id.</Param>
+  <Param name='data[].conversation_id' type='string'>The conversation the message belongs to.</Param>
+  <Param name='data[].message_id' type='string'>The rated message.</Param>
+  <Param name='data[].rating' type='string'>`like` or `dislike`.</Param>
+  <Param name='data[].content' type='string'>The comment, if any.</Param>
+  <Param name='data[].from_source' type='string'>`user` for end-user feedback, `admin` for feedback from a workspace member.</Param>
+  <Param name='data[].from_end_user_id' type='string'>The end user who left it, or `null`.</Param>
+  <Param name='data[].from_account_id' type='string'>The workspace member who left it, or `null`.</Param>
+  <Param name='data[].created_at' type='string'>When the feedback was created, as an ISO 8601 date-time.</Param>
+  <Param name='data[].updated_at' type='string'>When the feedback was last changed.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/app/feedbacks?page=1&limit=20' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/app/feedbacks",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    params={"page": 1, "limit": 20},
+)
+dislikes = [f for f in resp.json()["data"] if f["rating"] == "dislike"]
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/app/feedbacks?page=1&limit=20', {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { data } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "data": [
+    {
+      "id": "8c0fbed8-e2f9-49ff-9f0e-15a35bdd0e25",
+      "app_id": "f252d396-fe48-450e-94ec-e184218e7346",
+      "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+      "message_id": "9da23599-e713-473b-982c-4328d4f5c78a",
+      "rating": "like",
+      "content": "Quick and accurate.",
+      "from_source": "user",
+      "from_end_user_id": "6ad1ab0a-73ff-4ac1-b9e4-cdb312f71f13",
+      "from_account_id": null,
+      "created_at": "2025-01-16T14:30:29",
+      "updated_at": "2025-01-16T14:30:29"
+    }
+  ]
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | `limit` is out of range. |
+
+## Audio to text
+
+<Endpoint method='POST' path='/v1/audio-to-text' />
+
+Transcribes an audio recording to text, for example to let end users speak their message and then send the text to [Chat messages](/docs/api/classic/chat-messages). The app must have speech to text turned on.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag>
+
+<Params title='Form fields (multipart/form-data)'>
+  <Param name='file' type='file' required>
+    The audio file, up to **30 MB**. The file part's content type must be one of `audio/mp3`, `audio/m4a`, `audio/wav`, `audio/webm` or `audio/amr`.
+  </Param>
+  <Param name='user' type='string'>Your identifier for the end user. If omitted, the shared `DEFAULT-USER` is used.</Param>
+</Params>
+
+<Params title='Response'>
+  <Param name='text' type='string'>The transcript.</Param>
+</Params>
+
+<Callout type='warning'>
+  The content type is checked, not the file extension. Many tools label MP3 files `audio/mpeg`, which is rejected; set the type to `audio/mp3` explicitly, as in the examples below.
+</Callout>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/audio-to-text' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -F 'file=@question.mp3;type=audio/mp3' \
+  -F 'user=customer-1042'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+with open("question.mp3", "rb") as f:
+    resp = requests.post(
+        "https://cloud.xpectrum.dev/v1/audio-to-text",
+        headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+        files={"file": ("question.mp3", f, "audio/mp3")},
+        data={"user": "customer-1042"},
+    )
+print(resp.json()["text"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+import { readFile } from 'node:fs/promises'
+
+const form = new FormData()
+const bytes = await readFile('question.mp3')
+form.append('file', new Blob([bytes], { type: 'audio/mp3' }), 'question.mp3')
+form.append('user', 'customer-1042')
+
+const res = await fetch('https://cloud.xpectrum.dev/v1/audio-to-text', {
+  method: 'POST',
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+  body: form,
+})
+const { text } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{ "text": "What are your opening hours on Saturday?" }
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "Speech to text is not enabled" — turn it on in the app and publish. |
+| 400 | `provider_not_support_speech_to_text` | No speech-to-text model is available in the workspace. |
+| 400 | `app_unavailable` | The app's configuration is unavailable. |
+| 400 | `provider_not_initialize` / `provider_quota_exceeded` / `completion_request_error` | The speech-to-text model call failed. |
+| 413 | `audio_too_large` | The file is larger than 30 MB. |
+| 415 | `unsupported_audio_type` | The content type is not an allowed audio type. "Audio type not allowed." |
+
+A request with no `file` field returns `400` with the code `bad_request_key_error`.
+
+## Text to audio
+
+<Endpoint method='POST' path='/v1/text-to-audio' />
+
+Converts text, or the answer of an existing message, to speech. Send a JSON body. The app must have text to speech turned on. The response is an MP3 audio stream (`Content-Type: audio/mpeg`), not JSON.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Request body'>
+  <Param name='message_id' type='string'>Speak this message's answer. When both `message_id` and `text` are sent, `message_id` is used.</Param>
+  <Param name='text' type='string'>The text to speak. Required when `message_id` is not sent.</Param>
+  <Param name='voice' type='string'>The voice to use. Defaults to the voice set in the app's text to speech settings.</Param>
+  <Param name='user' type='string'>Your identifier for the end user.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl -X POST 'https://cloud.xpectrum.dev/v1/text-to-audio' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx' \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "We are open from 9 am to 5 pm on Saturdays.", "user": "customer-1042"}' \
+  --output answer.mp3
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.post(
+    "https://cloud.xpectrum.dev/v1/text-to-audio",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+    json={"message_id": "9da23599-e713-473b-982c-4328d4f5c78a", "user": "customer-1042"},
+    stream=True,
+)
+resp.raise_for_status()
+with open("answer.mp3", "wb") as f:
+    for chunk in resp.iter_content(chunk_size=8192):
+        f.write(chunk)
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+import { writeFile } from 'node:fs/promises'
+
+const res = await fetch('https://cloud.xpectrum.dev/v1/text-to-audio', {
+  method: 'POST',
+  headers: {
+    Authorization: 'Bearer xpectrum_xxxxxxxxxxxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ text: 'We are open from 9 am to 5 pm on Saturdays.', user: 'customer-1042' }),
+})
+await writeFile('answer.mp3', Buffer.from(await res.arrayBuffer()))
+```
+
+  </Tab>
+</Tabs>
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `invalid_param` | "TTS is not enabled", "Text is required" (neither `text` nor `message_id` sent), or "Sorry, no voice available." |
+
+If `message_id` is not a valid message id, or the message has no answer yet, the response is `200` with an empty (`null`) JSON body instead of audio. Check the `Content-Type` before saving the result.
+| 400 | `app_unavailable` | The app's configuration is unavailable. |
+| 400 | `provider_not_initialize` / `provider_quota_exceeded` / `completion_request_error` | The text-to-speech model call failed. |
+
+## Get app parameters
+
+<Endpoint method='GET' path='/v1/parameters' />
+
+Returns the app's end-user-facing configuration: the input form, opening statement, enabled features, file upload settings and upload size limits. Call it when your client starts, to render the right form and controls.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='green'>Workflow</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Response'>
+  <Param name='opening_statement' type='string'>The greeting shown at the start of a conversation.</Param>
+  <Param name='suggested_questions' type='string[]'>Starter questions to show before the first message.</Param>
+  <Param name='suggested_questions_after_answer.enabled' type='boolean'>Whether [suggested questions](/docs/api/classic/conversations#get-suggested-questions) are on.</Param>
+  <Param name='speech_to_text.enabled' type='boolean'>Whether [audio to text](#audio-to-text) is on.</Param>
+  <Param name='text_to_speech' type='object'>`enabled`, `voice`, `language` and `autoPlay` (`enabled` or `disabled`).</Param>
+  <Param name='retriever_resource.enabled' type='boolean'>Whether citations are returned.</Param>
+  <Param name='annotation_reply.enabled' type='boolean'>Whether [annotation replies](/docs/api/classic/annotations) are on.</Param>
+  <Param name='more_like_this' type='object'>Text Generator setting for generating alternatives.</Param>
+  <Param name='user_input_form' type='array'>The input variables. Each item has one key, the control type (for example `text-input`, `paragraph` or `select`), whose value has `label`, `variable`, `required` and `default`; `select` items also have `options`.</Param>
+  <Param name='sensitive_word_avoidance' type='object'>Content moderation settings.</Param>
+  <Param name='file_upload' type='object'>File upload settings, for example `image.enabled`, `image.number_limits` and `image.transfer_methods`.</Param>
+  <Param name='system_parameters' type='object'>Upload limits in MB: `file_size_limit`, `image_file_size_limit`, `audio_file_size_limit`, `video_file_size_limit`; and `workflow_file_upload_limit`, the maximum number of files for a workflow file input.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/parameters' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+resp = requests.get(
+    "https://cloud.xpectrum.dev/v1/parameters",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+)
+params = resp.json()
+for field in params["user_input_form"]:
+    control, config = next(iter(field.items()))
+    print(control, config["variable"], "required" if config["required"] else "optional")
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/parameters', {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const params = await res.json()
+console.log(params.opening_statement, params.system_parameters)
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "opening_statement": "Hi! How can I help you today?",
+  "suggested_questions": ["What are your opening hours?"],
+  "suggested_questions_after_answer": { "enabled": true },
+  "speech_to_text": { "enabled": true },
+  "text_to_speech": { "enabled": true, "voice": "alloy", "language": "en-US", "autoPlay": "disabled" },
+  "retriever_resource": { "enabled": true },
+  "annotation_reply": { "enabled": false },
+  "more_like_this": { "enabled": false },
+  "user_input_form": [
+    {
+      "text-input": {
+        "label": "Customer name",
+        "variable": "customer_name",
+        "required": false,
+        "default": ""
+      }
+    }
+  ],
+  "sensitive_word_avoidance": { "enabled": false },
+  "file_upload": {
+    "image": {
+      "enabled": true,
+      "number_limits": 3,
+      "transfer_methods": ["remote_url", "local_file"]
+    }
+  },
+  "system_parameters": {
+    "file_size_limit": 50,
+    "image_file_size_limit": 10,
+    "audio_file_size_limit": 50,
+    "video_file_size_limit": 100,
+    "workflow_file_upload_limit": 10
+  }
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 400 | `app_unavailable` | The app has no published version or configuration yet. Publish it first. |
+
+<Callout type='tip' title='Recommended alternative'>
+  [`GET /v1/models`](/docs/api/agent-info) returns the agent's name, greeting and starter questions in the recommended API's format.
+</Callout>
+
+## Get app info
+
+<Endpoint method='GET' path='/v1/info' />
+
+Returns the app's name, description, tags and mode. Useful to confirm which app a key belongs to.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='green'>Workflow</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Response'>
+  <Param name='name' type='string'>The app name.</Param>
+  <Param name='description' type='string'>The app description.</Param>
+  <Param name='tags' type='string[]'>The app's tags.</Param>
+  <Param name='mode' type='string'>The app mode: `advanced-chat` (Agent Flow), `chat` (AI Chatbot), `agent-chat` (Autonomous Agent), `multi-prompt-agent` (Multi-prompt Agent), `workflow` (Workflow) or `completion` (Text Generator).</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/info' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+info = requests.get(
+    "https://cloud.xpectrum.dev/v1/info",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+).json()
+print(info["name"], info["mode"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/info', {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { name, mode } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "name": "Front desk assistant",
+  "description": "Answers questions about opening hours, bookings and parking.",
+  "tags": ["support"],
+  "mode": "advanced-chat"
+}
+```
+
+## Get app meta
+
+<Endpoint method='GET' path='/v1/meta' />
+
+Returns the icons of the tools the app uses, so your client can show them next to agent steps.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag>
+
+<Params title='Response'>
+  <Param name='tool_icons' type='object'>A map from tool name to its icon: either an icon URL (string) or an object with `background` (hex color) and `content` (an emoji).</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/meta' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+meta = requests.get(
+    "https://cloud.xpectrum.dev/v1/meta",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+).json()
+print(meta["tool_icons"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/meta', {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const { tool_icons } = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "tool_icons": {
+    "order_lookup": {
+      "background": "#252525",
+      "content": "📦"
+    }
+  }
+}
+```
+
+## Get site settings
+
+<Endpoint method='GET' path='/v1/site' />
+
+Returns the app's web app settings (title, colors, icon and legal text), so a custom client can match the published web app.
+
+**Supported app types:** <Tag tone='violet'>Agent Flow</Tag> <Tag tone='violet'>AI Chatbot</Tag> <Tag tone='violet'>Autonomous Agent</Tag> <Tag tone='green'>Workflow</Tag> <Tag tone='amber'>Text Generator</Tag>
+
+<Params title='Response'>
+  <Param name='title' type='string'>The web app title.</Param>
+  <Param name='chat_color_theme' type='string'>The theme color, as a hex value.</Param>
+  <Param name='chat_color_theme_inverted' type='boolean'>Whether the theme color is inverted.</Param>
+  <Param name='icon_type' type='string'>The icon kind, for example `emoji` or `image`.</Param>
+  <Param name='icon' type='string'>The emoji, or the image file id.</Param>
+  <Param name='icon_background' type='string'>The icon background color, as a hex value.</Param>
+  <Param name='icon_url' type='string'>The icon image URL, when `icon_type` is `image`.</Param>
+  <Param name='description' type='string'>The web app description.</Param>
+  <Param name='copyright' type='string'>The copyright notice.</Param>
+  <Param name='privacy_policy' type='string'>The privacy policy URL.</Param>
+  <Param name='custom_disclaimer' type='string'>The custom disclaimer text.</Param>
+  <Param name='default_language' type='string'>The default language, for example `en-US`.</Param>
+  <Param name='show_workflow_steps' type='boolean'>Whether the web app shows workflow steps.</Param>
+  <Param name='use_icon_as_answer_icon' type='boolean'>Whether the app icon is used as the avatar on answers.</Param>
+</Params>
+
+<Tabs>
+  <Tab title='cURL'>
+
+```bash
+curl 'https://cloud.xpectrum.dev/v1/site' \
+  -H 'Authorization: Bearer xpectrum_xxxxxxxxxxxx'
+```
+
+  </Tab>
+  <Tab title='Python'>
+
+```python
+import requests
+
+site = requests.get(
+    "https://cloud.xpectrum.dev/v1/site",
+    headers={"Authorization": "Bearer xpectrum_xxxxxxxxxxxx"},
+).json()
+print(site["title"], site["chat_color_theme"])
+```
+
+  </Tab>
+  <Tab title='JavaScript'>
+
+```js
+const res = await fetch('https://cloud.xpectrum.dev/v1/site', {
+  headers: { Authorization: 'Bearer xpectrum_xxxxxxxxxxxx' },
+})
+const site = await res.json()
+```
+
+  </Tab>
+</Tabs>
+
+```json title="Response"
+{
+  "title": "Front desk assistant",
+  "chat_color_theme": "#2563EB",
+  "chat_color_theme_inverted": false,
+  "icon_type": "emoji",
+  "icon": "🤖",
+  "icon_background": "#FFEAD5",
+  "icon_url": null,
+  "description": "Ask about opening hours, bookings and parking.",
+  "copyright": "Example Co.",
+  "privacy_policy": "https://example.com/privacy",
+  "custom_disclaimer": "",
+  "default_language": "en-US",
+  "show_workflow_steps": false,
+  "use_icon_as_answer_icon": false
+}
+```
+
+### Errors
+
+| Status | Code | When |
+|---|---|---|
+| 403 | `forbidden` | The app has no web app settings, or the workspace is archived. |
+
+## Next steps
+
+<Cards>
+  <Card title='Annotations' href='/docs/api/classic/annotations'>Manage curated replies from code.</Card>
+  <Card title='Files' href='/docs/api/classic/files'>Upload files within the limits from `/v1/parameters`.</Card>
+  <Card title='Agent info & suggestions' href='/docs/api/agent-info'>The recommended API for agent details.</Card>
+</Cards>

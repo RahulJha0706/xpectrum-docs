@@ -1,0 +1,144 @@
+export const metadata = {
+  title: 'Testing',
+  description: 'Test agents and workflows before you publish: Preview and Run, single-step testing, multi-model comparison, voice testing, run history and a pre-publish checklist.',
+}
+
+# Testing
+
+Test every change before your customers see it. The editor gives you a private place to try the draft: **Preview** for conversational apps, **Run** for workflows, single-step testing for individual blocks, and side-by-side model comparison. Nothing you do while testing changes the live version until you [publish](/docs/deploy/publishing).
+
+## What each test runs against
+
+| Test | Where | Runs |
+|---|---|---|
+| **Preview** | Editor header of Agent Flow, Autonomous Agent and AI Chatbot apps | The current draft |
+| **Run** | Editor header of Workflow apps | The current draft |
+| **Run this step** / **Test & Preview** | A block's settings panel | That block only, in the draft |
+| **Debug as Multiple Models** | AI Model / AI Agent node of Autonomous Agents and AI Chatbots | The draft, with up to four models side by side |
+| **Chat** / **Call** | **Channels › Voice** | The published agent, with its saved voice settings |
+| Channels, widgets and the API | Everywhere else | The published version |
+
+<Callout type='tip'>
+  If a fix works in **Preview** but not on the phone or in your widget, you probably haven't published it yet.
+</Callout>
+
+## Preview a conversational app
+
+Click **Preview** in the editor header. The panel opens on the right; drag its edge to resize it.
+
+1. If the app's **Trigger** has input variables, fill them first. Open them with the **User Input Field** icon. They are sent with the conversation, as they would be from a channel.
+2. Type in **Ask something to test the agent** and send. The reply streams in with each step's details.
+3. Keep chatting to test multi-turn behavior. Click **Restart** to start a fresh conversation with new variable values.
+
+Agent Flow apps also show their **Conversation Variables** from the Preview panel, so you can check what the flow has stored as the conversation goes on.
+
+Write test messages the way real users write, not the way you'd describe the feature:
+
+```text title="Good test messages"
+hi can i move my appt from tues to thurs
+what's your refund policy for stuff bought on sale??
+I want to talk to a human
+asdfgh
+```
+
+## Run a workflow
+
+In a Workflow app, click **Run**. Fill in the Trigger inputs and start the run. The button shows **Running** with a stop control while it works, and each block's inputs, outputs and timing appear as it finishes.
+
+Workflows that start from a trigger work differently:
+
+- A **Webhook Trigger** has a **Test** section. Click **Listen for test request**, then send a request to the test URL (**Copy as cURL** gives you a ready command). Listening stops after 2 minutes without a request.
+- Where a **Test payload** is offered, edit the sample request or event and run it: every step after the trigger runs as it would on a real one.
+
+See [Triggers](/docs/build/triggers) for details.
+
+## Test a single block
+
+Most blocks can run on their own: open the block and use **Test & Preview**, or **Run this step**. You enter the block's inputs by hand and see its output without running the whole flow. This works for AI Model, Agent, Knowledge Search, Custom Function, Template, Intent Classifier, Parameter Extractor, HTTP Request, tools, For Each, Repeat Until, Doc Extractor and Conversation steps.
+
+Use it to:
+
+- Check a Knowledge Search query returns the chunks you expect.
+- Try a Custom Function with an edge-case input, like an empty list.
+- Confirm an HTTP Request authenticates before wiring it into the flow.
+- Tune a Parameter Extractor's instructions on tricky phrasings.
+
+## Compare models side by side
+
+On an Autonomous Agent or AI Chatbot, open the AI Agent / AI Model node and choose **Debug as Multiple Models**. Up to four models answer the same message side by side, so you can compare quality, speed and cost on your real prompt. Switch back with **Debug as Single Model**.
+
+When you publish while comparing, you pick which model's configuration becomes the published one.
+
+<Callout type='warning'>
+  **Debug as Multiple Models** isn't available on every workspace. It is not offered on self-serve workspaces.
+</Callout>
+
+## Test voice
+
+Voice settings are tested on **Channels › Voice**, not in the editor:
+
+- **Chat** opens a text chat with the published agent, starting with your **Initial Message**.
+- **Call** starts an in-browser call with a live **Call Transcript**. Allow microphone access when asked.
+
+Both use the published agent and the saved voice configuration. Publish the app and click **Publish Changes** on the Voice screen first. See [Voice](/docs/channels/voice#test-with-chat-and-call).
+
+For phone numbers, call the number from your own phone. For outbound calls, place a test call to yourself with **Call** on the number's row, or a two-number [batch](/docs/channels/batch-calls).
+
+## Run history and logs
+
+- **Run History** (a tab in the editor's bottom dock, or **View run history**) lists recent test runs in Agent Flow and Workflow apps. Open one to see its inputs, outputs and every step's details.
+- **Logs** in the editor header lists real conversations and runs for the app, including those from channels and the API. See [Logs](/docs/monitor/logs).
+- Voice calls, with recordings and transcripts, are in [Voice sessions](/docs/monitor/voice-sessions).
+
+## The checklist
+
+Agent Flow and Workflow editors keep a **Checklist** of problems in the draft: "Make sure all issues are resolved before publishing". When everything is fixed it reads "All issues are resolved". Common items:
+
+| Checklist message | Fix |
+|---|---|
+| A start node is required — add a Trigger or a Webhook Trigger | Add a start block. |
+| This step is not connected to anything | Connect the block or delete it. |
+| The Answer block must be added | Agent Flow: add an Answer block at the end of each branch. |
+| The End block must be added | Workflow: add an Output block. |
+| A block is listed with a missing setting | Open the block and fill it in, such as a model or a variable. |
+
+On Autonomous Agents and AI Chatbots, the node cards show **Needs setup** instead, for example when there's no model or no instructions.
+
+## Pre-publish checklist
+
+Run through this before each publish:
+
+- [ ] The happy path works end to end in **Preview** or **Run**.
+- [ ] Multi-turn: the agent remembers what was said three or four turns ago.
+- [ ] Off-topic, rude, empty and gibberish messages get a sensible reply.
+- [ ] Knowledge answers cite the right source, and questions outside the knowledge get "I don't know" rather than a guess.
+- [ ] Every tool and HTTP call succeeds, and failures are handled (try with a bad input).
+- [ ] Branches: each Intent Classifier class and Condition path is exercised at least once.
+- [ ] Trigger variables: test with them empty and with unusual values.
+- [ ] The **Checklist** is clear.
+- [ ] Voice agents: a real test call, including interrupting the agent and staying silent.
+
+## Best practices
+
+- **Keep a test script.** Save 10–20 representative messages, including the ones that broke before, and replay them after every change.
+- **Change one thing at a time.** If you change the prompt and the model together, you won't know which one helped.
+- **Test on the channel.** A reply that looks fine in chat can sound wrong on a call or be too long for SMS.
+- **Name versions when you publish.** Use **Name this version** so you can find and [restore](/docs/deploy/publishing#versions-and-restore) a known-good version quickly.
+- **Use a separate app for experiments.** Duplicate the app and test big changes on the copy, so the live app's drafts stay publishable.
+
+## Troubleshooting
+
+- **Preview works but the phone agent behaves the old way** → Publish the app, then click **Publish Changes** on **Channels › Voice**.
+- **Preview asks for inputs or errors on the first message** → Fill the Trigger variables with the **User Input Field** icon.
+- **Publish is disabled** → The **Checklist** has open issues. Fix each one.
+- **Run this step gives different results from a full run** → Inputs you enter by hand may differ from what upstream blocks produce. Copy real values from a run in **Run History**.
+- **Debug as Multiple Models is missing** → It isn't available on every workspace.
+- **Stopped listening after 2 minutes without a request** → Click **Listen for test request** again, then send the request straight away.
+
+## Next steps
+
+<Cards>
+  <Card title='Publishing & versions' href='/docs/deploy/publishing'>Make the draft live and roll back if needed.</Card>
+  <Card title='Logs' href='/docs/monitor/logs'>See real conversations and runs.</Card>
+  <Card title='Voice' href='/docs/channels/voice'>Test calls with Chat and Call.</Card>
+</Cards>

@@ -1,0 +1,185 @@
+export const metadata = {
+  title: 'Sources',
+  description: 'Add content to a knowledge base from files, websites and YouTube channels, keep it in sync, and fix documents that fail to index.',
+}
+
+# Sources
+
+Sources are where a knowledge base's content comes from. You can upload files once, or connect a website or YouTube channel that re-syncs on a schedule.
+
+## Upload files
+
+Use **Upload Files** for documents you have on disk: policies, manuals, price lists, FAQs, exports.
+
+<Steps>
+<Step title='Start the upload'>
+
+In **Resources › Knowledge Base**, click **Create Knowledge** › **Upload Files**. The **Create File Knowledge Base** dialog opens at **Step 1: Upload files**.
+
+</Step>
+<Step title='Add files'>
+
+Drag files or a folder onto the drop area, or click **Import from file**. The tip under the drop area shows the file types and the per-file size limit, for example "Supports PDF, TXT, … Max 50MB each."
+
+</Step>
+<Step title='Chunk and index'>
+
+Click **Next**, pick a chunking strategy, and adjust the chunk settings and **Embedding Model**. The **Preview** panel shows how your files will be split and updates as you edit. Then click **Save & Process**. See [Chunking and indexing](/docs/knowledge/indexing).
+
+</Step>
+</Steps>
+
+### Supported file types
+
+The exact list comes from your workspace and appears in the upload tip. It usually includes:
+
+| Kind | Extensions |
+|---|---|
+| Text and markup | `.txt`, `.md`, `.markdown`, `.mdx`, `.html`, `.htm`, `.xml`, `.properties` |
+| Documents | `.pdf`, `.docx`, `.doc`, `.epub` |
+| Spreadsheets | `.xlsx`, `.xls`, `.csv` |
+| Slides | `.pptx` |
+| Email | `.eml`, `.msg` |
+| Subtitles | `.vtt` |
+
+<Callout type='tip'>
+  Clean, text-based files index best. A scanned PDF with no text layer may yield little or no text. Export it with OCR first, or convert it to Markdown.
+</Callout>
+
+### Upload limits
+
+| Limit | What happens |
+|---|---|
+| File size | 50 MB per file. Larger files are rejected with "File too large. Maximum is 50MB". |
+| Files per batch | You can add many files at once. They upload 5 at a time. |
+| File type | Unsupported files are rejected with "File type not supported". |
+
+To add more files to an existing knowledge base, open **Documents** and click **Add file**.
+
+## From Website
+
+Use **From Website** for a help center, docs site or product site. **Create Knowledge** › **From Website** opens **Create Website Knowledge Base**.
+
+### Step 1: Find the pages
+
+Under **URL Source**, choose one:
+
+- **Discover from site**: enter one or more **Base URLs**, pick a **Discovery Method**, then click **Discover Pages**.
+- **Add URLs manually**: paste specific page URLs, one per line. Use this when you only want a few pages, such as pricing and FAQ.
+
+| Discovery Method | How it finds pages | Limits | Use it when |
+|---|---|---|---|
+| **Sitemap** | Reads the site's `robots.txt` and `sitemap.xml`. Fast. | Up to 1,500 URLs | The site publishes an up-to-date sitemap (most CMS and docs platforms do). |
+| **Crawl** | Starts at the base URL and follows links. Slower, but finds pages that aren't in the sitemap. | **Max Pages** default 1,500, up to 5,000. **Max Depth** default 3, from 1 to 10. | There's no sitemap, or it's incomplete. |
+
+If one method finds nothing, try the other one or add URLs manually. You can discover from several base URLs, and the results accumulate.
+
+### Step 2: Review & Create
+
+Uncheck any pages you don't want, such as blog archives, login pages or legal boilerplate. Then fill in:
+
+- **Knowledge Base Name**, for example `Acme Help Center`.
+- **Source Name**, for example `Main Website`. This labels the source in the **Sources** tab.
+- **Index Settings**: **Chunk Mode**, chunk size, **Chunk Overlap**, pre-processing rules and **Embedding Model**. See [Chunking and indexing](/docs/knowledge/indexing).
+- **Sync Schedule**: see [Sync schedules](#sync-schedules).
+
+## From YouTube
+
+Use **From YouTube** to make a channel's video transcripts searchable, for example product walkthroughs or webinars.
+
+| Setting | What it does |
+|---|---|
+| **Channel ID** | The channel's ID. It starts with `UC` and appears in the channel URL (`youtube.com/channel/UC…`). |
+| **Include transcripts** | Imports each video's transcript as its content. |
+| **Video Date Filter** | Which videos to include (see below). |
+
+| Video Date Filter | Behavior on each sync |
+|---|---|
+| **All videos (no date filter)** | Every video, newest first. New uploads are added. |
+| **Latest videos back to a date** | Every video published on or after the date you pick. New uploads are added. |
+| **Latest videos from the last N months** | A moving window, 6 months by default. New uploads are added, and videos older than N months are removed from the knowledge base. |
+| **Custom date range (fixed start and end)** | Only videos published between the two dates. Later uploads are never added. |
+
+## Sync schedules
+
+Website and YouTube sources have a **Sync Schedule**:
+
+| Option | Behavior |
+|---|---|
+| **Manual** | Content only refreshes when you click **Run Now** on the source. |
+| **Automatic** (**Auto** in **Add Source**) | Re-syncs every N hours, from 1 to 720. The default is 24. |
+
+Pick a schedule that matches how often the source changes. Daily suits most help centers. Weekly (168 hours) is enough for sites that rarely change.
+
+## Add sources later
+
+In a knowledge base, open the **Sources** tab and click **Add Source** (or **Add Your First Source**). Choose **Website** or **YouTube** under **Source Type**, give the source a **Name**, and set it up much like the creation flow. For a website, enter a **Base URL**, click **Sitemap** or **Crawl** to discover pages (or add them to **URLs to Sync** yourself), then open **Advanced Settings**:
+
+| Setting | What it does |
+|---|---|
+| **Crawl Scope** | **Same Domain**, **Same Origin (stricter)** or **Include Subdomains**. |
+| **Max Pages** / **Max Depth** | Crawl limits, as above. They apply to Crawl mode only, not Sitemap. |
+| **Exclude Patterns** | One glob pattern per line, for example `/blog/*` or `/admin/*`. |
+
+YouTube sources added this way also have **Max Videos**. Click **Create Source** to finish.
+
+Each source card shows its status (**Syncing**, **Ready** or **Error**), **Last sync** and how many URLs have synced. It also has these actions:
+
+- **Run Now** starts a sync immediately.
+- **Retry Failed** (on a **Sync Error** message, and in the expanded source) queues only the URLs that failed.
+- The edit (pencil) icon opens **Edit Source**, where you change URLs, filters or the schedule. Its **Enable Sync** switch turns scheduled syncs on or off. When it's off, scheduled syncs are skipped.
+- The delete (trash) icon removes the source. The documents it already synced stay in the knowledge base.
+
+Expand a source (arrow icon) to see two tabs. **URLs** lists each page with its status (**Indexed**, **Pending**, **Failed** or **Archived**), **Last Fetched** and **Attempts**. **Sync History** lists each run.
+
+### Why a URL fails
+
+| Reason shown | What it means | What to do |
+|---|---|---|
+| **Page not found** | The URL returned 404. | Remove it, or fix the link in your sitemap. |
+| **Access blocked** | The site refused the request (login wall, bot protection, firewall). | Allow the crawler, or upload the content as files. |
+| **Rate limited** | The site throttled requests. | Click **Retry Failed** later, or sync less often. |
+| **Server error** / **Timed out** / **Site unreachable** | The site was down or slow. | Retry later. |
+| **No content** | The page had no extractable text, such as a page rendered entirely in JavaScript. | Upload the content as a file instead. |
+| **Not a web page** | The URL points to a file or non-HTML response. | Download the file and upload it with **Upload Files**. |
+
+## Document statuses
+
+Each document in the **Documents** tab has a status:
+
+| Status | Meaning |
+|---|---|
+| **Queuing** | Waiting to be processed. |
+| **Indexing** | Being parsed, cleaned, chunked and embedded. Large files take longer. |
+| **Paused** | Processing was stopped. You can resume it. |
+| **Error** | Processing failed. The knowledge base shows a "documents indexed failed" notice with **Retry**. |
+| **Available** | Indexed and searchable. |
+| **Enabled** / **Disabled** | Whether the document is included in retrieval. Disable a document to hide it from agents without deleting it. |
+| **Archived** | Kept for reference. It isn't searchable and can't be edited or enabled until you unarchive it. |
+
+<Callout type='warning'>
+  Documents that aren't used for more than 30 days may be disabled automatically. The knowledge base then shows "N documents disabled - inactive for over 30 days". Click **Enable** to bring them back.
+</Callout>
+
+## Re-process a document
+
+To re-chunk a document with different settings, open it and choose **Chunking Settings**. Change the settings, check the result in the **Preview** panel, and click **Save & Process**. The document is re-indexed with the new settings. Run a [Retrieval Test](/docs/knowledge/testing) once it's **Available** again.
+
+To replace a file's content, upload the new version and then delete or archive the old document.
+
+## Troubleshooting
+
+- **A document stays in Queuing or Indexing for a long time.** Large PDFs and spreadsheets take a while. If nothing changes, check whether other documents are still processing. If the status becomes **Error**, click **Retry**.
+- **Discovery finds no pages.** The site may have no sitemap. Switch to **Crawl**, or add URLs manually.
+- **A crawl finds too many irrelevant pages.** Add **Exclude Patterns**, set **Crawl Scope** to **Same Origin (stricter)**, or reduce **Max Depth**.
+- **YouTube import is empty.** Check that the **Channel ID** starts with `UC` and that the videos have transcripts.
+- **An answer uses outdated content.** Check **Last sync** on the source and click **Run Now**. For uploaded files, upload the new version and remove the old one.
+
+For more problems and fixes, see [Knowledge troubleshooting](/docs/troubleshooting/knowledge).
+
+## Next steps
+
+<Cards>
+  <Card title='Chunking and indexing' href='/docs/knowledge/indexing'>Tune how content is split and indexed.</Card>
+  <Card title='Test retrieval' href='/docs/knowledge/testing'>Check what a question retrieves from your new sources.</Card>
+</Cards>

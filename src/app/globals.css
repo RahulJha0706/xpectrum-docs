@@ -1,0 +1,12 @@
+@import '../styles/docs.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  background: #0a0826;
+  color: #fff;
+}

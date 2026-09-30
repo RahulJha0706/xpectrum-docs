@@ -1,0 +1,137 @@
+export const metadata = {
+  title: 'Knowledge Search',
+  description: 'Reference for the Knowledge Search block: query variable, knowledge bases, retrieval settings, metadata filtering, the result output shape and errors.',
+}
+
+# Knowledge Search
+
+The **Knowledge Search** block (formerly Knowledge Retrieval) searches one or more of your knowledge bases and returns the most relevant chunks. Pass its `result` to an [AI Model](/docs/blocks/ai-model) as **Context** so the model answers from your content instead of guessing.
+
+## When to use it
+
+- Answer questions from documentation, policies, product catalogs or past tickets (retrieval-augmented generation).
+- Look up facts before a tool call, for example the right team to escalate to.
+
+This page covers the block in Agent Flows and Workflows. In a [Multi-prompt Agent](/docs/build/multi-prompt-agent) the **Knowledge Search** block has different settings: it keeps what it finds for the next step and branches on whether anything was found.
+
+To search a knowledge base from outside a flow, use the [Knowledge API](/docs/api/knowledge). For how content is chunked and indexed, see [Knowledge](/docs/knowledge).
+
+## Settings
+
+| Setting | Description | Default |
+|---|---|---|
+| **Query Variable** | The text to search for: a string variable, usually `thread.user_query` or an input field. | `thread.user_query` in an Agent Flow; otherwise required |
+| **Knowledge** | The knowledge bases to search. Add one or more. | Required |
+| **Retrieval Setting** | How results from several knowledge bases are combined and ranked. Opens from the **Knowledge** section once a knowledge base is added. See below. | Multi-path retrieval |
+| **Metadata Filtering** | **Disabled**, **Automatic** or **Manual**. See below. | **Disabled** |
+
+### Retrieval setting
+
+Multi-path retrieval searches every selected knowledge base, then ranks all results together.
+
+| Setting | Description | Default |
+|---|---|---|
+| **Top K** | The maximum number of chunks returned (1–10). | 4 |
+| **Score Threshold** | When on, drops chunks scoring below this value (0–1). | Off (0.8 when turned on) |
+| **Rerank Setting** | Re-orders the combined results with a **Rerank Model**, or by **Weighted Score** (a weighted mix of semantic and keyword matching). | Depends on the selected knowledge bases |
+
+A rerank model is required when the selected knowledge bases mix index types or use different embedding models. If none is configured, the **Checklist** shows "A configured Rerank Model is required". Each knowledge base's own search method (vector, full-text or hybrid) is set in the knowledge base's settings. See [Retrieval settings](/docs/knowledge/retrieval).
+
+### Metadata filtering
+
+"Metadata filtering is the process of using metadata attributes (such as tags, categories, or access permissions) to refine and control the retrieval of relevant information within a system." It narrows the search to documents whose metadata matches, before ranking.
+
+| Mode | What it does |
+|---|---|
+| **Disabled** | "Not enabling metadata filtering". |
+| **Automatic** | "Automatically generate metadata filtering conditions based on Query Variable". A model reads the query and builds the conditions. Choose the model to use. |
+| **Manual** | "Manually add metadata filtering conditions" (**Add Condition**). Combine conditions with **and** or **or**. Each value can be fixed text or a variable. |
+
+Operators depend on the metadata field's type:
+
+| Metadata type | Operators |
+|---|---|
+| String | is, is not, contains, not contains, start with, end with, is empty, is not empty |
+| Number | =, ≠, >, &lt;, ≥, ≤, is empty, is not empty |
+| Time | is, before, after, is empty, is not empty |
+
+Add metadata fields to documents in the knowledge base first ([Metadata](/docs/knowledge#metadata)). Only fields that exist there can be filtered.
+
+## Inputs and outputs
+
+**Reads:** the query variable, plus any variables used in manual metadata conditions.
+
+**Produces:**
+
+| Variable | Type | Description |
+|---|---|---|
+| `result` | Array[Object] | The matching chunks, highest score first. Empty if nothing matched. |
+
+Each item in `result` looks like this:
+
+```json title="result[0]"
+{
+  "content": "Refunds are available within 30 days of purchase…",
+  "title": "refund-policy.pdf",
+  "metadata": {
+    "_source": "knowledge",
+    "dataset_id": "3f1c…",
+    "dataset_name": "Help Center",
+    "document_id": "a82e…",
+    "document_name": "refund-policy.pdf",
+    "data_source_type": "upload_file",
+    "segment_id": "9b0d…",
+    "segment_position": 4,
+    "segment_word_count": 212,
+    "segment_hit_count": 17,
+    "score": 0.82,
+    "position": 1,
+    "doc_metadata": { "region": "EU" }
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `content` | The chunk text. For Q&A-format chunks it's `question:… answer:…`. |
+| `title` | The source document's name. |
+| `metadata.score` | Relevance score. Higher is better. |
+| `metadata.position` | Rank in this result, starting at 1. |
+| `metadata.dataset_name`, `metadata.document_name` | Where the chunk came from, for citations. |
+| `metadata.doc_metadata` | The document's metadata fields. |
+
+The variable picker also lists `url` and `icon`. They're usually empty for uploaded files.
+
+## Example
+
+A help-center answer step in an Agent Flow:
+
+1. **Knowledge Search**: **Query Variable** `thread.user_query`, **Knowledge** "Help Center", **Top K** 4, **Metadata Filtering** **Manual**: `region` **is** `EU`.
+2. **AI Model**: **Context** set to Knowledge Search `result`. SYSTEM message: "Answer only from the context. If the context doesn't contain the answer, say you don't know and offer to connect the user with support."
+3. **Answer**: shows the AI Model's `text`.
+
+To handle "no results" separately, add a [Condition](/docs/blocks/condition) on `result` **is empty** between steps 1 and 2.
+
+<Callout type='tip'>
+  Use **Retrieval Testing** on the knowledge base to tune **Top K** and **Score Threshold** with real questions before changing the flow. See [Testing retrieval](/docs/knowledge/testing).
+</Callout>
+
+## Errors and limits
+
+| Symptom or message | Cause | Fix |
+|---|---|---|
+| "Query is required." | The query variable was empty at run time. | Make sure the input is filled in, or branch around the block when it's empty. |
+| "Query variable is not string type." | The query points to a number, object or file, or to a variable that doesn't exist at run time. | Use a text variable, or convert it with a [Template](/docs/blocks/transform). |
+| "A configured Rerank Model is required" | Rerank by model is on with no model. | Pick a rerank model or switch to weighted score. |
+| "Sorry, you have reached the knowledge base request rate limit of your subscription." | Knowledge searches may be rate limited, and too many ran in a short time. | Wait a moment and retry, with backoff if you retry automatically. |
+| `result` is empty | Nothing scored above the threshold, or metadata filters excluded everything. | Lower **Score Threshold**, check metadata values, and check the documents finished indexing. See [Knowledge troubleshooting](/docs/troubleshooting/knowledge). |
+| Answers use the wrong document | Too many loosely related chunks. | Lower **Top K**, turn on reranking, or split the content into separate knowledge bases. |
+
+## Next steps
+
+<Cards>
+  <Card title='Knowledge' href='/docs/knowledge'>Create and index knowledge bases.</Card>
+  <Card title='Retrieval settings' href='/docs/knowledge/retrieval'>Vector, full-text and hybrid search.</Card>
+  <Card title='AI Model' href='/docs/blocks/ai-model'>Use the result as context.</Card>
+  <Card title='Knowledge API' href='/docs/api/knowledge'>Search from your own code.</Card>
+</Cards>

@@ -43,7 +43,7 @@ export const Pre = (props: React.HTMLAttributes<HTMLPreElement>) => {
 /* ── Callout ("Good to know") ───────────────────────────────────────── */
 
 const CALLOUT = {
-  note: { icon: RiInformationLine, color: '#84abff', label: 'Good to know' },
+  note: { icon: RiInformationLine, color: '#5a99eb', label: 'Good to know' },
   tip: { icon: RiLightbulbLine, color: '#4ade80', label: 'Tip' },
   warning: { icon: RiAlertLine, color: '#fbbf24', label: 'Warning' },
   danger: { icon: RiErrorWarningLine, color: '#f87171', label: 'Important' },
@@ -157,7 +157,7 @@ export const Tag = ({ children, tone = 'default' }: { children: ReactNode; tone?
     className={cn(
       'inline-flex items-center rounded-md px-1.5 py-px text-[12px] font-medium',
       tone === 'green' && 'bg-[#28ac6a26] text-[#4ade80]',
-      tone === 'violet' && 'bg-[#155aef24] text-[#84abff]',
+      tone === 'violet' && 'bg-[var(--xd-brand-dim)] text-[var(--xd-sky)]',
       tone === 'amber' && 'bg-[#f0a91926] text-[#fbbf24]',
       tone === 'default' && 'bg-white/[0.07] text-[var(--xd-txt2)]',
     )}

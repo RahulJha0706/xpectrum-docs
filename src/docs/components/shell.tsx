@@ -22,7 +22,7 @@ import SEARCH_INDEX from '../search-index.json'
 /* ── Header ───────────────────────────────────────────────────────────── */
 
 export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) => (
-  <header className='sticky top-0 z-40 border-b border-[var(--xd-border)] bg-[rgba(29,29,32,0.92)] backdrop-blur'>
+  <header className='xd-header sticky top-0 z-40'>
     <div className='mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6'>
       <button type='button' onClick={onMenu} className='-ml-1 rounded-md p-1.5 text-[var(--xd-txt3)] hover:text-white lg:hidden' aria-label='Open navigation'>
         <RiMenuLine className='h-5 w-5' />
@@ -36,7 +36,7 @@ export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch:
       <button
         type='button'
         onClick={onSearch}
-        className='ml-2 flex h-9 w-full max-w-[320px] items-center gap-2 rounded-lg border border-[var(--xd-border)] bg-[var(--xd-surface)] px-3 text-left text-[13.5px] text-[var(--xd-txt4)] transition-colors hover:border-[var(--xd-border-strong)] sm:ml-6'
+        className='ml-2 flex h-9 w-full max-w-[320px] items-center gap-2 rounded-lg border border-[var(--xd-border)] bg-[var(--xd-surface2)] px-3 text-left text-[13.5px] text-[var(--xd-txt4)] transition-colors hover:border-[var(--xd-border-strong)] sm:ml-6'
       >
         <RiSearchLine className='h-4 w-4 shrink-0' />
         <span className='flex-1 truncate'>Search documentation…</span>
@@ -51,7 +51,7 @@ export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch:
         ].map(([t, h]) => (
           <Link key={h} href={h} className='rounded-md px-3 py-1.5 text-[var(--xd-txt3)] transition-colors hover:text-white'>{t}</Link>
         ))}
-        <a href='https://cloud.xpectrum.dev/agents' className='ml-2 rounded-lg bg-[var(--xd-brand)] px-3.5 py-1.5 font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[#296dff]'>Dashboard</a>
+        <a href='https://cloud.xpectrum.dev/agents' className='ml-2 rounded-lg bg-[var(--xd-brand)] px-3.5 py-1.5 font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[var(--xd-brand-hover)]'>Dashboard</a>
       </nav>
     </div>
   </header>
@@ -60,7 +60,7 @@ export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch:
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
 
 const Badge = ({ b }: { b: string }) => (
-  <span className={cn('ml-auto rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide', b === 'New' ? 'bg-[#28ac6a26] text-[#4ade80]' : b === 'Beta' ? 'bg-[#155aef24] text-[#84abff]' : 'bg-white/10 text-[var(--xd-txt4)]')}>{b}</span>
+  <span className={cn('ml-auto rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide', b === 'New' ? 'bg-[#28ac6a26] text-[#4ade80]' : b === 'Beta' ? 'bg-[var(--xd-brand-dim)] text-[var(--xd-sky)]' : 'bg-white/10 text-[var(--xd-txt4)]')}>{b}</span>
 )
 
 export const DocsSidebar = ({ onNavigate }: { onNavigate?: () => void }) => {
@@ -84,7 +84,7 @@ export const DocsSidebar = ({ onNavigate }: { onNavigate?: () => void }) => {
               <RiArrowDownSLine className={cn('h-4 w-4 text-[var(--xd-txt4)] transition-transform', isClosed && '-rotate-90')} />
             </button>
             {!isClosed && (
-              <ul className='mt-1.5 space-y-px border-l border-[var(--xd-border)]'>
+              <ul className='mt-1.5 space-y-0.5'>
                 {g.items.map((i) => {
                   const on = i.href === active
                   return (
@@ -93,8 +93,8 @@ export const DocsSidebar = ({ onNavigate }: { onNavigate?: () => void }) => {
                         href={i.href}
                         onClick={onNavigate}
                         className={cn(
-                          '-ml-px flex items-center gap-2 border-l py-1.5 pl-3.5 pr-2 transition-colors',
-                          on ? 'border-[var(--xd-sky)] font-medium text-[var(--xd-sky)]' : 'border-transparent text-[var(--xd-txt3)] hover:border-[var(--xd-txt4)] hover:text-white',
+                          'flex items-center gap-2 rounded-lg py-1.5 pl-3 pr-2 transition-colors',
+                          on ? 'bg-[var(--xd-brand-dim)] font-medium text-white' : 'text-[var(--xd-txt3)] hover:bg-[var(--xd-surface-hover)] hover:text-white',
                         )}
                       >
                         {i.title}
@@ -274,8 +274,8 @@ export const DocsSearch = ({ open, onClose }: { open: boolean; onClose: () => vo
     router.push(e.href)
   }
   return (
-    <div className='fixed inset-0 z-50 flex items-start justify-center bg-[rgba(24,24,27,0.8)] px-4 pt-[12vh]' onClick={onClose}>
-      <div className='w-full max-w-[600px] overflow-hidden rounded-2xl border border-[var(--xd-border-strong)] bg-[#1d1d20] shadow-2xl' onClick={e => e.stopPropagation()}>
+    <div className='fixed inset-0 z-50 flex items-start justify-center bg-[rgba(10,8,38,0.75)] px-4 pt-[12vh] backdrop-blur-sm' onClick={onClose}>
+      <div className='w-full max-w-[600px] overflow-hidden rounded-2xl border border-[var(--xd-border-strong)] bg-[var(--xd-surface3)] shadow-2xl' onClick={e => e.stopPropagation()}>
         <div className='flex items-center gap-3 border-b border-[var(--xd-border)] px-4'>
           <RiSearchLine className='h-5 w-5 text-[var(--xd-txt4)]' />
           <input
@@ -311,7 +311,7 @@ export const DocsSearch = ({ open, onClose }: { open: boolean; onClose: () => vo
                 type='button'
                 onMouseEnter={() => setSel(i)}
                 onClick={() => go(r)}
-                className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left', i === sel ? 'bg-[var(--xd-surface2)]' : '')}
+                className={cn('flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left', i === sel ? 'bg-[var(--xd-brand-dim)]' : '')}
               >
                 {r.heading ? <RiHashtag className='h-4 w-4 shrink-0 text-[var(--xd-txt4)]' /> : <RiFileTextLine className='h-4 w-4 shrink-0 text-[var(--xd-sky)]' />}
                 <span className='min-w-0 flex-1'>
@@ -352,7 +352,7 @@ export const DocsFrame = ({ children }: { children: React.ReactNode }) => {
       <DocsHeader onMenu={() => setMenu(true)} onSearch={() => setSearch(true)} />
       <div className='mx-auto flex max-w-[1440px] px-4 sm:px-6'>
         {/* Left sidebar */}
-        <aside className='xd-scroll sticky top-16 hidden h-[calc(100vh-4rem)] w-[260px] shrink-0 overflow-y-auto border-r border-[var(--xd-border)] py-8 pr-6 lg:block'>
+        <aside className='xd-scroll sticky top-16 hidden h-[calc(100vh-4rem)] w-[260px] shrink-0 overflow-y-auto border-r border-[var(--xd-border-subtle)] py-8 pr-5 lg:block'>
           <DocsSidebar />
         </aside>
 
@@ -374,8 +374,8 @@ export const DocsFrame = ({ children }: { children: React.ReactNode }) => {
       {/* Mobile navigation drawer */}
       {menu && (
         <div className='fixed inset-0 z-50 lg:hidden'>
-          <div className='absolute inset-0 bg-black/60' onClick={() => setMenu(false)} />
-          <div className='xd-scroll absolute inset-y-0 left-0 w-[290px] overflow-y-auto border-r border-[var(--xd-border)] bg-[var(--xd-bg)] px-5 py-5'>
+          <div className='absolute inset-0 bg-[rgba(10,8,38,0.6)]' onClick={() => setMenu(false)} />
+          <div className='xd-scroll absolute inset-y-0 left-0 w-[290px] overflow-y-auto xd-frost border-r border-[var(--xd-border)] px-5 py-5'>
             <div className='mb-6 flex items-center justify-between'>
               <span className='text-[15px] font-semibold text-white'>Documentation</span>
               <button type='button' onClick={() => setMenu(false)} aria-label='Close navigation' className='text-[var(--xd-txt4)] hover:text-white'>

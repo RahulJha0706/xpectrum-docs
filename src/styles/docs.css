@@ -2,34 +2,62 @@
  * Xpectrum docs — theme and article typography.
  *
  * Layout follows the Next.js docs (sticky header, grouped left sidebar,
- * article, "On this page" on the right); colours are the Xpectrum app's dark
- * theme tokens (background-body, panel-bg, text-*, divider-*, text-accent).
+ * article, "On this page" on the right); colours, backdrop and chrome are the
+ * Xpectrum app's own theme (the in-app .xp-kb-theme palette: Midnight ground
+ * with the wave backdrop, Plum surfaces, Heather edges, Signal blue).
  * Everything is scoped to .xd.
  */
 
 .xd {
-  --xd-bg: #1d1d20;
-  --xd-bg-deep: #18181b;
-  --xd-surface: #222225;
-  --xd-surface2: #2a2a2e;
-  --xd-border: #c8ceda24;
-  --xd-border-strong: #c8ceda40;
-  --xd-txt: #fbfbfc;
-  --xd-txt2: #d9d9de;
-  --xd-txt3: #c8ceda99;
-  --xd-txt4: #c8ceda66;
-  --xd-brand: #155aef;
-  --xd-sky: #5289ff;
+  --xd-bg: #0a0826;
+  --xd-bg-mid: #151236;
+  --xd-surface: #32294d;
+  --xd-surface2: #261f3a;
+  --xd-surface3: #3d335f;
+  --xd-surface-hover: #3d325e;
+  --xd-border: #5c5183;
+  --xd-border-subtle: #453d63;
+  --xd-border-strong: #7e72a8;
+  --xd-txt: #ffffff;
+  --xd-txt2: #e9e7f1;
+  --xd-txt3: #c6c1d6;
+  --xd-txt4: #9d96b3;
+  --xd-brand: #1966ca;
+  --xd-brand-hover: #1c72e2;
+  --xd-brand-dim: #1f2b5e;
+  --xd-sky: #5a99eb;
   --xd-cyan: #22d3ee;
-  --xd-code-bg: #18181b;
+  --xd-code-bg: #261f3a;
 
-  background: var(--xd-bg);
+  /* The app's page backdrop: Midnight fading to a lifted middle, a violet glow
+     at the foot, and the wave lines along the bottom, fixed to the viewport. */
+  background-color: var(--xd-bg);
+  background-image:
+    url('/wave-bg.svg'),
+    radial-gradient(120% 70% at 50% 105%, rgba(109, 40, 217, 0.3), transparent 65%),
+    linear-gradient(176deg, var(--xd-bg) 0%, var(--xd-bg-mid) 60%, var(--xd-bg) 100%);
+  background-size: 100% 68%, auto, auto;
+  background-position: center bottom, center, center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--xd-txt2);
   font-family: var(--font-xp-body), system-ui, sans-serif;
   min-height: 100vh;
 }
 
-.xd ::selection { background: rgba(82, 137, 255, 0.35); }
+.xd ::selection { background: var(--xd-brand-dim); color: #fff; }
+
+/* Frosted chrome, as the app's top bar and sidebar: the backdrop shows
+   through, blurred so labels stay legible over the waves. */
+.xd-header {
+  background-color: color-mix(in srgb, var(--xd-surface) 70%, transparent);
+  backdrop-filter: blur(20px) saturate(1.3);
+  border-bottom: 1px solid var(--xd-border);
+}
+.xd-frost {
+  background-color: color-mix(in srgb, var(--xd-bg) 92%, transparent);
+  backdrop-filter: blur(24px) saturate(1.15);
+}
 
 /* ── Article typography ─────────────────────────────────────────────── */
 .xd-prose { font-size: 16px; line-height: 1.75; color: var(--xd-txt2); }
@@ -80,7 +108,7 @@
 .xd-prose a:not(.xd-card):not(.xd-anchor) {
   color: var(--xd-sky);
   text-decoration: underline;
-  text-decoration-color: rgba(82, 137, 255, 0.35);
+  text-decoration-color: rgba(90, 153, 235, 0.35);
   text-underline-offset: 3px;
 }
 .xd-prose a:not(.xd-card):not(.xd-anchor):hover { text-decoration-color: var(--xd-sky); }
@@ -105,9 +133,9 @@
   font-size: 0.86em;
   padding: 0.14em 0.4em;
   border-radius: 6px;
-  background: #ffffff0f;
-  border: 1px solid #c8ceda24;
-  color: #fbfbfc;
+  background: var(--xd-surface2);
+  border: 1px solid var(--xd-border-subtle);
+  color: var(--xd-txt2);
   white-space: normal;
   overflow-wrap: break-word;
   box-decoration-break: clone;
@@ -126,7 +154,7 @@
   border-radius: 10px;
 }
 .xd-prose thead th {
-  background: var(--xd-surface);
+  background: var(--xd-surface2);
   color: var(--xd-txt);
   font-weight: 600;
   text-align: left;
@@ -170,7 +198,7 @@
 .xd-prose pre > code { display: grid; }
 .xd-prose pre [data-line] { padding: 0 1.1em; }
 .xd-prose pre [data-highlighted-line] {
-  background: rgba(82, 137, 255, 0.12);
+  background: rgba(90, 153, 235, 0.12);
   box-shadow: inset 2px 0 0 var(--xd-sky);
 }
 .xd-prose pre code[data-line-numbers] { counter-reset: line; }
@@ -181,7 +209,7 @@
   width: 1.4rem;
   margin-right: 1.1rem;
   text-align: right;
-  color: #c8ceda40;
+  color: var(--xd-txt4);
 }
 
 /* ── Callouts ───────────────────────────────────────────────────────── */
@@ -195,8 +223,8 @@
   line-height: 1.65;
 }
 .xd-callout > div > * + * { margin-top: 0.5em; }
-.xd-callout-note { background: rgba(82, 137, 255, 0.08); border-color: rgba(82, 137, 255, 0.3); }
-.xd-callout-tip { background: rgba(40, 172, 106, 0.08); border-color: rgba(40, 172, 106, 0.32); }
+.xd-callout-note { background: rgba(90, 153, 235, 0.08); border-color: rgba(90, 153, 235, 0.3); }
+.xd-callout-tip { background: rgba(40, 172, 106, 0.1); border-color: rgba(40, 172, 106, 0.32); }
 .xd-callout-warning { background: rgba(240, 169, 25, 0.08); border-color: rgba(240, 169, 25, 0.32); }
 .xd-callout-danger { background: rgba(240, 68, 56, 0.08); border-color: rgba(240, 68, 56, 0.32); }
 
@@ -236,9 +264,9 @@
   letter-spacing: 0.02em;
 }
 .xd-method-GET { background: rgba(40, 172, 106, 0.15); color: #4ade80; }
-.xd-method-POST { background: rgba(82, 137, 255, 0.16); color: #84abff; }
+.xd-method-POST { background: rgba(90, 153, 235, 0.16); color: #7cb2f5; }
 .xd-method-PUT, .xd-method-PATCH { background: rgba(240, 169, 25, 0.15); color: #fbbf24; }
 .xd-method-DELETE { background: rgba(240, 68, 56, 0.15); color: #f87171; }
 
 /* Scrollbars in the sidebars */
-.xd-scroll { scrollbar-width: thin; scrollbar-color: rgba(200, 206, 218, 0.25) transparent; }
+.xd-scroll { scrollbar-width: thin; scrollbar-color: rgba(126, 114, 168, 0.45) transparent; }

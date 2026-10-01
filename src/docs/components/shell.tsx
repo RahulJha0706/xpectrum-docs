@@ -22,7 +22,7 @@ import SEARCH_INDEX from '../search-index.json'
 /* ── Header ───────────────────────────────────────────────────────────── */
 
 export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) => (
-  <header className='sticky top-0 z-40 border-b border-[var(--xd-border)] bg-[rgba(10,8,38,0.92)] backdrop-blur'>
+  <header className='sticky top-0 z-40 border-b border-[var(--xd-border)] bg-[rgba(29,29,32,0.92)] backdrop-blur'>
     <div className='mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6'>
       <button type='button' onClick={onMenu} className='-ml-1 rounded-md p-1.5 text-[var(--xd-txt3)] hover:text-white lg:hidden' aria-label='Open navigation'>
         <RiMenuLine className='h-5 w-5' />
@@ -51,7 +51,7 @@ export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch:
         ].map(([t, h]) => (
           <Link key={h} href={h} className='rounded-md px-3 py-1.5 text-[var(--xd-txt3)] transition-colors hover:text-white'>{t}</Link>
         ))}
-        <a href='https://cloud.xpectrum.dev/agents' className='ml-2 rounded-lg bg-[var(--xd-brand)] px-3.5 py-1.5 font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[#1c72e2]'>Dashboard</a>
+        <a href='https://cloud.xpectrum.dev/agents' className='ml-2 rounded-lg bg-[var(--xd-brand)] px-3.5 py-1.5 font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[#296dff]'>Dashboard</a>
       </nav>
     </div>
   </header>
@@ -60,7 +60,7 @@ export const DocsHeader = ({ onMenu, onSearch }: { onMenu: () => void; onSearch:
 /* ── Sidebar ──────────────────────────────────────────────────────────── */
 
 const Badge = ({ b }: { b: string }) => (
-  <span className={cn('ml-auto rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide', b === 'New' ? 'bg-[#28ac6a26] text-[#4ade80]' : b === 'Beta' ? 'bg-[#7c5cff26] text-[#b9a8ff]' : 'bg-white/10 text-[var(--xd-txt4)]')}>{b}</span>
+  <span className={cn('ml-auto rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide', b === 'New' ? 'bg-[#28ac6a26] text-[#4ade80]' : b === 'Beta' ? 'bg-[#155aef24] text-[#84abff]' : 'bg-white/10 text-[var(--xd-txt4)]')}>{b}</span>
 )
 
 export const DocsSidebar = ({ onNavigate }: { onNavigate?: () => void }) => {
@@ -274,8 +274,8 @@ export const DocsSearch = ({ open, onClose }: { open: boolean; onClose: () => vo
     router.push(e.href)
   }
   return (
-    <div className='fixed inset-0 z-50 flex items-start justify-center bg-[rgba(4,3,16,0.7)] px-4 pt-[12vh]' onClick={onClose}>
-      <div className='w-full max-w-[600px] overflow-hidden rounded-2xl border border-[var(--xd-border-strong)] bg-[#120f2e] shadow-2xl' onClick={e => e.stopPropagation()}>
+    <div className='fixed inset-0 z-50 flex items-start justify-center bg-[rgba(24,24,27,0.8)] px-4 pt-[12vh]' onClick={onClose}>
+      <div className='w-full max-w-[600px] overflow-hidden rounded-2xl border border-[var(--xd-border-strong)] bg-[#1d1d20] shadow-2xl' onClick={e => e.stopPropagation()}>
         <div className='flex items-center gap-3 border-b border-[var(--xd-border)] px-4'>
           <RiSearchLine className='h-5 w-5 text-[var(--xd-txt4)]' />
           <input

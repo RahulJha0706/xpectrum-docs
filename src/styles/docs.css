@@ -2,26 +2,26 @@
  * Xpectrum docs — theme and article typography.
  *
  * Layout follows the Next.js docs (sticky header, grouped left sidebar,
- * article, "On this page" on the right); colours are the Xpectrum palette
- * (see xpectrum-landing.css for the names). Everything is scoped to .xd.
+ * article, "On this page" on the right); colours are the Xpectrum app's dark
+ * theme tokens (background-body, panel-bg, text-*, divider-*, text-accent).
+ * Everything is scoped to .xd.
  */
 
 .xd {
-  --xd-bg: #0a0826;
-  --xd-bg-deep: #07051c;
-  --xd-surface: #151135;
-  --xd-surface2: #1d1843;
-  --xd-border: rgba(126, 114, 168, 0.22);
-  --xd-border-strong: rgba(126, 114, 168, 0.4);
-  --xd-txt: #ffffff;
-  --xd-txt2: #d9d5e6;
-  --xd-txt3: #aaa4bf;
-  --xd-txt4: #7e7795;
-  --xd-brand: #1966ca;
-  --xd-sky: #5a99eb;
+  --xd-bg: #1d1d20;
+  --xd-bg-deep: #18181b;
+  --xd-surface: #222225;
+  --xd-surface2: #2a2a2e;
+  --xd-border: #c8ceda24;
+  --xd-border-strong: #c8ceda40;
+  --xd-txt: #fbfbfc;
+  --xd-txt2: #d9d9de;
+  --xd-txt3: #c8ceda99;
+  --xd-txt4: #c8ceda66;
+  --xd-brand: #155aef;
+  --xd-sky: #5289ff;
   --xd-cyan: #22d3ee;
-  --xd-violet: #7c5cff;
-  --xd-code-bg: #0f0c28;
+  --xd-code-bg: #18181b;
 
   background: var(--xd-bg);
   color: var(--xd-txt2);
@@ -29,7 +29,7 @@
   min-height: 100vh;
 }
 
-.xd ::selection { background: rgba(90, 153, 235, 0.35); }
+.xd ::selection { background: rgba(82, 137, 255, 0.35); }
 
 /* ── Article typography ─────────────────────────────────────────────── */
 .xd-prose { font-size: 16px; line-height: 1.75; color: var(--xd-txt2); }
@@ -80,7 +80,7 @@
 .xd-prose a:not(.xd-card):not(.xd-anchor) {
   color: var(--xd-sky);
   text-decoration: underline;
-  text-decoration-color: rgba(90, 153, 235, 0.35);
+  text-decoration-color: rgba(82, 137, 255, 0.35);
   text-underline-offset: 3px;
 }
 .xd-prose a:not(.xd-card):not(.xd-anchor):hover { text-decoration-color: var(--xd-sky); }
@@ -105,9 +105,9 @@
   font-size: 0.86em;
   padding: 0.14em 0.4em;
   border-radius: 6px;
-  background: rgba(124, 92, 255, 0.14);
-  border: 1px solid rgba(124, 92, 255, 0.22);
-  color: #ddd4ff;
+  background: #ffffff0f;
+  border: 1px solid #c8ceda24;
+  color: #fbfbfc;
   white-space: normal;
   overflow-wrap: break-word;
   box-decoration-break: clone;
@@ -170,7 +170,7 @@
 .xd-prose pre > code { display: grid; }
 .xd-prose pre [data-line] { padding: 0 1.1em; }
 .xd-prose pre [data-highlighted-line] {
-  background: rgba(90, 153, 235, 0.12);
+  background: rgba(82, 137, 255, 0.12);
   box-shadow: inset 2px 0 0 var(--xd-sky);
 }
 .xd-prose pre code[data-line-numbers] { counter-reset: line; }
@@ -181,7 +181,7 @@
   width: 1.4rem;
   margin-right: 1.1rem;
   text-align: right;
-  color: #4a4466;
+  color: #c8ceda40;
 }
 
 /* ── Callouts ───────────────────────────────────────────────────────── */
@@ -195,7 +195,7 @@
   line-height: 1.65;
 }
 .xd-callout > div > * + * { margin-top: 0.5em; }
-.xd-callout-note { background: rgba(90, 153, 235, 0.08); border-color: rgba(90, 153, 235, 0.3); }
+.xd-callout-note { background: rgba(82, 137, 255, 0.08); border-color: rgba(82, 137, 255, 0.3); }
 .xd-callout-tip { background: rgba(40, 172, 106, 0.08); border-color: rgba(40, 172, 106, 0.32); }
 .xd-callout-warning { background: rgba(240, 169, 25, 0.08); border-color: rgba(240, 169, 25, 0.32); }
 .xd-callout-danger { background: rgba(240, 68, 56, 0.08); border-color: rgba(240, 68, 56, 0.32); }
@@ -236,9 +236,9 @@
   letter-spacing: 0.02em;
 }
 .xd-method-GET { background: rgba(40, 172, 106, 0.15); color: #4ade80; }
-.xd-method-POST { background: rgba(90, 153, 235, 0.16); color: #7cb2f5; }
+.xd-method-POST { background: rgba(82, 137, 255, 0.16); color: #84abff; }
 .xd-method-PUT, .xd-method-PATCH { background: rgba(240, 169, 25, 0.15); color: #fbbf24; }
 .xd-method-DELETE { background: rgba(240, 68, 56, 0.15); color: #f87171; }
 
 /* Scrollbars in the sidebars */
-.xd-scroll { scrollbar-width: thin; scrollbar-color: rgba(126, 114, 168, 0.35) transparent; }
+.xd-scroll { scrollbar-width: thin; scrollbar-color: rgba(200, 206, 218, 0.25) transparent; }
